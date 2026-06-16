@@ -2,12 +2,12 @@
 
 import { useEffect, useRef } from 'react'
 import {
-  Chart, BarElement, BarController, LinearScale, CategoryScale,
+  Chart, BarElement, LinearScale, CategoryScale,
   Tooltip, type ChartConfiguration,
 } from 'chart.js'
 import type { DayStats } from '@/lib/types'
 
-Chart.register(BarController, BarElement, LinearScale, CategoryScale, Tooltip)
+Chart.register(BarElement, LinearScale, CategoryScale, Tooltip)
 
 type Props = { days: DayStats[] }
 
@@ -47,7 +47,7 @@ export function DailyPnlChart({ days }: Props) {
             bodyColor: '#F1F1F3',
             callbacks: {
               label: ctx => {
-                const v = ctx.parsed.y ?? 0
+                const v = ctx.parsed.y
                 return ` ${v >= 0 ? '+' : ''}$${v.toFixed(2)}`
               },
             },
@@ -62,7 +62,7 @@ export function DailyPnlChart({ days }: Props) {
             grid: { color: 'rgba(255,255,255,.03)' },
             ticks: {
               color: '#606070', font: { size: 9 },
-              callback: v => `$${Number(v ?? 0).toFixed(0)}`,
+              callback: v => `$${Number(v).toFixed(0)}`,
             },
           },
         },

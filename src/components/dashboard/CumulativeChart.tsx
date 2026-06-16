@@ -3,10 +3,10 @@
 import { useEffect, useRef } from 'react'
 import {
   Chart, LineElement, PointElement, LinearScale, CategoryScale,
-  Filler, Tooltip, Legend, LineController, type ChartConfiguration,
+  Filler, Tooltip, Legend, type ChartConfiguration,
 } from 'chart.js'
 
-Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip, Legend)
+Chart.register(LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip, Legend)
 
 type Props = {
   labels: string[]
@@ -53,7 +53,7 @@ export function CumulativeChart({ labels, data }: Props) {
             bodyColor: '#F1F1F3',
             callbacks: {
               label: ctx => {
-                const v = ctx.parsed.y ?? 0
+                const v = ctx.parsed.y
                 return ` ${v >= 0 ? '+' : ''}$${v.toFixed(2)}`
               },
             },
@@ -68,7 +68,7 @@ export function CumulativeChart({ labels, data }: Props) {
             grid: { color: 'rgba(255,255,255,.03)' },
             ticks: {
               color: '#606070', font: { size: 9 },
-              callback: v => `$${Number(v ?? 0).toFixed(0)}`,
+              callback: v => `$${Number(v).toFixed(0)}`,
             },
           },
         },

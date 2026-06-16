@@ -5,11 +5,6 @@ import { AppShell } from '@/components/layout/AppShell'
 import { AddTradeModal, type TradeFormPayload } from '@/components/trades/AddTradeModal'
 import { TradeView } from '@/components/trades/TradeView'
 import { Dashboard } from '@/components/dashboard/Dashboard'
-import { Reports } from '@/components/reports/Reports'
-import { Notebook } from '@/components/notebook/Notebook'
-import { Strategies } from '@/components/strategies/Strategies'
-import { PositionSize } from '@/components/PositionSize'
-import { DASImport } from '@/components/DASImport'
 import type { TradeRow, DateRangeFilter } from '@/lib/types'
 import {
   fetchTrades, insertTrade, updateTrade,
@@ -114,7 +109,7 @@ export function AppProvider({ userId, userEmail }: Props) {
   }
 
   // All unique strategy names from trades
-  const strategies = Array.from(new Set(trades.map(t => t.setup).filter((s): s is string => Boolean(s)))).sort()
+  const strategies = [...new Set(trades.map(t => t.setup).filter(Boolean) as string[])].sort()
 
   const title = PAGE_TITLES[pathname] || 'TRADEBOOK'
 
@@ -147,32 +142,6 @@ export function AppProvider({ userId, userEmail }: Props) {
           filter={filter}
           onEdit={openEdit}
           onDelete={handleDelete}
-        />
-      )
-    }
-
-    if (pathname === '/reports') {
-      return <Reports trades={trades} filter={filter} />
-    }
-
-    if (pathname === '/notebook') {
-      return <Notebook userId={userId} />
-    }
-
-    if (pathname === '/strategies') {
-      return <Strategies userId={userId} />
-    }
-
-    if (pathname === '/position-size') {
-      return <PositionSize />
-    }
-
-    if (pathname === '/import') {
-      return (
-        <DASImport
-          userId={userId}
-          existingTrades={trades}
-          onImported={newTrades => setTrades(prev => [...newTrades, ...prev])}
         />
       )
     }

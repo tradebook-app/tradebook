@@ -14,7 +14,6 @@ const NAV = [
 
 const TOOLS = [
   { href: '/position-size', icon: '⊞', label: 'Position Size' },
-  { href: '/import',        icon: '↑',  label: 'DAS Import' },
 ]
 
 type Props = {

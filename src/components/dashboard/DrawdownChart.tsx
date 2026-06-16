@@ -3,10 +3,10 @@
 import { useEffect, useRef } from 'react'
 import {
   Chart, LineElement, PointElement, LinearScale, CategoryScale,
-  Filler, Tooltip, LineController, type ChartConfiguration,
+  Filler, Tooltip, type ChartConfiguration,
 } from 'chart.js'
 
-Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip)
+Chart.register(LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip)
 
 type Props = {
   labels: string[]
@@ -60,7 +60,7 @@ export function DrawdownChart({ labels, data }: Props) {
             grid: { color: 'rgba(255,255,255,.03)' },
             ticks: {
               color: '#606070', font: { size: 9 },
-              callback: v => `$${Number(v ?? 0).toFixed(0)}`,
+              callback: v => `$${Number(v).toFixed(0)}`,
             },
           },
         },
