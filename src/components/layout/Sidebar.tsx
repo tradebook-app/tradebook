@@ -1,0 +1,204 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+
+const NAV = [
+  { href: '/dashboard',   icon: '▣',  label: 'Dashboard' },
+  { href: '/trades',      icon: '⫐',  label: 'Trade View' },
+  { href: '/notebook',    icon: '☰',  label: 'Notebook' },
+  { href: '/reports',     icon: '◩',  label: 'Reports' },
+  { href: '/strategies',  icon: '◇',  label: 'Strategies' },
+]
+
+const TOOLS = [
+  { href: '/position-size', icon: '⊞', label: 'Position Size' },
+  { href: '/import',        icon: '↑',  label: 'DAS Import' },
+]
+
+type Props = {
+  onAddTrade: () => void
+  userEmail?: string
+}
+
+export function Sidebar({ onAddTrade, userEmail }: Props) {
+  const pathname = usePathname()
+  const router   = useRouter()
+  const supabase = createClient()
+
+  const initials = userEmail
+    ? userEmail.substring(0, 2).toUpperCase()
+    : 'AY'
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
+
+  return (
+    <nav style={{
+      width: '175px',
+      minHeight: '100vh',
+      background: 'var(--bg2)',
+      borderRight: '1px solid var(--brd)',
+      display: 'flex',
+      flexDirection: 'column',
+      flexShrink: 0,
+      overflowY: 'auto',
+    }}>
+      {/* Logo */}
+      <div style={{
+        padding: '14px',
+        borderBottom: '1px solid var(--brd)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+      }}>
+        <div style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '.02em' }}>
+          TRADE<span style={{ color: 'var(--ac2)' }}>BOOK</span>
+        </div>
+      </div>
+
+      {/* Add Trade Button */}
+      <button
+        onClick={onAddTrade}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '5px',
+          margin: '10px 10px 4px',
+          padding: '9px',
+          background: 'var(--ac)',
+          color: '#000',
+          borderRadius: 'var(--r)',
+          fontSize: '12px',
+          fontWeight: 700,
+          cursor: 'pointer',
+          border: 'none',
+          fontFamily: 'var(--sans)',
+          transition: '.15s',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--ac2)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'var(--ac)')}
+      >
+        + Add Trade
+      </button>
+
+      {/* Main Nav */}
+      <div style={{ padding: '4px 0' }}>
+        {NAV.map(({ href, icon, label }) => {
+          const active = pathname === href || pathname.startsWith(href + '/')
+          return (
+            <Link
+              key={href}
+              href={href}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 14px',
+                cursor: 'pointer',
+                color: active ? 'var(--ac2)' : 'var(--txt2)',
+                fontSize: '12px',
+                fontWeight: 500,
+                transition: '.1s',
+                borderLeft: `2px solid ${active ? 'var(--ac)' : 'transparent'}`,
+                background: active ? 'var(--ac-d)' : 'transparent',
+                textDecoration: 'none',
+              }}
+            >
+              <span style={{ fontSize: '13px', width: '16px', textAlign: 'center' }}>
+                {icon}
+              </span>
+              {label}
+            </Link>
+          )
+        })}
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: '1px', background: 'var(--brd)', margin: '5px 12px' }} />
+
+      {/* Tools */}
+      <div style={{ padding: '4px 0' }}>
+        {TOOLS.map(({ href, icon, label }) => {
+          const active = pathname === href
+          return (
+            <Link
+              key={href}
+              href={href}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 14px',
+                cursor: 'pointer',
+                color: active ? 'var(--ac2)' : 'var(--txt2)',
+                fontSize: '12px',
+                fontWeight: 500,
+                transition: '.1s',
+                borderLeft: `2px solid ${active ? 'var(--ac)' : 'transparent'}`,
+                background: active ? 'var(--ac-d)' : 'transparent',
+                textDecoration: 'none',
+              }}
+            >
+              <span style={{ fontSize: '13px', width: '16px', textAlign: 'center' }}>
+                {icon}
+              </span>
+              {label}
+            </Link>
+          )
+        })}
+      </div>
+
+      {/* Footer — User info */}
+      <div style={{
+        marginTop: 'auto',
+        padding: '10px 12px',
+        borderTop: '1px solid var(--brd)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
+          <div style={{
+            width: '26px', height: '26px',
+            background: 'var(--ac)',
+            borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '9px', fontWeight: 700, color: '#000', flexShrink: 0,
+          }}>
+            {initials}
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--txt)' }}>
+              {userEmail?.split('@')[0] || 'Ahmad Yassine'}
+            </div>
+            <div style={{ fontSize: '8px', color: 'var(--txt3)' }}>Swing + Day Trader</div>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          style={{
+            width: '100%',
+            padding: '5px 8px',
+            background: 'transparent',
+            border: '1px solid var(--brd2)',
+            borderRadius: 'var(--r)',
+            color: 'var(--txt3)',
+            fontSize: '9px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'var(--sans)',
+            textAlign: 'center',
+            transition: '.1s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,.3)' }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--txt3)'; e.currentTarget.style.borderColor = 'var(--brd2)' }}
+        >
+          Sign out
+        </button>
+      </div>
+    </nav>
+  )
+}
