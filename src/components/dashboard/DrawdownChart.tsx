@@ -60,7 +60,7 @@ export function DrawdownChart({ labels, data }: Props) {
             grid: { color: 'rgba(255,255,255,.03)' },
             ticks: {
               color: '#606070', font: { size: 9 },
-              callback: v => `$${Number(v).toFixed(0)}`,
+              callback: v => `$${Number(v ?? 0).toFixed(0)}`,
             },
           },
         },
