@@ -109,7 +109,7 @@ export function AppProvider({ userId, userEmail }: Props) {
   }
 
   // All unique strategy names from trades
-  const strategies = [...new Set(trades.map(t => t.setup).filter(Boolean) as string[])].sort()
+  const strategies = Array.from(new Set(trades.map(t => t.setup).filter((x) => Boolean(x)))).sort()
 
   const title = PAGE_TITLES[pathname] || 'TRADEBOOK'
 
