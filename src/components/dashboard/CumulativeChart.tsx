@@ -21,9 +21,8 @@ export function CumulativeChart({ labels, data }: Props) {
     if (!ref.current) return
     chartRef.current?.destroy()
 
-    const isUp = data.length === 0 || data[data.length - 1] >= 0
-    const color = isUp ? '#10B981' : '#EF4444'
-    const colorFade = isUp ? 'rgba(16,185,129,.08)' : 'rgba(239,68,68,.08)'
+    const color = '#10B981'
+    const colorFade = 'rgba(16,185,129,.08)'
 
     const config: ChartConfiguration = {
       type: 'line',
