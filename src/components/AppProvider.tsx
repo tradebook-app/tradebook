@@ -11,6 +11,7 @@ import {
   deleteTrade, deleteTrades, uploadScreenshot,
 } from '@/lib/tradeService'
 import { usePathname } from 'next/navigation'
+import { DasImport } from '@/components/import/DasImport'
 
 type Props = {
   userId: string
@@ -24,6 +25,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/reports':       'Reports',
   '/strategies':    'Strategies',
   '/position-size': 'Position Size',
+  '/import':        'Import DAS',
 }
 
 export function AppProvider({ userId, userEmail }: Props) {
@@ -108,6 +110,12 @@ export function AppProvider({ userId, userEmail }: Props) {
     }
   }
 
+  // Re-fetch all trades from the database (used after a bulk import)
+  async function reloadTrades() {
+    const data = await fetchTrades()
+    setTrades(data)
+  }
+
   // All unique strategy names from trades
   const strategies = Array.from(new Set(trades.map(t => t.setup).filter((x) => Boolean(x)))).sort()
 
@@ -142,6 +150,16 @@ export function AppProvider({ userId, userEmail }: Props) {
           filter={filter}
           onEdit={openEdit}
           onDelete={handleDelete}
+        />
+      )
+    }
+
+    if (pathname === '/import') {
+      return (
+        <DasImport
+          userId={userId}
+          existingTrades={trades}
+          onImported={reloadTrades}
         />
       )
     }
