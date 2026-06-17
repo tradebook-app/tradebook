@@ -15,6 +15,7 @@ import { DasImport } from '@/components/import/DasImport'
 import { Reports } from '@/components/reports/Reports'
 import { PositionSize } from '@/components/PositionSize'
 import { Strategies } from '@/components/strategies/Strategies'
+import { Notebook } from '@/components/notebook/Notebook'
 
 type Props = {
   userId: string
@@ -167,6 +168,10 @@ export function AppProvider({ userId, userEmail }: Props) {
 
     if (pathname === '/strategies') {
       return <Strategies userId={userId} />
+    }
+
+    if (pathname === '/notebook') {
+      return <Notebook userId={userId} />
     }
 
     if (pathname === '/import') {
