@@ -2,12 +2,12 @@
 
 import { useEffect, useRef } from 'react'
 import {
-  Chart, BarElement, LinearScale, CategoryScale,
+  Chart, BarController, BarElement, LinearScale, CategoryScale,
   Tooltip, type ChartConfiguration,
 } from 'chart.js'
 import type { DayStats } from '@/lib/types'
 
-Chart.register(BarElement, LinearScale, CategoryScale, Tooltip)
+Chart.register(BarController, BarElement, LinearScale, CategoryScale, Tooltip)
 
 type Props = { days: DayStats[] }
 

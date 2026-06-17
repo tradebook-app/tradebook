@@ -2,11 +2,11 @@
 
 import { useEffect, useRef } from 'react'
 import {
-  Chart, LineElement, PointElement, LinearScale, CategoryScale,
+  Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale,
   Filler, Tooltip, type ChartConfiguration,
 } from 'chart.js'
 
-Chart.register(LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip)
+Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip)
 
 type Props = {
   labels: string[]
