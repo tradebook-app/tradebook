@@ -2,6 +2,7 @@
 
 import type { TradeRow } from '@/lib/types'
 import { closedTrades, fmtPnl } from '@/lib/analytics'
+import { CumulativeChart } from '@/components/dashboard/CumulativeChart'
 
 type Props = { trades: TradeRow[] }
 
@@ -36,6 +37,15 @@ export function WinLossReport({ trades }: Props) {
 
   const gradeOrder = ['A+', 'A', 'A-', 'B', 'Ungraded']
   const gradeRows  = gradeOrder.filter(g => byGrade[g]).map(g => ({ grade: g, ...byGrade[g] }))
+
+  // Cumulative win / loss series (in date order)
+  const byDate  = closed.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+  const winSeq  = byDate.filter(t => t.pnl > 0)
+  const lossSeq = byDate.filter(t => t.pnl < 0)
+  let wr2 = 0; const wCum = winSeq.map(t => { wr2 += t.pnl; return wr2 })
+  let lr2 = 0; const lCum = lossSeq.map(t => { lr2 += t.pnl; return lr2 })
+  const wLabels = winSeq.map((_, i) => `#${i + 1}`)
+  const lLabels = lossSeq.map((_, i) => `#${i + 1}`)
 
   const Card = ({ title, items }: { title: string; items: TradeRow[] }) => (
     <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden', flex: 1 }}>
@@ -116,6 +126,18 @@ export function WinLossReport({ trades }: Props) {
       <div style={{ display: 'flex', gap: '14px' }}>
         <Card title="Best Wins" items={wins} />
         <Card title="Worst Losses" items={losses} />
+      </div>
+
+      {/* Cumulative win / loss charts */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+        <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Cumulative P&amp;L (Wins)</div>
+          <div style={{ padding: '14px 16px' }}><CumulativeChart labels={wLabels} data={wCum} /></div>
+        </div>
+        <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Cumulative P&amp;L (Losses)</div>
+          <div style={{ padding: '14px 16px' }}><CumulativeChart labels={lLabels} data={lCum} /></div>
+        </div>
       </div>
     </div>
   )
