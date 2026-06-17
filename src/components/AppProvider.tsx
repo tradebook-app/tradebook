@@ -154,6 +154,8 @@ export function AppProvider({ userId, userEmail }: Props) {
           filter={filter}
           onEdit={openEdit}
           onDelete={handleDelete}
+          userId={userId}
+          onReload={reloadTrades}
         />
       )
     }

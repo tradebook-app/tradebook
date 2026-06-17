@@ -13,6 +13,7 @@ import { DrawdownChart } from './DrawdownChart'
 import { MonthCalendar } from './MonthCalendar'
 import { RecentTrades } from './RecentTrades'
 import { OpenPositions } from './OpenPositions'
+import { BackupRestore } from './BackupRestore'
 import { TradePanel } from '@/components/trades/TradePanel'
 
 type Props = {
@@ -20,11 +21,13 @@ type Props = {
   filter: DateRangeFilter
   onEdit: (t: TradeRow) => void
   onDelete: (id: string) => void
+  userId: string
+  onReload: () => void
 }
 
 type BottomTab = 'recent' | 'open'
 
-export function Dashboard({ trades, filter, onEdit, onDelete }: Props) {
+export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }: Props) {
   const [bottomTab, setBottomTab] = useState<BottomTab>('recent')
   const [selected,  setSelected]  = useState<TradeRow | null>(null)
 
@@ -87,6 +90,9 @@ export function Dashboard({ trades, filter, onEdit, onDelete }: Props) {
 
   return (
     <>
+      {/* Backup / Restore */}
+      <BackupRestore userId={userId} onRestored={onReload} />
+
       {/* KPI cards */}
       <DashboardKPIs kpi={kpi} openCount={open.length} openPnl={openPnl} />
 
