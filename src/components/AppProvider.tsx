@@ -13,6 +13,7 @@ import {
 import { usePathname } from 'next/navigation'
 import { DasImport } from '@/components/import/DasImport'
 import { Reports } from '@/components/reports/Reports'
+import { PositionSize } from '@/components/PositionSize'
 
 type Props = {
   userId: string
@@ -157,6 +158,10 @@ export function AppProvider({ userId, userEmail }: Props) {
 
     if (pathname === '/reports') {
       return <Reports trades={trades} filter={filter} />
+    }
+
+    if (pathname === '/position-size') {
+      return <PositionSize />
     }
 
     if (pathname === '/import') {
