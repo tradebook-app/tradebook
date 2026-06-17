@@ -154,7 +154,7 @@ export function AppProvider({ userId, userEmail }: Props) {
       )
     }
 
-    if (pathname === '/import') {
+    if (pathname === '/reports') {
       return (
         <DasImport
           userId={userId}
