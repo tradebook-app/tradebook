@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import type { DayStats } from '@/lib/types'
+import type { DayStats, TradeRow } from '@/lib/types'
 
-type Props = { days: DayStats[] }
+type Props = { days: DayStats[]; trades: TradeRow[] }
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const DOW    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -13,11 +13,15 @@ function fmtK(n: number): string {
   const s = abs >= 1000 ? `${(abs / 1000).toFixed(1)}k` : abs.toFixed(0)
   return `${n >= 0 ? '+' : '-'}$${s}`
 }
+function fmtUSD(n: number): string {
+  return `${n >= 0 ? '+' : '-'}$${Math.abs(n).toFixed(2)}`
+}
 
-export function MonthCalendar({ days }: Props) {
+export function MonthCalendar({ days, trades }: Props) {
   const now = new Date()
   const [year,  setYear]  = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth())
+  const [popupDate, setPopupDate] = useState<string | null>(null)
 
   const byDay = useMemo(() => {
     const map: Record<string, DayStats> = {}
@@ -35,7 +39,6 @@ export function MonthCalendar({ days }: Props) {
   const monthDays = days.filter(d => d.date.startsWith(prefix))
   const monthPnl  = monthDays.reduce((s, d) => s + d.pnl, 0)
 
-  // Weekly buckets (week of month = ceil((dayOfMonth + firstDayOffset) / 7))
   const weeks = useMemo(() => {
     const w: Record<number, { pnl: number; days: Set<number> }> = {}
     for (let d = 1; d <= daysCount; d++) {
@@ -61,6 +64,18 @@ export function MonthCalendar({ days }: Props) {
     cursor: 'pointer', fontSize: '13px', padding: '3px 9px', borderRadius: 'var(--r, 7px)',
   }
 
+  // Day popup data
+  const popupTrades = popupDate ? trades.filter(t => (t.date || '').substring(0, 10) === popupDate) : []
+  const pPnl = popupTrades.reduce((s, t) => s + (t.pnl || 0), 0)
+  const pWins = popupTrades.filter(t => (t.pnl || 0) > 0)
+  const pWr = popupTrades.length ? (pWins.length / popupTrades.length) * 100 : 0
+  const gW = pWins.reduce((s, t) => s + t.pnl, 0)
+  const gL = popupTrades.filter(t => (t.pnl || 0) < 0).reduce((s, t) => s + Math.abs(t.pnl), 0)
+  const pPf = gL > 0 ? gW / gL : gW > 0 ? gW : 0
+  const popupTitle = popupDate
+    ? new Date(`${popupDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    : ''
+
   return (
     <div>
       {/* Header */}
@@ -75,7 +90,6 @@ export function MonthCalendar({ days }: Props) {
 
       {/* Grid + weekly sidebar */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 120px', gap: '10px', alignItems: 'start' }}>
-        {/* Calendar */}
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px', marginBottom: '3px' }}>
             {DOW.map(d => (
@@ -99,10 +113,11 @@ export function MonthCalendar({ days }: Props) {
               return (
                 <div
                   key={i}
+                  onClick={() => { if (stats && stats.trades > 0) setPopupDate(ds) }}
                   style={{
                     background: bg, borderRadius: '6px', padding: '5px 4px', minHeight: '52px',
                     border: isToday ? '1px solid var(--ac)' : '1px solid transparent',
-                    cursor: stats ? 'pointer' : 'default',
+                    cursor: stats && stats.trades > 0 ? 'pointer' : 'default',
                   }}
                 >
                   <div style={{ fontSize: '9px', color: isToday ? 'var(--ac2)' : 'var(--txt3)' }}>{day}</div>
@@ -144,6 +159,66 @@ export function MonthCalendar({ days }: Props) {
           })}
         </div>
       </div>
+
+      {/* Day detail popup */}
+      {popupDate && (
+        <div
+          onClick={() => setPopupDate(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', width: '100%', maxWidth: '720px', maxHeight: '80vh', overflowY: 'auto' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--brd)' }}>
+              <span style={{ fontSize: '14px', fontWeight: 800 }}>{popupTitle}</span>
+              <button onClick={() => setPopupDate(null)} style={{ background: 'none', border: 'none', color: 'var(--txt3)', fontSize: '18px', cursor: 'pointer' }}>×</button>
+            </div>
+
+            {/* Summary cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', padding: '14px 18px' }}>
+              {[
+                { l: 'Net P&L', v: fmtUSD(pPnl), c: pPnl >= 0 ? 'var(--ac)' : 'var(--red)' },
+                { l: 'Win Rate', v: `${pWr.toFixed(0)}%`, c: 'var(--txt)' },
+                { l: 'Trades', v: String(popupTrades.length), c: 'var(--txt)' },
+                { l: 'Profit Factor', v: pPf.toFixed(2), c: pPf >= 1.5 ? 'var(--ac)' : 'var(--red)' },
+              ].map((s, i) => (
+                <div key={i} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '10px 12px' }}>
+                  <div style={{ fontSize: '9px', color: 'var(--txt3)' }}>{s.l}</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, fontFamily: 'var(--mono)', color: s.c }}>{s.v}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Trades table */}
+            <div style={{ padding: '0 18px 18px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                <thead>
+                  <tr style={{ color: 'var(--txt3)', textAlign: 'left' }}>
+                    {['Symbol','Side','Setup','Entry','Exit','Shares','P&L','Grade'].map(h => (
+                      <th key={h} style={{ padding: '7px 8px', fontSize: '9px', textTransform: 'uppercase', borderBottom: '1px solid var(--brd)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {popupTrades.map((t, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid var(--brd)' }}>
+                      <td style={{ padding: '7px 8px', fontWeight: 700, fontFamily: 'var(--mono)' }}>{t.symbol}</td>
+                      <td style={{ padding: '7px 8px', color: (t.type || 'Long') === 'Short' ? 'var(--red)' : 'var(--ac)' }}>{(t.type || 'Long')}</td>
+                      <td style={{ padding: '7px 8px', color: 'var(--txt3)' }}>{t.setup || '—'}</td>
+                      <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)' }}>{t.entry ? `$${t.entry}` : '—'}</td>
+                      <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)' }}>{t.exit ? `$${t.exit}` : '—'}</td>
+                      <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)' }}>{t.shares || '—'}</td>
+                      <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)', fontWeight: 700, color: (t.pnl || 0) >= 0 ? 'var(--ac)' : 'var(--red)' }}>{fmtUSD(t.pnl || 0)}</td>
+                      <td style={{ padding: '7px 8px', color: 'var(--txt3)' }}>{t.grade || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

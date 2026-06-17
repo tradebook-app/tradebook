@@ -106,16 +106,21 @@ export function calcDailyPnl(trades: TradeRow[]): DayStats[] {
 // ─── Cumulative P&L ──────────────────────────────────────────────────────────
 
 export function calcCumulative(trades: TradeRow[]): { labels: string[]; data: number[] } {
-  const sorted = [...closedTrades(trades)].sort((a, b) =>
-    a.date.localeCompare(b.date)
-  )
+  const closed = closedTrades(trades)
+  // Aggregate by day so a day with many trades is ONE point (a true daily cumulative)
+  const byDay: Record<string, number> = {}
+  closed.forEach(t => {
+    const d = (t.date || '').substring(0, 10)
+    byDay[d] = (byDay[d] || 0) + t.pnl
+  })
+  const days = Object.keys(byDay).sort()
   let running = 0
   const labels: string[] = []
   const data: number[]   = []
 
-  sorted.forEach(t => {
-    running += t.pnl
-    labels.push(format(new Date(t.date), 'MMM d'))
+  days.forEach(d => {
+    running += byDay[d]
+    labels.push(format(new Date(`${d}T12:00:00`), 'MMM d'))
     data.push(parseFloat(running.toFixed(2)))
   })
 
@@ -125,17 +130,21 @@ export function calcCumulative(trades: TradeRow[]): { labels: string[]; data: nu
 // ─── Drawdown ────────────────────────────────────────────────────────────────
 
 export function calcDrawdown(trades: TradeRow[]): { labels: string[]; data: number[] } {
-  const sorted = [...closedTrades(trades)].sort((a, b) =>
-    a.date.localeCompare(b.date)
-  )
+  const closed = closedTrades(trades)
+  const byDay: Record<string, number> = {}
+  closed.forEach(t => {
+    const d = (t.date || '').substring(0, 10)
+    byDay[d] = (byDay[d] || 0) + t.pnl
+  })
+  const days = Object.keys(byDay).sort()
   let running = 0, peak = 0
   const labels: string[] = []
   const data: number[]   = []
 
-  sorted.forEach(t => {
-    running += t.pnl
+  days.forEach(d => {
+    running += byDay[d]
     if (running > peak) peak = running
-    labels.push(format(new Date(t.date), 'MMM d'))
+    labels.push(format(new Date(`${d}T12:00:00`), 'MMM d'))
     data.push(parseFloat((-(peak - running)).toFixed(2)))
   })
 
