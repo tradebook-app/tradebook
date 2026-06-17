@@ -12,6 +12,7 @@ import {
 } from '@/lib/tradeService'
 import { usePathname } from 'next/navigation'
 import { DasImport } from '@/components/import/DasImport'
+import { Reports } from '@/components/reports/Reports'
 
 type Props = {
   userId: string
@@ -155,6 +156,10 @@ export function AppProvider({ userId, userEmail }: Props) {
     }
 
     if (pathname === '/reports') {
+      return <Reports trades={trades} filter={filter} />
+    }
+
+    if (pathname === '/import') {
       return (
         <DasImport
           userId={userId}
