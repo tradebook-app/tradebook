@@ -162,6 +162,8 @@ export type DASParsedTrade = {
   shares: number
   pl: number
   open?: boolean
+  entryTime?: number
+  exitTime?: number
 }
 
 // ─── Supabase Database type (for typed client) ───────────────────────────────

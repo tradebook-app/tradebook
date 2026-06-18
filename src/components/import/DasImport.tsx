@@ -199,6 +199,8 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
       let tripCost = 0
       let tripCloseShares = 0
       let tripCloseCost = 0
+      let tripEntryTime: number | undefined
+      let tripExitTime: number | undefined
 
       const flushClose = () => {
         const side = tripSide
@@ -215,6 +217,8 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
             exit: parseFloat(avgExit.toFixed(4)),
             shares: mQ,
             pl: parseFloat(pl.toFixed(2)),
+            entryTime: tripEntryTime,
+            exitTime: tripExitTime,
           })
         }
         tripSide = null
@@ -222,6 +226,8 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
         tripCost = 0
         tripCloseShares = 0
         tripCloseCost = 0
+        tripEntryTime = undefined
+        tripExitTime = undefined
       }
 
       sorted.forEach((ex) => {
@@ -232,12 +238,14 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
           tripCost = ex.price * ex.qty
           tripCloseShares = 0
           tripCloseCost = 0
+          tripEntryTime = ex.time
           pos = delta
         } else {
           const closing = (pos > 0 && !ex.isBuy) || (pos < 0 && ex.isBuy)
           if (closing) {
             tripCloseShares += ex.qty
             tripCloseCost += ex.price * ex.qty
+            tripExitTime = ex.time
             pos += delta
             if (Math.abs(pos) < 0.001) {
               flushClose()
@@ -263,6 +271,7 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
           shares: Math.abs(pos),
           pl: 0,
           open: true,
+          entryTime: tripEntryTime,
         })
       }
 
@@ -284,6 +293,8 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
           exit: isLong ? aS : aB,
           shares: mQ,
           pl: parseFloat(((aS - aB) * mQ).toFixed(2)),
+          entryTime: sorted[0]?.time,
+          exitTime: sorted[sorted.length - 1]?.time,
         })
       }
 
@@ -345,6 +356,14 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
     let imp = 0
     let skipped = 0
 
+    // Build "HH:MM:SS" from an exec time value (real DAS times are full timestamps; index fallbacks are small)
+    const tod = (tv?: number): string | null => {
+      if (!tv || tv < 1e9) return null
+      const d = new Date(tv)
+      const p = (n: number) => String(n).padStart(2, '0')
+      return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+    }
+
     for (let i = 0; i < parsed.length; i++) {
       if (!selected[i]) continue
       const t = parsed[i]
@@ -368,8 +387,8 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
       const tradeData: TradeInsert = {
         symbol: t.sym,
         type: t.side || 'Long',
-        date: `${ds}T12:00:00`,
-        exit_date: null,
+        date: `${ds}T${tod(t.entryTime) || '12:00:00'}`,
+        exit_date: (!t.open && tod(t.exitTime)) ? `${ds}T${tod(t.exitTime)}` : null,
         entry: parseFloat((t.entry || 0).toFixed(4)),
         exit: t.exit ? parseFloat(t.exit.toFixed(4)) : null,
         shares,
