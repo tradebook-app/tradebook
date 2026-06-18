@@ -93,7 +93,7 @@ export function MonthCalendar({ days, trades }: Props) {
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px', marginBottom: '3px' }}>
             {DOW.map(d => (
-              <div key={d} style={{ textAlign: 'center', fontSize: '8px', color: 'var(--txt4, #555)', padding: '2px 0' }}>{d}</div>
+              <div key={d} style={{ textAlign: 'center', fontSize: '9px', fontWeight: 600, color: 'var(--txt3, #888)', padding: '2px 0' }}>{d}</div>
             ))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px' }}>
@@ -120,7 +120,7 @@ export function MonthCalendar({ days, trades }: Props) {
                     cursor: stats && stats.trades > 0 ? 'pointer' : 'default',
                   }}
                 >
-                  <div style={{ fontSize: '9px', color: isToday ? 'var(--ac2)' : 'var(--txt3)' }}>{day}</div>
+                  <div style={{ fontSize: '10px', fontWeight: 600, color: isToday ? 'var(--ac2)' : 'var(--txt2, #a8a8b8)' }}>{day}</div>
                   {stats && (
                     <>
                       <div style={{ fontSize: '10px', fontFamily: 'var(--mono)', color: pnlColor, fontWeight: 700, marginTop: '2px' }}>

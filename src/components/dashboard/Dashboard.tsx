@@ -110,7 +110,7 @@ export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }
       </div>
 
       {/* Row 2: Calendar + weekly | Drawdown */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '12px', marginBottom: '12px', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '12px', marginBottom: '12px', alignItems: 'stretch' }}>
         <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '14px 16px' }}>
           <MonthCalendar days={dailyPnl} trades={filtered} />
         </div>

@@ -73,11 +73,11 @@ export function DrawdownChart({ labels, data }: Props) {
 
   if (!data.length) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '120px', color: 'var(--txt3)', fontSize: '11px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '140px', color: 'var(--txt3)', fontSize: '11px' }}>
         No data yet
       </div>
     )
   }
 
-  return <canvas ref={ref} style={{ width: '100%', height: '120px' }} />
+  return <canvas ref={ref} style={{ width: '100%', height: '100%', minHeight: '140px' }} />
 }
