@@ -48,13 +48,22 @@ export function TradeView({ trades, filter, onEdit, onDelete, onDeleteFiltered }
   const kpi = useMemo(() => calcKPIs(filterByDate(closedTrades(trades), filter)), [trades, filter])
 
   function handleDeleteFiltered() {
-    if (!filtered.length) return alert('No trades match current filters.')
-    const isAll = filtered.length === trades.filter(t => t.exit && t.exit > 0).length
+    const closed = trades.filter(t => t.exit && t.exit > 0)
+    const opens  = trades.filter(t => !(t.exit && t.exit > 0))
+    const isAll  = filtered.length === closed.length // no narrowing filters → "delete everything"
+
+    if (!filtered.length && opens.length === 0) return alert('No trades match current filters.')
+
+    // On a full delete, also sweep up open positions (they never show in this list)
+    const ids = isAll ? trades.map(t => t.id) : filtered.map(t => t.id)
+    const openNote = isAll && opens.length
+      ? ` (including ${opens.length} open position${opens.length > 1 ? 's' : ''})`
+      : ''
     const msg = isAll
-      ? `⚠️ Delete ALL ${filtered.length} trades? This cannot be undone.`
-      : `Delete ${filtered.length} filtered trade${filtered.length > 1 ? 's' : ''}? This cannot be undone.`
+      ? `⚠️ Delete ALL ${ids.length} trades${openNote}? This cannot be undone.`
+      : `Delete ${ids.length} filtered trade${ids.length > 1 ? 's' : ''}? This cannot be undone.`
     if (!confirm(msg)) return
-    onDeleteFiltered(filtered.map(t => t.id))
+    onDeleteFiltered(ids)
   }
 
   const finput: React.CSSProperties = {
