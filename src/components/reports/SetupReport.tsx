@@ -44,11 +44,11 @@ export function SetupReport({ trades }: Props) {
           <VerticalBars items={rows.map(r => ({
             label: r.setup,
             value: r.pnl,
-            sub: `${r.trades}t · ${r.wr.toFixed(0)}% · ${r.pf.toFixed(2)}PF`,
+            sub: `${r.trades} trades · ${r.wr.toFixed(0)}% WR · ${r.pf.toFixed(2)} PF`,
           }))} />
         </div>
         <div style={{ fontSize: '9px', color: 'var(--txt3)', padding: '0 18px 14px' }}>
-          t = trades · % = win rate · PF = profit factor (gross win ÷ gross loss)
+          WR = win rate · PF = profit factor (gross win / gross loss)
         </div>
       </div>
 

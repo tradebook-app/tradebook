@@ -57,38 +57,39 @@ export function PerformanceReport({ trades }: Props) {
   ] as [string, string, string][]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-        <Card title="Overall Performance">
-          {ROWS.map(([label, val, color], i) => (
-            <Row key={i} label={label} val={val} color={color} />
-          ))}
-        </Card>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', alignItems: 'start' }}>
+      <Card title="Overall Performance">
+        {ROWS.map(([label, val, color], i) => (
+          <Row key={i} label={label} val={val} color={color} />
+        ))}
+      </Card>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <Card title="Long vs Short">
           {SIDE_ROWS.map(([label, val, color], i) => (
             <Row key={i} label={label} val={val} color={color} />
           ))}
         </Card>
-      </div>
 
-      {/* Average hold times */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-        {([
-          ['Avg hold time (all)', avgAll],
-          ['Avg winner hold',     avgWinH],
-          ['Avg loser hold',      avgLossH],
-        ] as [string, number][]).map(([label, ms]) => (
-          <div key={label} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '16px 18px' }}>
-            <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>{label}</div>
-            <div style={{ fontSize: '22px', fontWeight: 800, fontFamily: 'var(--mono)', color: 'var(--txt)' }}>{fmtDur(ms)}</div>
-          </div>
-        ))}
-      </div>
-      {withExit.length === 0 && (
-        <div style={{ fontSize: '10px', color: 'var(--txt3)', marginTop: '-6px' }}>
-          Hold times need an exit date on your trades. Add exit dates (or they stay blank for imported trades).
+        {/* Average hold times — fill the empty space under Long vs Short */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+          {([
+            ['Avg hold time (all)', avgAll],
+            ['Avg winner hold',     avgWinH],
+            ['Avg loser hold',      avgLossH],
+          ] as [string, number][]).map(([label, ms]) => (
+            <div key={label} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '16px 18px' }}>
+              <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>{label}</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, fontFamily: 'var(--mono)', color: 'var(--txt)' }}>{fmtDur(ms)}</div>
+            </div>
+          ))}
         </div>
-      )}
+        {withExit.length === 0 && (
+          <div style={{ fontSize: '10px', color: 'var(--txt3)' }}>
+            Hold times need an exit date on your trades. Re-import with the latest version to capture them.
+          </div>
+        )}
+      </div>
     </div>
   )
 }
