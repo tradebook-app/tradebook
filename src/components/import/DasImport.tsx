@@ -86,6 +86,22 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
     return isNaN(d.getTime()) ? new Date() : d
   }
 
+  // DAS "Time" exports have no Date column — the date is the YYMMDD prefix of the Cloid/order id
+  const dateFromCloid = (cloid: string): Date | null => {
+    const digits = (cloid || '').replace(/\D/g, '')
+    if (digits.length >= 6) {
+      const yy = digits.substring(0, 2)
+      const mm = digits.substring(2, 4)
+      const dd = digits.substring(4, 6)
+      const mo = parseInt(mm, 10), day = parseInt(dd, 10)
+      if (mo >= 1 && mo <= 12 && day >= 1 && day <= 31) {
+        const d = new Date(`20${yy}-${mm}-${dd}`)
+        if (!isNaN(d.getTime())) return d
+      }
+    }
+    return null
+  }
+
   const trades: DASParsedTrade[] = []
 
   if (hasPL && iD !== -1) {
@@ -140,9 +156,10 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
       const timeStr = iTime !== -1 ? clean(c[iTime]) : ''
       const timeVal = timeStr ? new Date('2000/01/01 ' + timeStr).getTime() || i : i
       const cloid = iCloid !== -1 ? clean(c[iCloid]) : ''
+      const rowDate = iD !== -1 ? pDate(clean(c[iD])) : (dateFromCloid(cloid) || new Date())
       rawExecs.push({
         sym,
-        date: pDate(iD !== -1 ? clean(c[iD]) : ''),
+        date: rowDate,
         isBuy,
         price,
         qty,
