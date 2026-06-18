@@ -21,6 +21,14 @@ export function PerformanceReport({ trades }: Props) {
   const longPnl  = longTrades.reduce((s, t) => s + t.pnl, 0)
   const shortPnl = shortTrades.reduce((s, t) => s + t.pnl, 0)
 
+  // Average hold times (only trades that have an exit date)
+  const withExit = closed.filter(t => t.exit_date)
+  const holdMs = (t: TradeRow) => Math.max(0, new Date(t.exit_date!).getTime() - new Date(t.date).getTime())
+  const avgHold = (arr: TradeRow[]) => arr.length ? arr.reduce((s, t) => s + holdMs(t), 0) / arr.length : 0
+  const avgAll   = avgHold(withExit)
+  const avgWinH  = avgHold(withExit.filter(t => t.pnl > 0))
+  const avgLossH = avgHold(withExit.filter(t => t.pnl < 0))
+
   const ROWS = [
     ['Net P&L',          fmtPnl(kpi.netPnl),                     kpi.netPnl >= 0 ? 'var(--ac)' : 'var(--red)'],
     ['Gross Win',        `+$${grossWin.toFixed(2)}`,              'var(--ac)'],
@@ -49,19 +57,50 @@ export function PerformanceReport({ trades }: Props) {
   ] as [string, string, string][]
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-      <Card title="Overall Performance">
-        {ROWS.map(([label, val, color], i) => (
-          <Row key={i} label={label} val={val} color={color} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+        <Card title="Overall Performance">
+          {ROWS.map(([label, val, color], i) => (
+            <Row key={i} label={label} val={val} color={color} />
+          ))}
+        </Card>
+        <Card title="Long vs Short">
+          {SIDE_ROWS.map(([label, val, color], i) => (
+            <Row key={i} label={label} val={val} color={color} />
+          ))}
+        </Card>
+      </div>
+
+      {/* Average hold times */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+        {([
+          ['Avg hold time (all)', avgAll],
+          ['Avg winner hold',     avgWinH],
+          ['Avg loser hold',      avgLossH],
+        ] as [string, number][]).map(([label, ms]) => (
+          <div key={label} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '16px 18px' }}>
+            <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>{label}</div>
+            <div style={{ fontSize: '22px', fontWeight: 800, fontFamily: 'var(--mono)', color: 'var(--txt)' }}>{fmtDur(ms)}</div>
+          </div>
         ))}
-      </Card>
-      <Card title="Long vs Short">
-        {SIDE_ROWS.map(([label, val, color], i) => (
-          <Row key={i} label={label} val={val} color={color} />
-        ))}
-      </Card>
+      </div>
+      {withExit.length === 0 && (
+        <div style={{ fontSize: '10px', color: 'var(--txt3)', marginTop: '-6px' }}>
+          Hold times need an exit date on your trades. Add exit dates (or they stay blank for imported trades).
+        </div>
+      )}
     </div>
   )
+}
+
+function fmtDur(ms: number): string {
+  if (ms <= 0) return '—'
+  const days = ms / 86400000
+  if (days >= 2) return `${days.toFixed(1)} days`
+  const totalH = Math.floor(ms / 3600000)
+  if (totalH >= 24) return `${Math.floor(totalH / 24)}d ${totalH % 24}h`
+  if (totalH >= 1)  return `${totalH}h ${Math.round((ms % 3600000) / 60000)}m`
+  return `${Math.round(ms / 60000)}m`
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {

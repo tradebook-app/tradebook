@@ -46,6 +46,20 @@ export function RiskReport({ trades }: Props) {
 
   const maxCount = Math.max(...bucketed.map(b => b.count), 1)
 
+  // R-Multiple performance by period (sum of R-multiples)
+  const now = new Date()
+  const weekStart = (() => {
+    const d = new Date(now); const dow = d.getDay()
+    d.setDate(d.getDate() + ((dow === 0 ? -6 : 1) - dow)); d.setHours(0, 0, 0, 0); return d
+  })()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const yearStart  = new Date(now.getFullYear(), 0, 1)
+  const sumRSince = (start: Date) =>
+    closed.reduce((s, t) => (new Date(t.date) >= start ? s + t.pnl / t.risk : s), 0)
+  const rWeek  = sumRSince(weekStart)
+  const rMonth = sumRSince(monthStart)
+  const rYear  = sumRSince(yearStart)
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
@@ -63,6 +77,27 @@ export function RiskReport({ trades }: Props) {
             <div style={{ fontSize: '16px', fontWeight: 800, fontFamily: 'var(--mono)', color: s.color }}>{s.val}</div>
           </div>
         ))}
+      </div>
+
+      {/* R-Multiple Performance by period */}
+      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+        <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>
+          R-Multiple Performance
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', padding: '16px 18px' }}>
+          {([
+            ['This Week',  rWeek],
+            ['This Month', rMonth],
+            ['This Year',  rYear],
+          ] as [string, number][]).map(([label, val]) => (
+            <div key={label} style={{ background: 'var(--bg4, #16161e)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
+              <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>{label}</div>
+              <div style={{ fontSize: '22px', fontWeight: 800, fontFamily: 'var(--mono)', color: val >= 0 ? 'var(--ac)' : 'var(--red)' }}>
+                {val >= 0 ? '+' : ''}{val.toFixed(2)}R
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Distribution chart */}
