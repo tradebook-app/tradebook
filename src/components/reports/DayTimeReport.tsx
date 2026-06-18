@@ -54,6 +54,9 @@ export function DayTimeReport({ trades }: Props) {
             }
           })} />
         </div>
+        <div style={{ fontSize: '9px', color: 'var(--txt3)', padding: '0 18px 14px' }}>
+          t = trades · WR = win rate
+        </div>
       </div>
 
       {/* Hour of Day */}

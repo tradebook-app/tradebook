@@ -47,6 +47,9 @@ export function SetupReport({ trades }: Props) {
             sub: `${r.trades}t · ${r.wr.toFixed(0)}% · ${r.pf.toFixed(2)}PF`,
           }))} />
         </div>
+        <div style={{ fontSize: '9px', color: 'var(--txt3)', padding: '0 18px 14px' }}>
+          t = trades · % = win rate · PF = profit factor (gross win ÷ gross loss)
+        </div>
       </div>
 
       {/* Table */}

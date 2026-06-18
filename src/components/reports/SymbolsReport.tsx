@@ -33,6 +33,9 @@ export function SymbolsReport({ trades }: Props) {
             sub: `${s.trades}t · ${((s.wins / s.trades) * 100).toFixed(0)}% WR`,
           }))} />
         </div>
+        <div style={{ fontSize: '9px', color: 'var(--txt3)', padding: '0 18px 14px' }}>
+          t = trades · WR = win rate
+        </div>
       </div>
 
       {/* Full table */}
