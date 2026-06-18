@@ -76,7 +76,7 @@ export function RiskReport({ trades }: Props) {
             const isPos = b.min >= 0
             return (
               <div key={i} style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', width: `${100 / bucketed.length}%`, padding: '0 3px', verticalAlign: 'bottom' }}>
-                <div style={{ fontSize: '9px', fontFamily: 'var(--mono)', color: isPos ? 'var(--ac)' : 'var(--red)', marginBottom: '4px', fontWeight: b.count > 0 ? 700 : 400 }}>
+                <div style={{ fontSize: '11px', fontFamily: 'var(--mono)', color: isPos ? 'var(--ac)' : 'var(--red)', marginBottom: '4px', fontWeight: 800 }}>
                   {b.count > 0 ? b.count : ''}
                 </div>
                 <div style={{
@@ -85,7 +85,7 @@ export function RiskReport({ trades }: Props) {
                   borderRadius: '3px 3px 0 0', minHeight: b.count ? '4px' : '0',
                   border: isPos ? '1px solid rgba(16,185,129,.6)' : '1px solid rgba(239,68,68,.6)',
                 }} />
-                <div style={{ fontSize: '8px', color: 'var(--txt3)', marginTop: '4px', textAlign: 'center' }}>{b.label}</div>
+                <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--txt2, #b8b8c4)', marginTop: '6px', textAlign: 'center' }}>{b.label}</div>
               </div>
             )
           })}

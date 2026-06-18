@@ -52,6 +52,20 @@ export function OverviewReport({ trades }: Props) {
   const bestMo  = moE.length ? moE.reduce((a, b) => (a[1] > b[1] ? a : b)) : ['—', 0] as [string, number]
   const worstMo = moE.length ? moE.reduce((a, b) => (a[1] < b[1] ? a : b)) : ['—', 0] as [string, number]
 
+  // By week (Monday-started)
+  const weekKey = (ds: string) => {
+    const d = new Date(`${ds}T12:00:00`)
+    const dow = d.getDay()                 // 0=Sun
+    const diff = (dow === 0 ? -6 : 1) - dow // shift back to Monday
+    d.setDate(d.getDate() + diff)
+    return d.toISOString().substring(0, 10)
+  }
+  const byWeek: Record<string, number> = {}
+  closed.forEach(t => { const w = weekKey((t.date || '').substring(0, 10)); byWeek[w] = (byWeek[w] || 0) + t.pnl })
+  const weekVals = Object.values(byWeek)
+  const bestWeek  = weekVals.length ? Math.max(...weekVals) : 0
+  const worstWeek = weekVals.length ? Math.min(...weekVals) : 0
+
   const totalVol = closed.reduce((s, t) => s + (t.shares || 0), 0)
   const recovery = maxDD > 0 ? (pnl / maxDD).toFixed(2) : '∞'
 
@@ -118,13 +132,26 @@ export function OverviewReport({ trades }: Props) {
 
   return (
     <div>
-      {/* Best/Worst month */}
+      {/* Best / Worst — Day, Week, Month */}
       <div style={{ background: 'var(--bg4, #16161e)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '14px 18px', marginBottom: '14px' }}>
-        <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '10px' }}>Your Stats</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-          {topCard('Best month', fmtK(bestMo[1] as number), monthLabel(bestMo[0] as string))}
-          {topCard('Worst month', fmtK(worstMo[1] as number), monthLabel(worstMo[0] as string))}
-          {topCard('Average', fmtK(moE.length ? pnl / moE.length : 0), 'per month')}
+        <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '12px' }}>Your Stats</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '22px' }}>
+          {([
+            ['Day',   bestDay,            worstDay],
+            ['Week',  bestWeek,           worstWeek],
+            ['Month', bestMo[1] as number, worstMo[1] as number],
+          ] as [string, number, number][]).map(([period, b, w]) => (
+            <div key={period}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '7px 0', borderBottom: '1px solid var(--brd)' }}>
+                <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>Best {period}</span>
+                <span style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'var(--mono)', color: b >= 0 ? 'var(--ac)' : 'var(--red)' }}>{fmtK(b)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '7px 0' }}>
+                <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>Worst {period}</span>
+                <span style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'var(--mono)', color: w >= 0 ? 'var(--ac)' : 'var(--red)' }}>{fmtK(w)}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

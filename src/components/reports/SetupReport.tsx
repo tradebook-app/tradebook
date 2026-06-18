@@ -2,6 +2,7 @@
 
 import type { TradeRow } from '@/lib/types'
 import { closedTrades, fmtPnl } from '@/lib/analytics'
+import { VerticalBars } from './VerticalBars'
 
 type Props = { trades: TradeRow[] }
 
@@ -40,18 +41,11 @@ export function SetupReport({ trades }: Props) {
       <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
         <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>P&L by Setup</div>
         <div style={{ padding: '16px 18px' }}>
-          {rows.map((r, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <div style={{ width: '120px', fontSize: '11px', color: 'var(--txt)', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.setup}</div>
-              <div style={{ flex: 1, height: '24px', background: 'var(--bg4)', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
-                <div style={{ width: `${(Math.abs(r.pnl) / maxPnl) * 100}%`, height: '100%', background: r.pnl >= 0 ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.3)', borderRadius: '4px' }} />
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', paddingLeft: '8px', gap: '8px' }}>
-                  <span style={{ fontSize: '10px', fontFamily: 'var(--mono)', fontWeight: 700, color: r.pnl >= 0 ? 'var(--ac)' : 'var(--red)' }}>{fmtPnl(r.pnl)}</span>
-                  <span style={{ fontSize: '9px', color: 'var(--txt3)' }}>{r.trades}t · {r.wr.toFixed(0)}% WR · {r.pf.toFixed(2)}PF</span>
-                </div>
-              </div>
-            </div>
-          ))}
+          <VerticalBars items={rows.map(r => ({
+            label: r.setup,
+            value: r.pnl,
+            sub: `${r.trades}t · ${r.wr.toFixed(0)}% · ${r.pf.toFixed(2)}PF`,
+          }))} />
         </div>
       </div>
 

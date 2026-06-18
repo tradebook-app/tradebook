@@ -2,6 +2,7 @@
 
 import type { TradeRow } from '@/lib/types'
 import { closedTrades, calcSymbolStats, fmtPnl } from '@/lib/analytics'
+import { VerticalBars } from './VerticalBars'
 
 type Props = { trades: TradeRow[] }
 
@@ -26,28 +27,11 @@ export function SymbolsReport({ trades }: Props) {
           P&L by Symbol
         </div>
         <div style={{ padding: '16px 18px' }}>
-          {stats.slice(0, 15).map((s, i) => {
-            const barW = (Math.abs(s.pnl) / maxPnl) * 100
-            const wr   = (s.wins / s.trades) * 100
-            return (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                <div style={{ width: '55px', fontSize: '11px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--txt)', flexShrink: 0 }}>{s.symbol}</div>
-                <div style={{ flex: 1, height: '24px', background: 'var(--bg4)', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
-                  <div style={{
-                    width: `${barW}%`, height: '100%',
-                    background: s.pnl >= 0 ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.3)',
-                    borderRadius: '4px',
-                  }} />
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', paddingLeft: '8px', gap: '8px' }}>
-                    <span style={{ fontSize: '10px', fontFamily: 'var(--mono)', fontWeight: 700, color: s.pnl >= 0 ? 'var(--ac)' : 'var(--red)' }}>
-                      {fmtPnl(s.pnl)}
-                    </span>
-                    <span style={{ fontSize: '9px', color: 'var(--txt3)' }}>{s.trades}t · {wr.toFixed(0)}% WR</span>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+          <VerticalBars items={stats.slice(0, 15).map(s => ({
+            label: s.symbol,
+            value: s.pnl,
+            sub: `${s.trades}t · ${((s.wins / s.trades) * 100).toFixed(0)}% WR`,
+          }))} />
         </div>
       </div>
 

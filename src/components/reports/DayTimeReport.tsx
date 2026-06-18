@@ -2,6 +2,7 @@
 
 import type { TradeRow } from '@/lib/types'
 import { closedTrades, fmtPnl } from '@/lib/analytics'
+import { VerticalBars } from './VerticalBars'
 
 type Props = { trades: TradeRow[] }
 
@@ -43,38 +44,15 @@ export function DayTimeReport({ trades }: Props) {
           Performance by Day of Week
         </div>
         <div style={{ padding: '16px 18px' }}>
-          {byDow.map((d, i) => {
-            if (i === 0 || i === 6) return null // Skip weekends if no data
-            const wr   = d.trades ? (d.wins / d.trades) * 100 : 0
-            const barW = d.trades ? (Math.abs(d.pnl) / maxDowPnl) * 100 : 0
-            const isPos = d.pnl >= 0
-            return (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                <div style={{ width: '80px', fontSize: '11px', color: 'var(--txt2)', flexShrink: 0 }}>{DAYS[i]}</div>
-                <div style={{ flex: 1, height: '22px', background: 'var(--bg4)', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
-                  <div style={{
-                    width: `${barW}%`, height: '100%',
-                    background: isPos ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.3)',
-                    borderRadius: '4px',
-                    transition: 'width .3s',
-                  }} />
-                  {d.trades > 0 && (
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', paddingLeft: '8px', gap: '8px' }}>
-                      <span style={{ fontSize: '10px', fontFamily: 'var(--mono)', fontWeight: 700, color: isPos ? 'var(--ac)' : 'var(--red)' }}>
-                        {fmtPnl(d.pnl)}
-                      </span>
-                      <span style={{ fontSize: '9px', color: 'var(--txt3)' }}>{d.trades}t · {wr.toFixed(0)}% WR</span>
-                    </div>
-                  )}
-                  {d.trades === 0 && (
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', paddingLeft: '8px' }}>
-                      <span style={{ fontSize: '9px', color: 'var(--txt4)' }}>No trades</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+          <VerticalBars items={[1, 2, 3, 4, 5].map(i => {
+            const d = byDow[i]
+            const wr = d.trades ? (d.wins / d.trades) * 100 : 0
+            return {
+              label: DAYS[i].slice(0, 3),
+              value: d.pnl,
+              sub: d.trades ? `${d.trades}t · ${wr.toFixed(0)}% WR` : 'No trades',
+            }
+          })} />
         </div>
       </div>
 
