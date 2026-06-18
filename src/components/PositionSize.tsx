@@ -22,17 +22,25 @@ export function PositionSize() {
     const dR   = acc * rp / 100
     const maxD = acc * mp / 100
     const sd   = Math.abs(en - st)
-    let sh = sd > 0 ? Math.floor(dR / sd) : 0
-    if (maxD > 0 && en > 0) sh = Math.min(sh, Math.floor(maxD / en))
+    const riskShares = sd > 0 ? Math.floor(dR / sd) : 0
+    let sh = riskShares
+    let capped = false
+    if (maxD > 0 && en > 0) {
+      const maxSh = Math.floor(maxD / en)
+      if (maxSh < sh) { sh = maxSh; capped = true }
+    }
     const pv = sh * en
     const pa = acc > 0 ? pv / acc * 100 : 0
 
+    // Real 1R = what you ACTUALLY risk with the (possibly capped) share count
+    const actualRisk = sh * sd
+
     const targets = R_TARGETS.map(r => {
       const tgt = side === 'Long' ? en + sd * r : en - sd * r
-      return { r, tgt, profit: dR * r, pctAcc: acc > 0 ? dR * r / acc * 100 : 0 }
+      return { r, tgt, profit: actualRisk * r, pctAcc: acc > 0 ? actualRisk * r / acc * 100 : 0 }
     })
 
-    return { acc, dR, maxD, sd, sh, pv, pa, targets }
+    return { acc, dR, actualRisk, capped, maxD, sd, sh, pv, pa, targets }
   }, [account, riskPct, maxPct, entry, stop, side])
 
   // derived dollar displays for the linked inputs
@@ -147,6 +155,7 @@ export function PositionSize() {
         {/* Results */}
         <div>
           {resRow('Dollar Risk', `$${c.dR.toFixed(2)}`, 'var(--ac)')}
+          {c.capped && resRow('Actual Risk (capped)', `$${c.actualRisk.toFixed(2)}`, 'var(--amber, #f59e0b)')}
           {resRow('Shares', c.sh.toLocaleString(), 'var(--ac)', true)}
           {resRow('Position Value', `$${c.pv.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, 'var(--ac)')}
           {resRow('% of Account', `${c.pa.toFixed(2)}%`, c.pa > (parseFloat(maxPct) || 100) ? 'var(--red)' : 'var(--ac)')}
