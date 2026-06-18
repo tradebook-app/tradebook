@@ -11,11 +11,17 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
 type Props = {
   labels: string[]
   data: number[]
+  unit?: '$' | '%'
 }
 
-export function CumulativeChart({ labels, data }: Props) {
+export function CumulativeChart({ labels, data, unit = '$' }: Props) {
   const ref = useRef<HTMLCanvasElement>(null)
   const chartRef = useRef<Chart | null>(null)
+
+  const fmt = (v: number) =>
+    unit === '%'
+      ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
+      : `${v >= 0 ? '+' : ''}$${v.toFixed(2)}`
 
   useEffect(() => {
     if (!ref.current) return
@@ -51,10 +57,7 @@ export function CumulativeChart({ labels, data }: Props) {
             titleColor: '#9999AA',
             bodyColor: '#F1F1F3',
             callbacks: {
-              label: ctx => {
-                const v = ctx.parsed.y
-                return ` ${v >= 0 ? '+' : ''}$${v.toFixed(2)}`
-              },
+              label: ctx => ` ${fmt(ctx.parsed.y)}`,
             },
           },
         },
@@ -67,7 +70,7 @@ export function CumulativeChart({ labels, data }: Props) {
             grid: { color: 'rgba(255,255,255,.03)' },
             ticks: {
               color: '#606070', font: { size: 9 },
-              callback: v => `$${Number(v).toFixed(0)}`,
+              callback: v => unit === '%' ? `${Number(v).toFixed(0)}%` : `$${Number(v).toFixed(0)}`,
             },
           },
         },
@@ -76,7 +79,7 @@ export function CumulativeChart({ labels, data }: Props) {
 
     chartRef.current = new Chart(ref.current, config)
     return () => chartRef.current?.destroy()
-  }, [labels, data])
+  }, [labels, data, unit])
 
   if (data.length === 0) {
     return (

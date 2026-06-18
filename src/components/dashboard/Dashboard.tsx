@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import type { TradeRow, DateRangeFilter } from '@/lib/types'
 import {
   filterByDate, closedTrades, openTrades,
@@ -38,6 +38,23 @@ export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }
   const kpi        = useMemo(() => calcKPIs(filtered), [filtered])
   const dailyPnl   = useMemo(() => calcDailyPnl(filtered), [filtered])
   const cumulative = useMemo(() => calcCumulative(filtered), [filtered])
+
+  // $ / % toggle for the cumulative chart
+  const [cumMode, setCumMode] = useState<'$' | '%'>('$')
+  const [accountSize, setAccountSize] = useState<number>(0)
+  useEffect(() => {
+    const saved = localStorage.getItem('tb_account_size')
+    if (saved) setAccountSize(parseFloat(saved) || 0)
+  }, [])
+  function updateAccountSize(v: number) {
+    setAccountSize(v)
+    localStorage.setItem('tb_account_size', String(v || ''))
+  }
+  const cumPct = useMemo(
+    () => accountSize > 0 ? cumulative.data.map(v => parseFloat((v / accountSize * 100).toFixed(2))) : [],
+    [cumulative, accountSize]
+  )
+  const netPct = accountSize > 0 ? (kpi.netPnl / accountSize) * 100 : 0
   const drawdown   = useMemo(() => calcDrawdown(filtered), [filtered])
   const openPnl    = open.reduce((s, t) => s + (t.pnl || 0), 0)
   const maxDD      = drawdown.data.length ? Math.min(...drawdown.data) : 0
@@ -100,10 +117,54 @@ export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px', marginTop: '12px', marginBottom: '12px', alignItems: 'stretch' }}>
         {chartCard(
           'Daily net cumulative P&L',
-          <CumulativeChart labels={cumulative.labels} data={cumulative.data} />,
-          <span style={{ fontSize: '10px', fontFamily: 'var(--mono)', fontWeight: 700, color: kpi.netPnl >= 0 ? 'var(--ac)' : 'var(--red)' }}>
-            {kpi.netPnl >= 0 ? '+' : ''}${kpi.netPnl.toFixed(2)}
-          </span>
+          (cumMode === '%' && accountSize <= 0) ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', gap: '8px', color: 'var(--txt3)', fontSize: '11px', textAlign: 'center', padding: '0 20px' }}>
+              <span>Enter your account size to see your return %.</span>
+              <input
+                type="number"
+                value={accountSize || ''}
+                onChange={e => updateAccountSize(parseFloat(e.target.value) || 0)}
+                placeholder="e.g. 30000"
+                style={{ width: '140px', background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)', color: 'var(--txt)', borderRadius: 'var(--r)', padding: '6px 10px', fontSize: '12px', fontFamily: 'var(--mono)', textAlign: 'center' }}
+              />
+            </div>
+          ) : (
+            <CumulativeChart
+              labels={cumulative.labels}
+              data={cumMode === '%' ? cumPct : cumulative.data}
+              unit={cumMode}
+            />
+          ),
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {cumMode === '%' && accountSize > 0 && (
+              <input
+                type="number"
+                value={accountSize || ''}
+                onChange={e => updateAccountSize(parseFloat(e.target.value) || 0)}
+                title="Account size"
+                style={{ width: '64px', background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)', color: 'var(--txt2)', borderRadius: '5px', padding: '2px 6px', fontSize: '10px', fontFamily: 'var(--mono)' }}
+              />
+            )}
+            <span style={{ fontSize: '10px', fontFamily: 'var(--mono)', fontWeight: 700, color: kpi.netPnl >= 0 ? 'var(--ac)' : 'var(--red)' }}>
+              {cumMode === '%'
+                ? (accountSize > 0 ? `${netPct >= 0 ? '+' : ''}${netPct.toFixed(2)}%` : '—')
+                : `${kpi.netPnl >= 0 ? '+' : ''}$${kpi.netPnl.toFixed(2)}`}
+            </span>
+            <div style={{ display: 'flex', background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)', borderRadius: '6px', overflow: 'hidden' }}>
+              {(['$', '%'] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => setCumMode(m)}
+                  style={{
+                    border: 'none', cursor: 'pointer', fontSize: '10px', fontWeight: 700, padding: '3px 9px',
+                    fontFamily: 'var(--mono)',
+                    background: cumMode === m ? 'var(--ac)' : 'transparent',
+                    color: cumMode === m ? '#000' : 'var(--txt3)',
+                  }}
+                >{m}</button>
+              ))}
+            </div>
+          </div>
         )}
         {chartCard('Net daily P&L', <DailyPnlChart days={dailyPnl} />)}
         {recentCard}
