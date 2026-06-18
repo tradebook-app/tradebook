@@ -35,7 +35,7 @@ export function WinLossReport({ trades }: Props) {
     if (t.pnl > 0) byGrade[g].wins += 1
   })
 
-  const gradeOrder = ['A+', 'A', 'A-', 'B', 'Ungraded']
+  const gradeOrder = ['A+', 'A', 'A-', 'B', 'C', 'Ungraded']
   const gradeRows  = gradeOrder.filter(g => byGrade[g]).map(g => ({ grade: g, ...byGrade[g] }))
 
   // Cumulative win / loss series (in date order)

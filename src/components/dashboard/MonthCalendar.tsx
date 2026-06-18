@@ -126,7 +126,7 @@ export function MonthCalendar({ days, trades }: Props) {
                       <div style={{ fontSize: '10px', fontFamily: 'var(--mono)', color: pnlColor, fontWeight: 700, marginTop: '2px' }}>
                         {fmtK(stats.pnl)}
                       </div>
-                      <div style={{ fontSize: '7px', color: 'var(--txt4, #666)' }}>{stats.trades}t · {wr}%</div>
+                      <div style={{ fontSize: '8px', color: 'var(--txt2, #9aa)', fontWeight: 500 }}>{stats.trades}t · {wr}%</div>
                     </>
                   )}
                 </div>

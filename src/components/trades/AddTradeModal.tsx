@@ -29,7 +29,7 @@ export type TradeFormPayload = {
   notes: string | null
 }
 
-const GRADES = ['A+', 'A', 'A-', 'B']
+const GRADES = ['A+', 'A', 'A-', 'B', 'C']
 
 export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: Props) {
   const [symbol,     setSymbol]     = useState('')
@@ -86,7 +86,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: 
     setSymbol(''); setSide('Long')
     setDate(new Date().toISOString().substring(0, 16))
     setExitDate(''); setEntry(''); setExit(''); setShares('')
-    setPnlOver(''); setRisk(''); setCommission('150')
+    setPnlOver(''); setRisk(''); setCommission('')
     setSetup(''); setGrade(''); setTags([]); setTagInput('')
     setNotes(''); setImgPreview(null); setImgFile(null)
   }

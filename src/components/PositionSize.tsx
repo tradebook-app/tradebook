@@ -2,258 +2,185 @@
 
 import { useState, useMemo } from 'react'
 
+const R_TARGETS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50]
+
 export function PositionSize() {
-  const [account,   setAccount]   = useState('100000')
-  const [riskPct,   setRiskPct]   = useState('1')
-  const [entry,     setEntry]     = useState('')
-  const [stop,      setStop]      = useState('')
-  const [side,      setSide]      = useState<'Long' | 'Short'>('Long')
+  const [account, setAccount] = useState('')
+  const [riskPct, setRiskPct] = useState('0.5')
+  const [maxPct,  setMaxPct]  = useState('')
+  const [entry,   setEntry]   = useState('')
+  const [stop,    setStop]    = useState('')
+  const [side,    setSide]    = useState<'Long' | 'Short'>('Long')
 
-  const calc = useMemo(() => {
-    const acc  = parseFloat(account) || 0
-    const risk = parseFloat(riskPct) || 0
-    const en   = parseFloat(entry)   || 0
-    const st   = parseFloat(stop)    || 0
+  const c = useMemo(() => {
+    const acc = parseFloat(account) || 0
+    const rp  = parseFloat(riskPct) || 0
+    const mp  = parseFloat(maxPct)  || 0
+    const en  = parseFloat(entry)   || 0
+    const st  = parseFloat(stop)    || 0
 
-    if (!acc || !risk || !en || !st) return null
+    const dR   = acc * rp / 100
+    const maxD = acc * mp / 100
+    const sd   = Math.abs(en - st)
+    let sh = sd > 0 ? Math.floor(dR / sd) : 0
+    if (maxD > 0 && en > 0) sh = Math.min(sh, Math.floor(maxD / en))
+    const pv = sh * en
+    const pa = acc > 0 ? pv / acc * 100 : 0
 
-    const riskAmt   = acc * (risk / 100)
-    const stopDist  = Math.abs(en - st)
-    if (stopDist === 0) return null
-
-    const shares    = Math.floor(riskAmt / stopDist)
-    const posSize   = shares * en
-    const maxLoss   = shares * stopDist
-    const pctOfAcct = (posSize / acc) * 100
-
-    // R-multiple targets
-    const targets = [0.5, 1, 1.5, 2, 2.5, 3, 4, 5].map(r => {
-      const pnl    = r * riskAmt
-      const price  = side === 'Long'
-        ? en + pnl / shares
-        : en - pnl / shares
-      return { r, pnl, price }
+    const targets = R_TARGETS.map(r => {
+      const tgt = side === 'Long' ? en + sd * r : en - sd * r
+      return { r, tgt, profit: dR * r, pctAcc: acc > 0 ? dR * r / acc * 100 : 0 }
     })
 
-    return { riskAmt, stopDist, shares, posSize, maxLoss, pctOfAcct, targets }
-  }, [account, riskPct, entry, stop, side])
+    return { acc, dR, maxD, sd, sh, pv, pa, targets }
+  }, [account, riskPct, maxPct, entry, stop, side])
 
-  const lbl = (text: string) => (
-    <label style={{
-      display: 'block', fontSize: '9px', fontWeight: 600,
-      color: 'var(--txt3)', textTransform: 'uppercase',
-      letterSpacing: '.06em', marginBottom: '4px',
-    }}>{text}</label>
-  )
+  // derived dollar displays for the linked inputs
+  const acc = parseFloat(account) || 0
+  const riskDollar = acc > 0 && riskPct ? (acc * (parseFloat(riskPct) || 0) / 100).toFixed(2) : ''
+  const maxDollar  = acc > 0 && maxPct  ? (acc * (parseFloat(maxPct)  || 0) / 100).toFixed(0) : ''
 
-  const statRow = (label: string, value: string, color?: string) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 18px', borderBottom: '1px solid var(--brd)' }}>
-      <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{label}</span>
-      <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--mono)', color: color || 'var(--txt)' }}>{value}</span>
+  const lbl: React.CSSProperties = { display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '5px' }
+  const affix: React.CSSProperties = { background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)', padding: '8px 10px', fontSize: '11px', color: 'var(--txt3)', fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center' }
+  const dot = (color: string) => <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', marginRight: '7px' }} />
+
+  const resRow = (label: string, value: string, color?: string, bold?: boolean) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid var(--brd)' }}>
+      <span style={{ fontSize: '12px', color: 'var(--txt2)' }}>{label}</span>
+      <span style={{ fontSize: bold ? '16px' : '13px', fontWeight: bold ? 900 : 700, fontFamily: 'var(--mono)', color: color || 'var(--ac)' }}>{value}</span>
     </div>
   )
 
   return (
-    <div style={{ maxWidth: '900px' }}>
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>Position Size Calculator</div>
-        <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>
-          Calculate your exact share size based on account risk. Never risk more than you plan to.
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'start' }}>
+
+      {/* LEFT: Calculator */}
+      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: 700, marginBottom: '18px' }}>
+          {dot('var(--ac)')}Position Size Calculator
+        </div>
+
+        {/* Side toggle */}
+        <div style={{ marginBottom: '14px' }}>
+          <span style={lbl}>Side</span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {(['Long', 'Short'] as const).map(s => (
+              <button key={s} onClick={() => setSide(s)} style={{
+                flex: 1, padding: '8px', borderRadius: 'var(--r)', fontSize: '12px', fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'var(--sans)', border: 'none',
+                background: side === s ? (s === 'Long' ? 'var(--ac)' : 'var(--red)') : 'var(--bg4, #16161e)',
+                color: side === s ? (s === 'Long' ? '#000' : '#fff') : 'var(--txt3)',
+              }}>{s}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Account size */}
+        <div style={{ marginBottom: '14px' }}>
+          <span style={lbl}>Account Size</span>
+          <div style={{ display: 'flex' }}>
+            <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
+            <input className="fi" type="number" value={account} onChange={e => setAccount(e.target.value)}
+              placeholder="100000" style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
+          </div>
+        </div>
+
+        {/* Equity at risk per position */}
+        <div style={{ marginBottom: '14px' }}>
+          <span style={lbl}>Equity at Risk Per Position</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            <div style={{ display: 'flex' }}>
+              <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
+              <input className="fi" type="number" value={riskDollar}
+                onChange={e => setRiskPct(acc > 0 ? String((parseFloat(e.target.value) || 0) / acc * 100) : '0')}
+                placeholder="150" style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
+            </div>
+            <div style={{ display: 'flex' }}>
+              <input className="fi" type="number" value={riskPct} step="0.1"
+                onChange={e => setRiskPct(e.target.value)}
+                style={{ fontFamily: 'var(--mono)', borderRadius: 'var(--r) 0 0 var(--r)' }} />
+              <span style={{ ...affix, borderLeft: 0, borderRadius: '0 var(--r) var(--r) 0' }}>%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Max position size */}
+        <div style={{ marginBottom: '14px' }}>
+          <span style={lbl}>Max Position Size Allowed</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            <div style={{ display: 'flex' }}>
+              <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
+              <input className="fi" type="number" value={maxDollar}
+                onChange={e => setMaxPct(acc > 0 ? String((parseFloat(e.target.value) || 0) / acc * 100) : '0')}
+                placeholder="e.g. 10000" style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
+            </div>
+            <div style={{ display: 'flex' }}>
+              <input className="fi" type="number" value={maxPct}
+                onChange={e => setMaxPct(e.target.value)}
+                placeholder="e.g. 30" style={{ fontFamily: 'var(--mono)', borderRadius: 'var(--r) 0 0 var(--r)' }} />
+              <span style={{ ...affix, borderLeft: 0, borderRadius: '0 var(--r) var(--r) 0' }}>%</span>
+            </div>
+          </div>
+          <div style={{ fontSize: '9px', color: 'var(--txt3)', marginTop: '5px' }}>Swing trading: typically 25–35% of account</div>
+        </div>
+
+        {/* Entry price */}
+        <div style={{ marginBottom: '14px' }}>
+          <span style={lbl}>Entry Price</span>
+          <div style={{ display: 'flex' }}>
+            <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
+            <input className="fi" type="number" value={entry} onChange={e => setEntry(e.target.value)}
+              placeholder="0.00" style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
+          </div>
+        </div>
+
+        {/* Stop loss */}
+        <div style={{ marginBottom: '18px' }}>
+          <span style={lbl}>Stop Loss</span>
+          <div style={{ display: 'flex' }}>
+            <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
+            <input className="fi" type="number" value={stop} onChange={e => setStop(e.target.value)}
+              placeholder="0.00" style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
+          </div>
+        </div>
+
+        {/* Results */}
+        <div>
+          {resRow('Dollar Risk', `$${c.dR.toFixed(2)}`, 'var(--ac)')}
+          {resRow('Shares', c.sh.toLocaleString(), 'var(--ac)', true)}
+          {resRow('Position Value', `$${c.pv.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, 'var(--ac)')}
+          {resRow('% of Account', `${c.pa.toFixed(2)}%`, c.pa > (parseFloat(maxPct) || 100) ? 'var(--red)' : 'var(--ac)')}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0' }}>
+            <span style={{ fontSize: '12px', color: 'var(--txt2)' }}>Stop Distance</span>
+            <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ac)' }}>${c.sd.toFixed(2)}</span>
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '16px' }}>
-
-        {/* Input panel */}
-        <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-
-          {/* Side toggle */}
-          <div>
-            {lbl('Side')}
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {(['Long', 'Short'] as const).map(s => (
-                <button
-                  key={s}
-                  onClick={() => setSide(s)}
-                  style={{
-                    flex: 1, padding: '8px', borderRadius: 'var(--r)',
-                    fontSize: '12px', fontWeight: 700, cursor: 'pointer',
-                    fontFamily: 'var(--sans)', border: 'none',
-                    background: side === s
-                      ? s === 'Long' ? 'var(--ac)' : 'var(--red)'
-                      : 'var(--bg4)',
-                    color: side === s ? (s === 'Long' ? '#000' : '#fff') : 'var(--txt3)',
-                    transition: '.15s',
-                  }}
-                >{s}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* Account size */}
-          <div>
-            {lbl('Account Size ($)')}
-            <input
-              className="fi"
-              type="number"
-              value={account}
-              onChange={e => setAccount(e.target.value)}
-              placeholder="100000"
-              style={{ fontFamily: 'var(--mono)' }}
-            />
-          </div>
-
-          {/* Risk % */}
-          <div>
-            {lbl('Risk per Trade (%)')}
-            <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
-              {['0.5', '1', '1.5', '2'].map(v => (
-                <button
-                  key={v}
-                  onClick={() => setRiskPct(v)}
-                  style={{
-                    flex: 1, padding: '5px', borderRadius: 'var(--r)',
-                    fontSize: '10px', fontWeight: 700, cursor: 'pointer',
-                    fontFamily: 'var(--sans)',
-                    background: riskPct === v ? 'var(--ac-d)' : 'var(--bg4)',
-                    color: riskPct === v ? 'var(--ac2)' : 'var(--txt3)',
-                    border: '1px solid ' + (riskPct === v ? 'var(--ac)' : 'var(--brd2)'),
-                  }}
-                >{v}%</button>
-              ))}
-            </div>
-            <input
-              className="fi"
-              type="number"
-              value={riskPct}
-              onChange={e => setRiskPct(e.target.value)}
-              placeholder="1"
-              style={{ fontFamily: 'var(--mono)' }}
-            />
-          </div>
-
-          {/* Entry price */}
-          <div>
-            {lbl('Entry Price ($)')}
-            <input
-              className="fi"
-              type="number"
-              value={entry}
-              onChange={e => setEntry(e.target.value)}
-              placeholder="0.00"
-              style={{ fontFamily: 'var(--mono)' }}
-            />
-          </div>
-
-          {/* Stop loss */}
-          <div>
-            {lbl(`Stop Loss ($) — ${side === 'Long' ? 'below entry' : 'above entry'}`)}
-            <input
-              className="fi"
-              type="number"
-              value={stop}
-              onChange={e => setStop(e.target.value)}
-              placeholder="0.00"
-              style={{ fontFamily: 'var(--mono)' }}
-            />
-          </div>
-
-          {/* Risk amount preview */}
-          {account && riskPct && (
-            <div style={{
-              background: 'var(--bg4)', borderRadius: 'var(--r)',
-              padding: '10px 14px',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            }}>
-              <span style={{ fontSize: '10px', color: 'var(--txt3)' }}>Max Risk Amount</span>
-              <span style={{ fontSize: '14px', fontWeight: 800, fontFamily: 'var(--mono)', color: 'var(--red)' }}>
-                ${((parseFloat(account) || 0) * ((parseFloat(riskPct) || 0) / 100)).toFixed(2)}
-              </span>
-            </div>
-          )}
+      {/* RIGHT: R-Multiple Targets */}
+      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: 700, marginBottom: '16px' }}>
+          {dot('var(--ac)')}R-Multiple Targets
         </div>
-
-        {/* Results panel */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-
-          {!calc ? (
-            <div style={{
-              background: 'var(--bg3)', border: '1px solid var(--brd)',
-              borderRadius: 'var(--r2)', padding: '40px',
-              textAlign: 'center', color: 'var(--txt3)', fontSize: '11px',
-            }}>
-              Fill in all fields to calculate position size
-            </div>
-          ) : (
-            <>
-              {/* Main result */}
-              <div style={{
-                background: 'var(--bg3)', border: '1px solid var(--brd)',
-                borderRadius: 'var(--r2)', overflow: 'hidden',
-              }}>
-                <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>
-                  Position Sizing Result
-                </div>
-                <div style={{
-                  padding: '20px 18px', textAlign: 'center',
-                  borderBottom: '1px solid var(--brd)',
-                  background: 'var(--bg4)',
-                }}>
-                  <div style={{ fontSize: '10px', color: 'var(--txt3)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.06em' }}>Shares to Buy</div>
-                  <div style={{ fontSize: '48px', fontWeight: 900, fontFamily: 'var(--mono)', color: side === 'Long' ? 'var(--ac)' : 'var(--red)', lineHeight: 1 }}>
-                    {calc.shares.toLocaleString()}
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--txt3)', marginTop: '6px' }}>shares</div>
-                </div>
-                {statRow('Risk Amount (1R)',  `$${calc.riskAmt.toFixed(2)}`,   'var(--red)')}
-                {statRow('Stop Distance',     `$${calc.stopDist.toFixed(4)}`,  'var(--txt)')}
-                {statRow('Position Size',     `$${calc.posSize.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, 'var(--txt)')}
-                {statRow('Max Loss',          `-$${calc.maxLoss.toFixed(2)}`,  'var(--red)')}
-                {statRow('% of Account',      `${calc.pctOfAcct.toFixed(1)}%`, calc.pctOfAcct > 20 ? 'var(--red)' : 'var(--txt)')}
-              </div>
-
-              {/* R-Multiple targets */}
-              <div style={{
-                background: 'var(--bg3)', border: '1px solid var(--brd)',
-                borderRadius: 'var(--r2)', overflow: 'hidden',
-              }}>
-                <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>
-                  Profit Targets
-                </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      {['R-Multiple', 'Target Price', 'Profit ($)', 'ROI'].map(h => (
-                        <th key={h} style={{ fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', padding: '8px 16px', textAlign: 'left', borderBottom: '1px solid var(--brd)' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {calc.targets.map((t, i) => {
-                      const roi = (t.pnl / calc.posSize) * 100
-                      return (
-                        <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.01)' }}>
-                          <td style={{ padding: '8px 16px', fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ac2)', borderBottom: '1px solid var(--brd)', fontSize: '12px' }}>
-                            {t.r}R
-                          </td>
-                          <td style={{ padding: '8px 16px', fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)', fontSize: '12px' }}>
-                            ${t.price.toFixed(2)}
-                          </td>
-                          <td style={{ padding: '8px 16px', fontFamily: 'var(--mono)', color: 'var(--ac)', fontWeight: 600, borderBottom: '1px solid var(--brd)', fontSize: '12px' }}>
-                            +${t.pnl.toFixed(2)}
-                          </td>
-                          <td style={{ padding: '8px 16px', fontFamily: 'var(--mono)', color: 'var(--ac)', borderBottom: '1px solid var(--brd)', fontSize: '11px' }}>
-                            +{roi.toFixed(2)}%
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              {['R', 'Target Price', 'Profit', '% Account'].map((h, i) => (
+                <th key={h} style={{ fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.05em', padding: '9px 10px', textAlign: i === 0 ? 'left' : 'right', borderBottom: '1px solid var(--brd2, #2a2a35)' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {c.targets.map(t => (
+              <tr key={t.r}>
+                <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--txt2)', fontSize: '12px', borderBottom: '1px solid var(--brd)' }}>{t.r}R</td>
+                <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontSize: '12px', textAlign: 'right', borderBottom: '1px solid var(--brd)', color: 'var(--txt)' }}>${t.tgt.toFixed(2)}</td>
+                <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontSize: '12px', textAlign: 'right', borderBottom: '1px solid var(--brd)', color: 'var(--ac)', fontWeight: 600 }}>+${t.profit.toFixed(2)}</td>
+                <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontSize: '11px', textAlign: 'right', borderBottom: '1px solid var(--brd)', color: 'var(--txt3)' }}>{c.acc > 0 ? `${t.pctAcc.toFixed(2)}%` : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
