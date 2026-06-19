@@ -18,6 +18,7 @@ import { Strategies } from '@/components/strategies/Strategies'
 import { Notebook } from '@/components/notebook/Notebook'
 import { PlanProvider, usePlan } from '@/components/PlanProvider'
 import { UpgradeWall, UpgradeBanner } from '@/components/UpgradeWall'
+import { Settings } from '@/components/Settings'
 
 type Props = {
   userId: string
@@ -67,6 +68,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/strategies':    'Strategies',
   '/position-size': 'Position Size',
   '/import':        'Import DAS',
+  '/settings':      'Settings',
 }
 
 export function AppProvider({ userId, userEmail }: Props) {
@@ -215,6 +217,10 @@ export function AppProvider({ userId, userEmail }: Props) {
 
     if (pathname === '/import') {
       return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
+    }
+
+    if (pathname === '/settings') {
+      return <Settings userEmail={userEmail} />
     }
 
     return (
