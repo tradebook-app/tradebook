@@ -30,7 +30,7 @@ export function DashboardClient({ userEmail }: Props) {
       }}>
         <div style={{ fontSize: '32px' }}>✅</div>
         <div style={{ fontSize: '18px', fontWeight: 700 }}>
-          TRADEBOOK is live!
+          Sleektrade is live!
         </div>
         <div style={{ fontSize: '12px', color: 'var(--txt2)', textAlign: 'center', maxWidth: '360px', lineHeight: 1.6 }}>
           Phase 1 complete — auth, DB schema, and app shell are all wired up.

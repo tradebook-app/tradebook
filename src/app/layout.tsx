@@ -2,10 +2,10 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'TRADEBOOK — Trading Journal',
-  description: 'Professional trading journal for day traders and swing traders.',
+  title: 'Sleektrade — Trading Journal',
+  description: 'Sleektrade — the sleek trading journal for day traders and swing traders.',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/favicon.svg',
   },
 }
 

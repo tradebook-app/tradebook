@@ -31,7 +31,7 @@ export function BackupRestore({ userId, onRestored }: Props) {
         fetchTrades(), fetchNotes(), fetchStrategies(),
       ])
       const data = {
-        app: 'TRADEBOOK',
+        app: 'SLEEKTRADE',
         v: 1,
         exportedAt: new Date().toISOString(),
         counts: { trades: trades.length, notes: notes.length, strategies: strategies.length },
@@ -41,7 +41,7 @@ export function BackupRestore({ userId, onRestored }: Props) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `tradebook-${new Date().toISOString().split('T')[0]}.json`
+      a.download = `sleektrade-${new Date().toISOString().split('T')[0]}.json`
       a.click()
       URL.revokeObjectURL(url)
       setMsg(`Backed up ${trades.length} trades, ${notes.length} notes, ${strategies.length} strategies`)

@@ -123,7 +123,7 @@ export function AppProvider({ userId, userEmail }: Props) {
   // All unique strategy names from trades
   const strategies = Array.from(new Set(trades.map(t => t.setup).filter((x) => Boolean(x)))).sort()
 
-  const title = PAGE_TITLES[pathname] || 'TRADEBOOK'
+  const title = PAGE_TITLES[pathname] || 'Sleektrade'
 
   // Render correct page content
   function renderPage() {
