@@ -16,7 +16,6 @@ import { Reports } from '@/components/reports/Reports'
 import { PositionSize } from '@/components/PositionSize'
 import { Strategies } from '@/components/strategies/Strategies'
 import { Notebook } from '@/components/notebook/Notebook'
-import { SwingPlanner } from '@/components/SwingPlanner'
 
 type Props = {
   userId: string
@@ -31,7 +30,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/strategies':    'Strategies',
   '/position-size': 'Position Size',
   '/import':        'Import DAS',
-  '/swing-planner': 'Swing Planner',
 }
 
 export function AppProvider({ userId, userEmail }: Props) {
@@ -186,10 +184,6 @@ export function AppProvider({ userId, userEmail }: Props) {
           onImported={reloadTrades}
         />
       )
-    }
-
-    if (pathname === '/swing-planner') {
-      return <SwingPlanner />
     }
 
     return (
