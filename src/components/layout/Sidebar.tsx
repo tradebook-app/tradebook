@@ -57,7 +57,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
         alignItems: 'center',
         gap: '8px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
           <svg width="26" height="26" viewBox="0 0 64 64" style={{ flexShrink: 0 }}>
             <rect x="0" y="0" width="64" height="64" rx="14" fill="#062e21"/>
             <rect x="11" y="13" width="42" height="4" rx="2" fill="#5DCAA5"/>
@@ -72,7 +72,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
           <div style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '-.01em' }}>
             Sleek<span style={{ color: '#1D9E75' }}>trade</span>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Add Trade Button */}
