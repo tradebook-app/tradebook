@@ -16,10 +16,47 @@ import { Reports } from '@/components/reports/Reports'
 import { PositionSize } from '@/components/PositionSize'
 import { Strategies } from '@/components/strategies/Strategies'
 import { Notebook } from '@/components/notebook/Notebook'
+import { PlanProvider, usePlan } from '@/components/PlanProvider'
+import { UpgradeWall, UpgradeBanner } from '@/components/UpgradeWall'
 
 type Props = {
   userId: string
   userEmail?: string
+}
+
+// Gated wrappers — check plan before rendering
+function GatedReports({ trades, filter }: { trades: any[], filter: any }) {
+  const { isPro } = usePlan()
+  if (!isPro) return <UpgradeWall feature="Full Reports — Pro Feature" description="Upgrade to Pro to unlock all 7 report tabs with 25+ performance metrics including Day & Time, Symbols, Risk/R-Multiple, Win vs Loss, and Setups." />
+  return <Reports trades={trades} filter={filter} />
+}
+
+function GatedNotebook({ userId }: { userId: string }) {
+  const { isPro } = usePlan()
+  if (!isPro) return <UpgradeWall feature="Notebook — Pro Feature" description="Upgrade to Pro to unlock the Notebook and keep all your trade ideas, rules, and notes in one place." />
+  return <Notebook userId={userId} />
+}
+
+function GatedStrategies({ userId }: { userId: string }) {
+  const { isPro } = usePlan()
+  if (!isPro) return <UpgradeWall feature="Strategies — Pro Feature" description="Upgrade to Pro to build and manage your trading strategies with full notes and screenshots." />
+  return <Strategies userId={userId} />
+}
+
+function GatedImport({ userId, existingTrades, onImported }: { userId: string, existingTrades: any[], onImported: () => void }) {
+  const { isPro } = usePlan()
+  if (!isPro) return <UpgradeWall feature="DAS Trader Importer — Pro Feature" description="Upgrade to Pro to import your DAS Trader exports and automatically parse all your trades in one click." />
+  return <DasImport userId={userId} existingTrades={existingTrades} onImported={onImported} />
+}
+
+function DashboardWithBanner({ trades, filter, onEdit, onDelete, userId, onReload }: any) {
+  const { tradeCount, isPro } = usePlan()
+  return (
+    <div>
+      {!isPro && <UpgradeBanner tradeCount={tradeCount} limit={50} />}
+      <Dashboard trades={trades} filter={filter} onEdit={onEdit} onDelete={onDelete} userId={userId} onReload={onReload} />
+    </div>
+  )
 }
 
 const PAGE_TITLES: Record<string, string> = {
@@ -149,7 +186,7 @@ export function AppProvider({ userId, userEmail }: Props) {
 
     if (pathname === '/dashboard') {
       return (
-        <Dashboard
+        <DashboardWithBanner
           trades={trades}
           filter={filter}
           onEdit={openEdit}
@@ -161,7 +198,7 @@ export function AppProvider({ userId, userEmail }: Props) {
     }
 
     if (pathname === '/reports') {
-      return <Reports trades={trades} filter={filter} />
+      return <GatedReports trades={trades} filter={filter} />
     }
 
     if (pathname === '/position-size') {
@@ -169,21 +206,15 @@ export function AppProvider({ userId, userEmail }: Props) {
     }
 
     if (pathname === '/strategies') {
-      return <Strategies userId={userId} />
+      return <GatedStrategies userId={userId} />
     }
 
     if (pathname === '/notebook') {
-      return <Notebook userId={userId} />
+      return <GatedNotebook userId={userId} />
     }
 
     if (pathname === '/import') {
-      return (
-        <DasImport
-          userId={userId}
-          existingTrades={trades}
-          onImported={reloadTrades}
-        />
-      )
+      return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
     }
 
     return (
@@ -196,7 +227,7 @@ export function AppProvider({ userId, userEmail }: Props) {
   }
 
   return (
-    <>
+    <PlanProvider>
       <AppShell
         title={title}
         userEmail={userEmail}
@@ -214,6 +245,6 @@ export function AppProvider({ userId, userEmail }: Props) {
         editTrade={editTrade}
         strategies={strategies}
       />
-    </>
+    </PlanProvider>
   )
 }
