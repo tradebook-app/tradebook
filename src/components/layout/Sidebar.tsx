@@ -13,6 +13,7 @@ const NAV = [
 ]
 
 const TOOLS = [
+  { href: '/swing-planner', icon: '◎', label: 'Swing Planner' },
   { href: '/position-size', icon: '⊞', label: 'Position Size' },
   { href: '/import', icon: '⤓', label: 'Import DAS' },
   { href: '/billing', icon: '◈', label: 'Billing' },
