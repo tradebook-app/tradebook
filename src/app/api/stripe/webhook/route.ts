@@ -24,11 +24,16 @@ export async function POST(req: Request) {
       const userId = session.subscription_data?.metadata?.supabase_user_id
         || session.metadata?.supabase_user_id
       if (userId && session.subscription) {
+        // Detect plan from line items price ID
+        const elitePriceId = process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID
+        const lineItems = await stripe.checkout.sessions.listLineItems(session.id)
+        const priceId = lineItems.data[0]?.price?.id
+        const plan = priceId === elitePriceId ? 'elite' : 'pro'
         await supabase.from('profiles').upsert({
           id: userId,
           stripe_subscription_id: session.subscription as string,
           subscription_status: 'active',
-          plan: 'pro',
+          plan,
         })
       }
       break
