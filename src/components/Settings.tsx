@@ -115,14 +115,6 @@ export function Settings({ userEmail }: { userEmail?: string }) {
           </button>
         ))}
 
-        <div style={{ height: '1px', background: 'var(--brd)', margin: '12px 4px' }} />
-        <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', padding: '0 10px', marginBottom: '8px' }}>Quick links</div>
-        <Link href="/billing" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 14px', borderRadius: 'var(--r)', fontSize: '13px', color: 'var(--txt2)', textDecoration: 'none' }}>
-          <span>📊</span> Billing & Plan
-        </Link>
-        <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 14px', borderRadius: 'var(--r)', fontSize: '13px', color: 'var(--txt2)', textDecoration: 'none' }}>
-          <span>🏠</span> Back to Dashboard
-        </Link>
       </div>
 
       {/* RIGHT CONTENT */}
@@ -301,6 +293,25 @@ export function Settings({ userEmail }: { userEmail?: string }) {
                     </button>
                   )}
                 </div>
+
+                {/* Elite upsell — show when on Free or Pro */}
+                {plan !== 'elite' && (
+                  <div style={{
+                    background: 'linear-gradient(145deg, #0f1f1a, #0a1a14)',
+                    border: '1px solid rgba(16,185,129,.25)',
+                    borderRadius: 'var(--r2)', padding: '20px', marginBottom: '20px',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#10B981', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '4px' }}>Elite — $29/mo</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Everything in Pro + priority support</div>
+                      <div style={{ fontSize: '12px', color: 'var(--txt3)' }}>Early access · Broker integrations · AI insights (coming soon)</div>
+                    </div>
+                    <Link href="/billing" style={{ fontSize: '12px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '8px', padding: '9px 18px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                      Upgrade to Elite →
+                    </Link>
+                  </div>
+                )}
 
                 {/* Plan comparison */}
                 <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>What you get</div>
