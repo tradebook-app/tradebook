@@ -1,8 +1,8 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function BillingPage() {
+function BillingContent() {
   const [plan, setPlan] = useState<'free' | 'pro'>('free')
   const [tradeCount, setTradeCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -171,5 +171,13 @@ export default function BillingPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--txt3)' }}>Loading...</div>}>
+      <BillingContent />
+    </Suspense>
   )
 }
