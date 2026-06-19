@@ -58,7 +58,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
         gap: '8px',
       }}>
         <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-          <svg width="26" height="26" viewBox="0 0 64 64" style={{ flexShrink: 0 }}>
+          <svg width="34" height="34" viewBox="0 0 64 64" style={{ flexShrink: 0 }}>
             <rect x="0" y="0" width="64" height="64" rx="14" fill="#062e21"/>
             <rect x="11" y="13" width="42" height="4" rx="2" fill="#5DCAA5"/>
             <rect x="11" y="21" width="42" height="4" rx="2" fill="#5DCAA5" opacity={0.5}/>
@@ -69,7 +69,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
             <circle cx="33" cy="45" r="2.5" fill="#5DCAA5" opacity={0.7}/>
             <circle cx="51" cy="27" r="3.5" fill="#5DCAA5"/>
           </svg>
-          <div style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '-.01em' }}>
+          <div style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-.01em' }}>
             Sleek<span style={{ color: '#1D9E75' }}>trade</span>
           </div>
         </Link>
