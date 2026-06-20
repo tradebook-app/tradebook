@@ -5,9 +5,9 @@ import { useEffect } from 'react'
 // Price IDs from Stripe
 const PRICE_IDS: Record<string, string> = {
   'pro-monthly':    'price_1Tk9Ss9nrVYxaG6HA647kUMy',
-  'pro-yearly':     'price_1Tk9Ss9nrVYxaG6HA647kUMy', // update when you create yearly prices
+  'pro-yearly':     'price_1TkPHT8xhXO1bxf1ildBaMih',
   'elite-monthly':  'price_1Tk9YB9nrVYxaG6HdYrGcpRd',
-  'elite-yearly':   'price_1Tk9YB9nrVYxaG6HdYrGcpRd', // update when you create yearly prices
+  'elite-yearly':   'price_1TkSa48xhXO1bxf1yCEPLXH6',
 }
 
 export default function UpgradePage() {
