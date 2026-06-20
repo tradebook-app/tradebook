@@ -16,8 +16,7 @@ export default function ResetPasswordPage() {
     setError('')
     setLoading(true)
 const { error } = await supabase.auth.resetPasswordForEmail(email)
-const { error } = await supabase.auth.resetPasswordForEmail(email)
-const { error } = await supabase.auth.resetPasswordForEmail(email)
+
     if (error) {
       setError(error.message)
       setLoading(false)
