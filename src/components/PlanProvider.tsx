@@ -46,7 +46,6 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
 
   function canAccessFeature(feature: 'reports_full' | 'importer' | 'notebook' | 'strategies') {
     if (isPro) return true
-    // Free users can only access basic dashboard and 1 report tab
     return false
   }
 

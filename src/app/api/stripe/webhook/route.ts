@@ -44,11 +44,15 @@ export async function POST(req: Request) {
       const userId = sub.metadata?.supabase_user_id
       if (userId) {
         const isActive = sub.status === 'active' || sub.status === 'trialing'
+        // Detect plan from price ID
+        const elitePriceId = process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID
+        const priceId = sub.items?.data[0]?.price?.id
+        const plan = !isActive ? 'free' : priceId === elitePriceId ? 'elite' : 'pro'
         await supabase.from('profiles').upsert({
           id: userId,
           stripe_subscription_id: sub.id,
           subscription_status: sub.status,
-          plan: isActive ? 'pro' : 'free',
+          plan,
         })
       }
       break
