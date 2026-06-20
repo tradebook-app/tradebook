@@ -81,7 +81,10 @@ export function PricingSection() {
               </div>
             ))}
           </div>
-          <Link href="/signup" style={{ display: 'block', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '8px', padding: '12px', textDecoration: 'none' }}>
+          <Link
+            href={`/signup?plan=pro${yearly ? '&billing=yearly' : ''}`}
+            style={{ display: 'block', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '8px', padding: '12px', textDecoration: 'none' }}
+          >
             Get Started
           </Link>
         </div>
@@ -101,7 +104,10 @@ export function PricingSection() {
               </div>
             ))}
           </div>
-          <Link href="/signup" style={{ display: 'block', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '8px', padding: '12px', textDecoration: 'none' }}>
+          <Link
+            href={`/signup?plan=elite${yearly ? '&billing=yearly' : ''}`}
+            style={{ display: 'block', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '8px', padding: '12px', textDecoration: 'none' }}
+          >
             Get Started
           </Link>
         </div>
