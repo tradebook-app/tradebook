@@ -1,11 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
-export default function SignupPage() {
+function SignupForm() {
   const supabase = createClient()
+  const searchParams = useSearchParams()
+  const plan = searchParams.get('plan') // 'pro' | 'elite' | null
+  const billing = searchParams.get('billing') // 'yearly' | null
 
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -28,6 +32,12 @@ export default function SignupPage() {
     }
 
     setLoading(true)
+
+    // Save plan intent to localStorage before signup
+    if (plan === 'pro' || plan === 'elite') {
+      localStorage.setItem('signup_plan', plan)
+      localStorage.setItem('signup_billing', billing || 'monthly')
+    }
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -63,7 +73,7 @@ export default function SignupPage() {
           </div>
           <div style={{ fontSize: '12px', color: 'var(--txt2)', lineHeight: 1.6 }}>
             We sent a confirmation link to <strong>{email}</strong>.
-            Click it to activate your account, then come back to sign in.
+            Click it to activate your account{plan ? ` and complete your ${plan.charAt(0).toUpperCase() + plan.slice(1)} plan setup` : ''}.
           </div>
           <Link
             href="/login"
@@ -114,6 +124,20 @@ export default function SignupPage() {
             Your trading journal
           </div>
         </div>
+
+        {/* Plan badge */}
+        {plan && (
+          <div style={{
+            textAlign: 'center', marginBottom: '16px',
+            fontSize: '12px', color: '#10B981',
+            background: 'rgba(16,185,129,.08)',
+            border: '1px solid rgba(16,185,129,.2)',
+            borderRadius: '8px', padding: '8px 16px',
+          }}>
+            🎯 You're signing up for the <strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong> plan
+            {billing === 'yearly' ? ' (billed yearly)' : ''}
+          </div>
+        )}
 
         {/* Card */}
         <div style={{
@@ -217,5 +241,13 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
   )
 }
