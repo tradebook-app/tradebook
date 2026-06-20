@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -13,7 +13,12 @@ export default function UpdatePasswordPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
-
+useEffect(() => {
+  const code = new URLSearchParams(window.location.search).get('code')
+  if (code) {
+    supabase.auth.exchangeCodeForSession(code).catch(() => {})
+  }
+}, [])
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault()
     setError('')
