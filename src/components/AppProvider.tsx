@@ -11,7 +11,7 @@ import {
   deleteTrade, deleteTrades, uploadScreenshot,
 } from '@/lib/tradeService'
 import { usePathname } from 'next/navigation'
-import { DasImport } from '@/components/import/DasImport'
+import { BrokerImport } from '@/components/import/BrokerImport'
 import { Reports } from '@/components/reports/Reports'
 import { PositionSize } from '@/components/PositionSize'
 import { Strategies } from '@/components/strategies/Strategies'
@@ -25,7 +25,6 @@ type Props = {
   userEmail?: string
 }
 
-// Gated wrappers — check plan before rendering
 function GatedReports({ trades, filter }: { trades: any[], filter: any }) {
   const { isPro } = usePlan()
   if (!isPro) return <UpgradeWall feature="Full Reports — Pro Feature" description="Upgrade to Pro to unlock all 7 report tabs with 25+ performance metrics including Day & Time, Symbols, Risk/R-Multiple, Win vs Loss, and Setups." />
@@ -46,8 +45,8 @@ function GatedStrategies({ userId }: { userId: string }) {
 
 function GatedImport({ userId, existingTrades, onImported }: { userId: string, existingTrades: any[], onImported: () => void }) {
   const { isPro } = usePlan()
-  if (!isPro) return <UpgradeWall feature="DAS Trader Importer — Pro Feature" description="Upgrade to Pro to import your DAS Trader exports and automatically parse all your trades in one click." />
-  return <DasImport userId={userId} existingTrades={existingTrades} onImported={onImported} />
+  if (!isPro) return <UpgradeWall feature="Broker Import — Pro Feature" description="Upgrade to Pro to import your trades from DAS Trader, ThinkOrSwim, and more brokers coming soon." />
+  return <BrokerImport userId={userId} existingTrades={existingTrades} onImported={onImported} />
 }
 
 function DashboardWithBanner({ trades, filter, onEdit, onDelete, userId, onReload }: any) {
@@ -67,20 +66,19 @@ const PAGE_TITLES: Record<string, string> = {
   '/reports':       'Reports',
   '/strategies':    'Strategies',
   '/position-size': 'Position Size',
-  '/import':        'Import DAS',
+  '/import':        'Import Trades',
   '/settings':      'Settings',
 }
 
 export function AppProvider({ userId, userEmail }: Props) {
   const pathname = usePathname()
 
-  const [trades,      setTrades]      = useState<TradeRow[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const [modalOpen,   setModalOpen]   = useState(false)
-  const [editTrade,   setEditTrade]   = useState<TradeRow | null>(null)
-  const [filter,      setFilter]      = useState<DateRangeFilter>({ range: 'all' })
+  const [trades,    setTrades]    = useState<TradeRow[]>([])
+  const [loading,   setLoading]   = useState(true)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editTrade, setEditTrade] = useState<TradeRow | null>(null)
+  const [filter,    setFilter]    = useState<DateRangeFilter>({ range: 'all' })
 
-  // Load trades on mount
   useEffect(() => {
     fetchTrades().then(data => {
       setTrades(data)
@@ -88,7 +86,6 @@ export function AppProvider({ userId, userEmail }: Props) {
     })
   }, [])
 
-  // Keyboard shortcut: 'n' opens Add Trade
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (
@@ -103,40 +100,21 @@ export function AppProvider({ userId, userEmail }: Props) {
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
-  function openAdd() {
-    setEditTrade(null)
-    setModalOpen(true)
-  }
-
-  function openEdit(trade: TradeRow) {
-    setEditTrade(trade)
-    setModalOpen(true)
-  }
+  function openAdd() { setEditTrade(null); setModalOpen(true) }
+  function openEdit(trade: TradeRow) { setEditTrade(trade); setModalOpen(true) }
 
   async function handleSave(payload: TradeFormPayload, screenshotFile: File | null) {
-    // Upload screenshot if provided
     let screenshotUrl: string | null = editTrade?.screenshot_url || null
-    if (screenshotFile) {
-      screenshotUrl = await uploadScreenshot(screenshotFile, userId)
-    }
+    if (screenshotFile) screenshotUrl = await uploadScreenshot(screenshotFile, userId)
 
-    const tradeData = {
-      ...payload,
-      screenshot_url: screenshotUrl,
-    }
+    const tradeData = { ...payload, screenshot_url: screenshotUrl }
 
     if (editTrade) {
-      // Update existing
       const updated = await updateTrade(editTrade.id, tradeData)
-      if (updated) {
-        setTrades(prev => prev.map(t => t.id === editTrade.id ? updated : t))
-      }
+      if (updated) setTrades(prev => prev.map(t => t.id === editTrade.id ? updated : t))
     } else {
-      // Insert new
       const inserted = await insertTrade(tradeData, userId)
-      if (inserted) {
-        setTrades(prev => [inserted, ...prev])
-      }
+      if (inserted) setTrades(prev => [inserted, ...prev])
     }
   }
 
@@ -153,18 +131,14 @@ export function AppProvider({ userId, userEmail }: Props) {
     }
   }
 
-  // Re-fetch all trades from the database (used after a bulk import)
   async function reloadTrades() {
     const data = await fetchTrades()
     setTrades(data)
   }
 
-  // All unique strategy names from trades
   const strategies = Array.from(new Set(trades.map(t => t.setup).filter((x) => Boolean(x)))).sort()
-
   const title = PAGE_TITLES[pathname] || 'Sleektrade'
 
-  // Render correct page content
   function renderPage() {
     if (loading) {
       return (
@@ -174,54 +148,14 @@ export function AppProvider({ userId, userEmail }: Props) {
       )
     }
 
-    if (pathname === '/trades') {
-      return (
-        <TradeView
-          trades={trades}
-          filter={filter}
-          onEdit={openEdit}
-          onDelete={handleDelete}
-          onDeleteFiltered={handleDeleteMany}
-        />
-      )
-    }
-
-    if (pathname === '/dashboard') {
-      return (
-        <DashboardWithBanner
-          trades={trades}
-          filter={filter}
-          onEdit={openEdit}
-          onDelete={handleDelete}
-          userId={userId}
-          onReload={reloadTrades}
-        />
-      )
-    }
-
-    if (pathname === '/reports') {
-      return <GatedReports trades={trades} filter={filter} />
-    }
-
-    if (pathname === '/position-size') {
-      return <PositionSize />
-    }
-
-    if (pathname === '/strategies') {
-      return <GatedStrategies userId={userId} />
-    }
-
-    if (pathname === '/notebook') {
-      return <GatedNotebook userId={userId} />
-    }
-
-    if (pathname === '/import') {
-      return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
-    }
-
-    if (pathname === '/settings') {
-      return <Settings userEmail={userEmail} />
-    }
+    if (pathname === '/trades') return <TradeView trades={trades} filter={filter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} />
+    if (pathname === '/dashboard') return <DashboardWithBanner trades={trades} filter={filter} onEdit={openEdit} onDelete={handleDelete} userId={userId} onReload={reloadTrades} />
+    if (pathname === '/reports') return <GatedReports trades={trades} filter={filter} />
+    if (pathname === '/position-size') return <PositionSize />
+    if (pathname === '/strategies') return <GatedStrategies userId={userId} />
+    if (pathname === '/notebook') return <GatedNotebook userId={userId} />
+    if (pathname === '/import') return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
+    if (pathname === '/settings') return <Settings userEmail={userEmail} />
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: '12px' }}>
@@ -234,16 +168,9 @@ export function AppProvider({ userId, userEmail }: Props) {
 
   return (
     <PlanProvider>
-      <AppShell
-        title={title}
-        userEmail={userEmail}
-        filter={filter}
-        onFilterChange={setFilter}
-        onAddTrade={openAdd}
-      >
+      <AppShell title={title} userEmail={userEmail} filter={filter} onFilterChange={setFilter} onAddTrade={openAdd}>
         {renderPage()}
       </AppShell>
-
       <AddTradeModal
         open={modalOpen}
         onClose={() => { setModalOpen(false); setEditTrade(null) }}
