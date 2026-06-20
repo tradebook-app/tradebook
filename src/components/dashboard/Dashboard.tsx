@@ -13,7 +13,6 @@ import { DrawdownChart } from './DrawdownChart'
 import { MonthCalendar } from './MonthCalendar'
 import { RecentTrades } from './RecentTrades'
 import { OpenPositions } from './OpenPositions'
-import { BackupRestore } from './BackupRestore'
 import { TradePanel } from '@/components/trades/TradePanel'
 
 type Props = {
@@ -39,7 +38,6 @@ export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }
   const dailyPnl   = useMemo(() => calcDailyPnl(filtered), [filtered])
   const cumulative = useMemo(() => calcCumulative(filtered), [filtered])
 
-  // $ / % toggle for the cumulative chart
   const [cumMode, setCumMode] = useState<'$' | '%'>('$')
   const [accountSize, setAccountSize] = useState<number>(0)
   useEffect(() => {
@@ -107,9 +105,6 @@ export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }
 
   return (
     <>
-      {/* Backup / Restore */}
-      <BackupRestore userId={userId} onRestored={onReload} />
-
       {/* KPI cards */}
       <DashboardKPIs kpi={kpi} openCount={open.length} openPnl={openPnl} />
 
