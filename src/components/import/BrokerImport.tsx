@@ -26,7 +26,7 @@ const brokers: Broker[] = [
     name: 'DAS Trader',
     description: 'Import from DAS Trader Pro export',
     available: true,
-    logo: 'https://logo.clearbit.com/dastrader.com',
+    logo: '/brokers/das.png',
     bg: '#0A1628',
   },
   {
@@ -34,7 +34,7 @@ const brokers: Broker[] = [
     name: 'ThinkOrSwim',
     description: 'Import from TOS Account Statement CSV',
     available: true,
-    logo: 'https://logo.clearbit.com/thinkorswim.com',
+    logo: '/brokers/tos.png',
     bg: '#0D1F0D',
   },
   {
@@ -42,7 +42,7 @@ const brokers: Broker[] = [
     name: 'Interactive Brokers',
     description: 'Coming soon',
     available: false,
-    logo: 'https://logo.clearbit.com/interactivebrokers.com',
+    logo: '/brokers/ibkr.png',
     bg: '#1A0A0A',
   },
   {
@@ -50,7 +50,7 @@ const brokers: Broker[] = [
     name: 'Webull',
     description: 'Coming soon',
     available: false,
-    logo: 'https://logo.clearbit.com/webull.com',
+    logo: '/brokers/webull.png',
     bg: '#0A1A14',
   },
   {
@@ -58,7 +58,7 @@ const brokers: Broker[] = [
     name: 'Tastytrade',
     description: 'Coming soon',
     available: false,
-    logo: 'https://logo.clearbit.com/tastytrade.com',
+    logo: '/brokers/tastytrade.png',
     bg: '#1A0E06',
   },
   {
@@ -66,7 +66,7 @@ const brokers: Broker[] = [
     name: 'TradeStation',
     description: 'Coming soon',
     available: false,
-    logo: 'https://logo.clearbit.com/tradestation.com',
+    logo: '/brokers/tradestation.png',
     bg: '#1A1400',
   },
 ]
