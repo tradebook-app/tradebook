@@ -42,6 +42,52 @@ export function OverviewReport({ trades }: Props) {
   const bestDay  = dayE.length ? Math.max(...dayE.map(d => d[1])) : 0
   const worstDay = dayE.length ? Math.min(...dayE.map(d => d[1])) : 0
 
+  const byMo: Record<string,
+@'
+'use client'
+
+import type { TradeRow } from '@/lib/types'
+import { closedTrades, fmtPnl } from '@/lib/analytics'
+
+type Props = { trades: TradeRow[] }
+
+const fmtK = (n: number) => fmtPnl(n, true)
+const fmt  = (n: number) => fmtPnl(n)
+
+export function OverviewReport({ trades }: Props) {
+  const closed = closedTrades(trades).slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+  const W  = closed.filter(t => t.pnl > 0)
+  const L  = closed.filter(t => t.pnl < 0)
+  const BE = closed.filter(t => t.pnl === 0)
+  const pnl  = closed.reduce((s, t) => s + t.pnl, 0)
+  const avgW = W.length ? W.reduce((s, t) => s + t.pnl, 0) / W.length : 0
+  const avgL = L.length ? Math.abs(L.reduce((s, t) => s + t.pnl, 0) / L.length) : 0
+  const pf   = avgL > 0 ? (avgW * W.length) / (avgL * L.length) : avgW > 0 ? avgW * W.length : 0
+  const rT   = closed.filter(t => t.risk > 0)
+  const avgRR = rT.length ? rT.reduce((s, t) => s + t.pnl / t.risk, 0) / rT.length : 0
+  const exp  = closed.length ? pnl / closed.length : 0
+
+  let peak = 0, maxDD = 0, run = 0
+  closed.forEach(t => { run += t.pnl; if (run > peak) peak = run; if (peak - run > maxDD) maxDD = peak - run })
+
+  let bStr = 0, wStr = 0, cW = 0, cL = 0
+  closed.forEach(t => {
+    if (t.pnl > 0) { cW++; cL = 0; bStr = Math.max(bStr, cW) }
+    else if (t.pnl < 0) { cL++; cW = 0; wStr = Math.max(wStr, cL) }
+    else { cW = 0; cL = 0 }
+  })
+
+  const byDay: Record<string, number> = {}
+  closed.forEach(t => { const ds = (t.date || '').substring(0, 10); byDay[ds] = (byDay[ds] || 0) + t.pnl })
+  const dayE = Object.entries(byDay).sort((a, b) => a[0].localeCompare(b[0]))
+  const winDays  = dayE.filter(d => d[1] > 0)
+  const lossDays = dayE.filter(d => d[1] < 0)
+
+  const best  = closed.length ? Math.max(...closed.map(t => t.pnl)) : 0
+  const worst = closed.length ? Math.min(...closed.map(t => t.pnl)) : 0
+  const bestDay  = dayE.length ? Math.max(...dayE.map(d => d[1])) : 0
+  const worstDay = dayE.length ? Math.min(...dayE.map(d => d[1])) : 0
+
   const byMo: Record<string, number> = {}
   closed.forEach(t => { const m = (t.date || '').substring(0, 7); byMo[m] = (byMo[m] || 0) + t.pnl })
   const moE = Object.entries(byMo).sort((a, b) => a[0].localeCompare(b[0]))
@@ -64,7 +110,7 @@ export function OverviewReport({ trades }: Props) {
   const totalVol = closed.reduce((s, t) => s + (t.shares || 0), 0)
   const recovery = maxDD > 0 ? (pnl / maxDD).toFixed(2) : '∞'
 
-  const left: [string, string][] = [
+  const all: [string, string][] = [
     ['Total P&L', fmtK(pnl)],
     ['Average winning trade', fmt(avgW)],
     ['Average losing trade', `-$${avgL.toFixed(2)}`],
@@ -78,8 +124,6 @@ export function OverviewReport({ trades }: Props) {
     ['Largest loss', fmt(worst)],
     ['Profit factor', pf.toFixed(2)],
     ['Trade expectancy', fmt(exp)],
-  ]
-  const right: [string, string][] = [
     ['Trading days', String(dayE.length)],
     ['Winning days', String(winDays.length)],
     ['Losing days', String(lossDays.length)],
@@ -94,17 +138,6 @@ export function OverviewReport({ trades }: Props) {
     ['Avg daily volume', dayE.length ? (totalVol / dayE.length).toFixed(1) : '0'],
     ['Recovery factor', recovery],
   ]
-
-  const StatCol = ({ rows, borderRight }: { rows: [string, string][]; borderRight?: boolean }) => (
-    <div style={{ borderRight: borderRight ? '1px solid var(--brd)' : 'none' }}>
-      {rows.map(([n, v], i) => (
-        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid var(--brd)', gap: '8px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--txt2)', flexShrink: 0 }}>{n}</span>
-          <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--txt)', textAlign: 'right' }}>{v}</span>
-        </div>
-      ))}
-    </div>
-  )
 
   if (closed.length === 0) {
     return <div style={{ padding: '30px', textAlign: 'center', color: 'var(--txt3)', fontSize: '12px' }}>No closed trades yet.</div>
@@ -133,9 +166,13 @@ export function OverviewReport({ trades }: Props) {
           ))}
         </div>
       </div>
-      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-        <StatCol rows={left} borderRight />
-        <StatCol rows={right} />
+      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+        {all.map(([n, v], i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', borderBottom: i < all.length - 1 ? '1px solid var(--brd)' : 'none', gap: '12px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{n}</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--txt)', whiteSpace: 'nowrap' }}>{v}</span>
+          </div>
+        ))}
       </div>
     </div>
   )
