@@ -54,7 +54,7 @@ export function PricingSection() {
           <div style={{ fontSize: '40px', fontWeight: 800, marginBottom: '4px' }}>$0</div>
           <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '24px' }}>Forever free</div>
           <div style={{ flex: 1 }}>
-            {['Up to 50 trades/month', 'Dashboard & Trade View', 'Basic reports', 'Position size calculator'].map(f => (
+            {['Up to 50 trades/month', '1 trading account', 'Dashboard & Trade View', 'Basic reports', 'Position size calculator'].map(f => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: '13px', color: 'var(--txt2)' }}>
                 <span style={{ color: '#10B981', fontWeight: 700 }}>✓</span> {f}
               </div>
@@ -75,7 +75,7 @@ export function PricingSection() {
           </div>
           <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '24px' }}>{yearly ? 'per month, billed yearly' : 'per month'}</div>
           <div style={{ flex: 1 }}>
-            {['Unlimited trades', 'All 7 report tabs', '25+ performance metrics', 'DAS Trader importer', 'Notebook & Strategies', 'Backup & restore'].map(f => (
+            {['Unlimited trades', 'Unlimited trading accounts', 'All 7 report tabs', '25+ performance metrics', 'DAS Trader importer', 'Notebook & Strategies', 'Backup & restore'].map(f => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: '13px', color: 'var(--txt2)' }}>
                 <span style={{ color: '#10B981', fontWeight: 700 }}>✓</span> {f}
               </div>
@@ -98,7 +98,7 @@ export function PricingSection() {
           </div>
           <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '24px' }}>{yearly ? 'per month, billed yearly' : 'per month'}</div>
           <div style={{ flex: 1 }}>
-            {['Everything in Pro', 'Priority support', 'Early access to new features', 'Broker integrations (coming soon)', 'AI trade insights (coming soon)', 'Custom report exports'].map(f => (
+            {['Everything in Pro', 'Unlimited trading accounts', 'Priority support', 'Early access to new features', 'Broker integrations (coming soon)', 'AI trade insights (coming soon)', 'Custom report exports'].map(f => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: '13px', color: 'var(--txt2)' }}>
                 <span style={{ color: '#10B981', fontWeight: 700 }}>✓</span> {f}
               </div>
