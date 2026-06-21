@@ -211,7 +211,7 @@ export function TosImport({ userId, existingTrades, onImported }: Props) {
         symbol: t.symbol, type: t.type, date: t.date, exit_date: null,
         entry: t.entry, exit: t.exit, shares: t.shares, pnl: t.pnl,
         risk: 0, commission: t.commission, setup: null, grade: null,
-        tags: [], notes: 'Imported from ThinkOrSwim', screenshot_url: null,
+        tags: [], notes: null, screenshot_url: null,
       }, userId)
       if (inserted) count++
     }
