@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -27,6 +28,8 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
   const pathname = usePathname()
   const router   = useRouter()
   const supabase = createClient()
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const initials = userEmail
     ? userEmail.substring(0, 2).toUpperCase()
@@ -37,6 +40,17 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
     router.push('/login')
     router.refresh()
   }
+
+  // Close menu on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   return (
     <nav style={{
@@ -75,31 +89,93 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
         </Link>
       </div>
 
-      {/* Add Trade Button */}
-      <button
-        onClick={onAddTrade}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '5px',
-          margin: '10px 10px 4px',
-          padding: '9px',
-          background: 'var(--ac)',
-          color: '#000',
-          borderRadius: 'var(--r)',
-          fontSize: '12px',
-          fontWeight: 700,
-          cursor: 'pointer',
-          border: 'none',
-          fontFamily: 'var(--sans)',
-          transition: '.15s',
-        }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'var(--ac2)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'var(--ac)')}
-      >
-        + Add Trade
-      </button>
+      {/* Add Trade Button with dropdown */}
+      <div ref={menuRef} style={{ position: 'relative', margin: '10px 10px 4px' }}>
+        <button
+          onClick={() => setShowMenu(v => !v)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '5px',
+            width: '100%',
+            padding: '9px',
+            background: 'var(--ac)',
+            color: '#000',
+            borderRadius: 'var(--r)',
+            fontSize: '12px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: 'none',
+            fontFamily: 'var(--sans)',
+            transition: '.15s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--ac2)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'var(--ac)')}
+        >
+          + Add Trade
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginLeft: '2px', transition: '.15s', transform: showMenu ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </button>
+
+        {/* Dropdown menu */}
+        {showMenu && (
+          <div style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: 0,
+            right: 0,
+            background: 'var(--bg3)',
+            border: '1px solid var(--brd2)',
+            borderRadius: '10px',
+            overflow: 'hidden',
+            zIndex: 200,
+            boxShadow: '0 8px 24px rgba(0,0,0,.4)',
+          }}>
+            {/* Manual entry */}
+            <button
+              onClick={() => { setShowMenu(false); onAddTrade() }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                width: '100%', padding: '11px 14px',
+                background: 'none', border: 'none',
+                cursor: 'pointer', textAlign: 'left',
+                borderBottom: '1px solid var(--brd)',
+                transition: '.1s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg4)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+            >
+              <span style={{ fontSize: '16px' }}>✏️</span>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt)' }}>Log manually</div>
+                <div style={{ fontSize: '9px', color: 'var(--txt3)' }}>Enter trade details</div>
+              </div>
+            </button>
+
+            {/* Import from broker */}
+            <Link
+              href="/import"
+              onClick={() => setShowMenu(false)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                width: '100%', padding: '11px 14px',
+                textDecoration: 'none',
+                transition: '.1s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg4)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+            >
+              <span style={{ fontSize: '16px' }}>⤓</span>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt)' }}>Import from broker</div>
+                <div style={{ fontSize: '9px', color: 'var(--txt3)' }}>DAS, TOS, IBKR & more</div>
+              </div>
+            </Link>
+          </div>
+        )}
+      </div>
 
       {/* Main Nav */}
       <div style={{ padding: '4px 0' }}>
@@ -110,23 +186,16 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
               key={href}
               href={href}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 14px',
-                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '8px 14px', cursor: 'pointer',
                 color: active ? 'var(--ac2)' : 'var(--txt2)',
-                fontSize: '12px',
-                fontWeight: 500,
-                transition: '.1s',
+                fontSize: '12px', fontWeight: 500, transition: '.1s',
                 borderLeft: `2px solid ${active ? 'var(--ac)' : 'transparent'}`,
                 background: active ? 'var(--ac-d)' : 'transparent',
                 textDecoration: 'none',
               }}
             >
-              <span style={{ fontSize: '13px', width: '16px', textAlign: 'center' }}>
-                {icon}
-              </span>
+              <span style={{ fontSize: '13px', width: '16px', textAlign: 'center' }}>{icon}</span>
               {label}
             </Link>
           )
@@ -145,23 +214,16 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
               key={href}
               href={href}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 14px',
-                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '8px 14px', cursor: 'pointer',
                 color: active ? 'var(--ac2)' : 'var(--txt2)',
-                fontSize: '12px',
-                fontWeight: 500,
-                transition: '.1s',
+                fontSize: '12px', fontWeight: 500, transition: '.1s',
                 borderLeft: `2px solid ${active ? 'var(--ac)' : 'transparent'}`,
                 background: active ? 'var(--ac-d)' : 'transparent',
                 textDecoration: 'none',
               }}
             >
-              <span style={{ fontSize: '13px', width: '16px', textAlign: 'center' }}>
-                {icon}
-              </span>
+              <span style={{ fontSize: '13px', width: '16px', textAlign: 'center' }}>{icon}</span>
               {label}
             </Link>
           )
@@ -169,18 +231,13 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
       </div>
 
       {/* Footer — User info */}
-      <div style={{
-        marginTop: 'auto',
-        padding: '10px 12px',
-        borderTop: '1px solid var(--brd)',
-      }}>
+      <div style={{ marginTop: 'auto', padding: '10px 12px', borderTop: '1px solid var(--brd)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
           <div style={{
-            width: '26px', height: '26px',
-            background: 'var(--ac)',
-            borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '9px', fontWeight: 700, color: '#000', flexShrink: 0,
+            width: '26px', height: '26px', background: 'var(--ac)',
+            borderRadius: '50%', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', fontSize: '9px', fontWeight: 700,
+            color: '#000', flexShrink: 0,
           }}>
             {initials}
           </div>
@@ -194,18 +251,10 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
         <button
           onClick={handleLogout}
           style={{
-            width: '100%',
-            padding: '5px 8px',
-            background: 'transparent',
-            border: '1px solid var(--brd2)',
-            borderRadius: 'var(--r)',
-            color: 'var(--txt3)',
-            fontSize: '9px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: 'var(--sans)',
-            textAlign: 'center',
-            transition: '.1s',
+            width: '100%', padding: '5px 8px', background: 'transparent',
+            border: '1px solid var(--brd2)', borderRadius: 'var(--r)',
+            color: 'var(--txt3)', fontSize: '9px', fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'var(--sans)', textAlign: 'center', transition: '.1s',
           }}
           onMouseEnter={e => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,.3)' }}
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--txt3)'; e.currentTarget.style.borderColor = 'var(--brd2)' }}
