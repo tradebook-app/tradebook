@@ -229,4 +229,11 @@ html, body {
     grid-template-columns: 1fr !important;
     gap: 10px !important;
   }
+
+  /* Pricing cards stack on mobile */
+  .pricing-grid {
+    grid-template-columns: 1fr !important;
+    max-width: 400px;
+    margin: 0 auto;
+  }
 }

@@ -46,7 +46,7 @@ export function PricingSection() {
         </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '16px', alignItems: 'stretch' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '16px', alignItems: 'stretch' }} className='pricing-grid'>
 
         {/* Free */}
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: '14px', padding: '28px', display: 'flex', flexDirection: 'column' }}>
