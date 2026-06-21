@@ -23,16 +23,13 @@ export function TradeView({ trades, filter, onEdit, onDelete, onDeleteFiltered }
   const [toFilter,    setToFilter]    = useState('')
   const [selected,    setSelected]    = useState<TradeRow | null>(null)
 
-  // All unique setups
   const setups = useMemo(() => {
     const s = new Set(trades.map(t => t.setup).filter(Boolean) as string[])
     return [...s].sort()
   }, [trades])
 
-  // Apply global date filter first, then local filters
   const filtered = useMemo(() => {
     let r = filterByDate(closedTrades(trades), filter)
-
     if (symFilter)            r = r.filter(t => t.symbol.includes(symFilter.toUpperCase()))
     if (stFilter === 'win')   r = r.filter(t => t.pnl > 0)
     if (stFilter === 'loss')  r = r.filter(t => t.pnl < 0)
@@ -41,7 +38,6 @@ export function TradeView({ trades, filter, onEdit, onDelete, onDeleteFiltered }
     if (setupFilter !== 'all') r = r.filter(t => t.setup === setupFilter)
     if (fromFilter) r = r.filter(t => t.date.substring(0, 10) >= fromFilter)
     if (toFilter)   r = r.filter(t => t.date.substring(0, 10) <= toFilter)
-
     return r.slice().reverse()
   }, [trades, filter, symFilter, stFilter, sideFilter, setupFilter, fromFilter, toFilter])
 
@@ -50,15 +46,10 @@ export function TradeView({ trades, filter, onEdit, onDelete, onDeleteFiltered }
   function handleDeleteFiltered() {
     const closed = trades.filter(t => t.exit && t.exit > 0)
     const opens  = trades.filter(t => !(t.exit && t.exit > 0))
-    const isAll  = filtered.length === closed.length // no narrowing filters → "delete everything"
-
+    const isAll  = filtered.length === closed.length
     if (!filtered.length && opens.length === 0) return alert('No trades match current filters.')
-
-    // On a full delete, also sweep up open positions (they never show in this list)
     const ids = isAll ? trades.map(t => t.id) : filtered.map(t => t.id)
-    const openNote = isAll && opens.length
-      ? ` (including ${opens.length} open position${opens.length > 1 ? 's' : ''})`
-      : ''
+    const openNote = isAll && opens.length ? ` (including ${opens.length} open position${opens.length > 1 ? 's' : ''})` : ''
     const msg = isAll
       ? `⚠️ Delete ALL ${ids.length} trades${openNote}? This cannot be undone.`
       : `Delete ${ids.length} filtered trade${ids.length > 1 ? 's' : ''}? This cannot be undone.`
@@ -70,6 +61,33 @@ export function TradeView({ trades, filter, onEdit, onDelete, onDeleteFiltered }
     background: 'var(--bg4)', border: '1px solid var(--brd2)',
     borderRadius: 'var(--r)', color: 'var(--txt)', fontSize: '11px',
     padding: '5px 9px', fontFamily: 'var(--sans)', outline: 'none',
+  }
+
+  const badgeBase: React.CSSProperties = {
+    fontSize: '9px', fontWeight: 800, padding: '3px 0',
+    borderRadius: '20px', display: 'inline-block', letterSpacing: '.04em',
+    width: '46px', textAlign: 'center',
+  }
+
+  const badgeWin: React.CSSProperties = {
+    ...badgeBase,
+    background: 'rgba(16,185,129,.18)', color: '#10B981',
+    border: '1px solid rgba(16,185,129,.35)',
+    textShadow: '0 0 8px rgba(16,185,129,.4)',
+  }
+
+  const badgeLoss: React.CSSProperties = {
+    ...badgeBase,
+    background: 'rgba(239,68,68,.18)', color: '#EF4444',
+    border: '1px solid rgba(239,68,68,.35)',
+    textShadow: '0 0 8px rgba(239,68,68,.4)',
+  }
+
+  const badgeBe: React.CSSProperties = {
+    ...badgeBase,
+    background: 'rgba(245,158,11,.15)', color: '#F59E0B',
+    border: '1px solid rgba(245,158,11,.3)',
+    textShadow: '0 0 8px rgba(245,158,11,.3)',
   }
 
   return (
@@ -182,26 +200,9 @@ export function TradeView({ trades, filter, onEdit, onDelete, onDeleteFiltered }
                   <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{fmtDate(t.date)}</td>
                   <td style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>{t.symbol}</td>
                   <td>
-                    <span style={{
-fontSize: '9px', fontWeight: 800, padding: '3px 10px',
-  borderRadius: '20px', display: 'inline-block', letterSpacing: '.04em',
-  width: '46px', textAlign: 'center' as const,,
-  ...(isW ? {
-    background: 'rgba(16,185,129,.18)', color: '#10B981',
-    border: '1px solid rgba(16,185,129,.35)',
-    textShadow: '0 0 8px rgba(16,185,129,.4)',
-  } : isL ? {
-    background: 'rgba(239,68,68,.18)', color: '#EF4444',
-    border: '1px solid rgba(239,68,68,.35)',
-    textShadow: '0 0 8px rgba(239,68,68,.4)',
-  } : {
-    background: 'rgba(245,158,11,.15)', color: '#F59E0B',
-    border: '1px solid rgba(245,158,11,.3)',
-    textShadow: '0 0 8px rgba(245,158,11,.3)',
-  })
-}}>
-  {isW ? 'WIN' : isL ? 'LOSS' : 'BE'}
-</span>
+                    <span style={isW ? badgeWin : isL ? badgeLoss : badgeBe}>
+                      {isW ? 'WIN' : isL ? 'LOSS' : 'BE'}
+                    </span>
                   </td>
                   <td style={{ fontSize: '11px' }}>{t.type}</td>
                   <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{t.setup || '—'}</td>
@@ -237,7 +238,6 @@ fontSize: '9px', fontWeight: 800, padding: '3px 10px',
         </table>
       </div>
 
-      {/* Trade Preview Panel */}
       <TradePanel
         trade={selected}
         onClose={() => setSelected(null)}
