@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { PricingSection } from '@/components/PricingSection'
+import { Testimonials } from '@/components/Testimonials'
+import { SleektradeChat } from '@/components/SleektradeChat'
 
 const Logo = () => (
   <svg width="38" height="38" viewBox="0 0 64 64">
@@ -54,7 +56,6 @@ export default async function HomePage() {
             Sleek<span style={{ color: '#1D9E75' }}>trade</span>
           </span>
         </div>
-        {/* Desktop nav links */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }} className="desktop-nav-links">
           <a href="#features" style={{ fontSize: '13px', color: 'var(--txt2)', textDecoration: 'none' }}>Features</a>
           <a href="#pricing" style={{ fontSize: '13px', color: 'var(--txt2)', textDecoration: 'none' }}>Pricing</a>
@@ -89,13 +90,13 @@ export default async function HomePage() {
       <section className="hero-grid" style={{ maxWidth: '1200px', margin: '0 auto', padding: '80px 48px 60px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '64px', alignItems: 'center' }}>
         <div>
           <div style={{ display: 'inline-block', fontSize: '11px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '20px', padding: '4px 14px', marginBottom: '24px', letterSpacing: '.05em', textTransform: 'uppercase' }}>
-            Built for active traders
+            Built for traders & investors
           </div>
           <h1 className="hero-h1" style={{ fontSize: '52px', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.03em', marginBottom: '20px' }}>
             Know exactly why<br /><span style={{ color: '#10B981' }}>you win and lose.</span>
           </h1>
           <p style={{ fontSize: '17px', color: 'var(--txt2)', lineHeight: 1.7, marginBottom: '36px' }}>
-            Sleektrade is the professional trading journal that turns your raw trade data into clear, actionable insight — so you can grow your edge, not just your screen time.
+            Sleektrade is the professional trading journal that turns your raw trade data into clear, actionable insight — whether you day trade, swing trade, or invest long-term.
           </p>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <Link href="/signup" style={{ fontSize: '15px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '10px', padding: '14px 28px', textDecoration: 'none' }}>Start for free</Link>
@@ -135,6 +136,23 @@ export default async function HomePage() {
               ))}
             </div>
           </MockWrap>
+        </div>
+      </section>
+
+      {/* STATS BAR */}
+      <section style={{ borderTop: '1px solid var(--brd)', borderBottom: '1px solid var(--brd)', background: 'var(--bg2)', padding: '28px 48px' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'center', gap: '64px', flexWrap: 'wrap' }}>
+          {[
+            { value: '25+', label: 'Performance metrics' },
+            { value: '7', label: 'Report tabs' },
+            { value: '3+', label: 'Broker integrations' },
+            { value: '$0', label: 'To get started' },
+          ].map(s => (
+            <div key={s.label} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '28px', fontWeight: 800, color: '#10B981', fontFamily: 'var(--mono)' }}>{s.value}</div>
+              <div style={{ fontSize: '12px', color: 'var(--txt3)', marginTop: '2px' }}>{s.label}</div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -230,15 +248,16 @@ export default async function HomePage() {
       {/* WHO IT'S FOR */}
       <section id="who" style={{ background: 'var(--bg2)', borderTop: '1px solid var(--brd)', borderBottom: '1px solid var(--brd)', padding: '80px 48px' }} className="section-pad">
         <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 className="section-h2" style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '16px' }}>Built for traders who are serious about their edge</h2>
+          <h2 className="section-h2" style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '16px' }}>Built for anyone serious about their edge</h2>
           <p style={{ fontSize: '16px', color: 'var(--txt2)', lineHeight: 1.7, marginBottom: '40px' }}>
-            Whether you scalp momentum plays, swing trade setups, or trade Nasdaq futures — Sleektrade gives you the data to understand your own performance with precision.
+            Whether you scalp momentum plays, swing trade setups, trade Nasdaq futures, or invest long-term — Sleektrade gives you the data to understand your own performance with precision.
           </p>
-          <div className="who-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
+          <div className="who-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
             {[
               { label: 'Day traders', desc: 'Track intraday scalps with hold-time accuracy down to the minute.' },
               { label: 'Swing traders', desc: 'Review multi-day positions and identify your best setups over time.' },
-              { label: 'Futures traders', desc: 'Log NQ, ES, MNQ and more. Works with NinjaTrader, TradeStation, Tastytrade & Tradovate.' },
+              { label: 'Futures traders', desc: 'Log NQ, ES, MNQ and more. Works with NinjaTrader, TradeStation & more.' },
+              { label: 'Investors', desc: 'Track long-term positions, monitor performance, and review your decisions.' },
             ].map(item => (
               <div key={item.label} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '10px', padding: '22px' }}>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#10B981', marginBottom: '8px' }}>{item.label}</div>
@@ -249,13 +268,16 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* TESTIMONIALS */}
+      <Testimonials />
+
       {/* PRICING */}
       <PricingSection />
 
       {/* FINAL CTA */}
       <section style={{ textAlign: 'center', padding: '80px 24px', borderTop: '1px solid var(--brd)', background: 'var(--bg2)' }}>
         <h2 className="cta-h2" style={{ fontSize: '38px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '16px' }}>Stop guessing. Start knowing.</h2>
-        <p style={{ fontSize: '16px', color: 'var(--txt2)', marginBottom: '32px' }}>Join traders who use Sleektrade to understand their performance and trade with confidence.</p>
+        <p style={{ fontSize: '16px', color: 'var(--txt2)', marginBottom: '32px' }}>Join traders and investors who use Sleektrade to understand their performance and trade with confidence.</p>
         <Link href="/signup" style={{ fontSize: '15px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '10px', padding: '15px 36px', textDecoration: 'none', display: 'inline-block' }}>Create your free account</Link>
         <p style={{ fontSize: '12px', color: 'var(--txt3)', marginTop: '14px' }}>No credit card required · Cancel anytime</p>
       </section>
@@ -273,6 +295,9 @@ export default async function HomePage() {
           <Link href="/signup" style={{ color: 'var(--txt3)', textDecoration: 'none' }}>Sign up</Link>
         </div>
       </footer>
+
+      {/* AI CHAT BOT */}
+      <SleektradeChat />
 
     </div>
   )
