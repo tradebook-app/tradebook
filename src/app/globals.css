@@ -4,7 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── CSS Variables (mirrors original HTML exactly) ──────────────────────── */
+/* ─── CSS Variables ──────────────────────────────────────────────────────── */
 :root {
   --bg:  #0D0D11;
   --bg2: #131318;
@@ -40,9 +40,11 @@
   --sans: 'Inter', sans-serif;
   --r:  8px;
   --r2: 12px;
+
+  --sidebar-w: 175px;
 }
 
-/* ─── Base ──────────────────────────────────────────────────────────────────── */
+/* ─── Base ───────────────────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -59,16 +61,15 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar        { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track  { background: transparent; }
 ::-webkit-scrollbar-thumb  { background: var(--brd2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--brd3); }
 
-/* ─── Reusable component classes ────────────────────────────────────────────── */
+/* ─── Components ─────────────────────────────────────────────────────────── */
 @layer components {
 
-  /* Metric Card */
   .mc {
     @apply flex items-center justify-between;
     background: var(--bg3);
@@ -78,7 +79,6 @@ html, body {
     min-height: 80px;
   }
 
-  /* Chart container */
   .ch {
     background: var(--bg3);
     border: 1px solid var(--brd);
@@ -86,138 +86,147 @@ html, body {
     padding: 16px;
   }
 
-  /* Table */
   .tbl { @apply w-full border-collapse; }
   .tbl th.r, .tbl td.r { text-align: right; }
-
   .tbl th {
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    color: var(--txt3);
-    padding: 8px 10px;
-    text-align: left;
-    border-bottom: 1px solid var(--brd);
+    font-size: 9px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--txt3);
+    padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--brd);
   }
-  .tbl td {
-    padding: 8px 10px;
-    font-size: 11px;
-    border-bottom: 1px solid var(--brd);
-  }
+  .tbl td { padding: 8px 10px; font-size: 11px; border-bottom: 1px solid var(--brd); }
   .tbl tr:hover td { background: rgba(255,255,255,.02); }
 
-  /* Badge */
-  .badge {
-    font-size: 9px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 4px;
-    display: inline-block;
-  }
-  .badge-win  { background: var(--ac-d);              color: var(--ac); }
-  .badge-loss { background: var(--red-d);              color: var(--red); }
-  .badge-be   { background: rgba(255,255,255,.06);     color: var(--txt3); }
-  .badge-long  { background: var(--ac-d);              color: var(--ac); }
-  .badge-short { background: var(--red-d);             color: var(--red); }
+  .badge { font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 4px; display: inline-block; }
+  .badge-win   { background: var(--ac-d);          color: var(--ac); }
+  .badge-loss  { background: var(--red-d);          color: var(--red); }
+  .badge-be    { background: rgba(255,255,255,.06); color: var(--txt3); }
+  .badge-long  { background: var(--ac-d);           color: var(--ac); }
+  .badge-short { background: var(--red-d);          color: var(--red); }
 
-  /* Tag */
   .tag {
-    font-size: 9px;
-    padding: 1px 6px;
-    border-radius: 3px;
-    background: var(--bg);
-    border: 1px solid var(--brd2);
-    color: var(--txt2);
-    display: inline-block;
-    margin: 1px;
+    font-size: 9px; padding: 1px 6px; border-radius: 3px;
+    background: var(--bg); border: 1px solid var(--brd2);
+    color: var(--txt2); display: inline-block; margin: 1px;
   }
 
-  /* Button variants */
   .btn {
     @apply inline-flex items-center gap-1 cursor-pointer border-none;
-    padding: 6px 12px;
-    border-radius: var(--r);
-    font-size: 11px;
-    font-weight: 600;
-    font-family: var(--sans);
-    transition: .12s;
+    padding: 6px 12px; border-radius: var(--r);
+    font-size: 11px; font-weight: 600;
+    font-family: var(--sans); transition: .12s;
   }
-  .btn-p {
-    background: var(--ac);
-    color: #000;
-  }
+  .btn-p { background: var(--ac); color: #000; }
   .btn-p:hover { background: var(--ac2); }
-
-  .btn-o {
-    background: transparent;
-    color: var(--txt2);
-    border: 1px solid var(--brd2) !important;
-  }
+  .btn-o { background: transparent; color: var(--txt2); border: 1px solid var(--brd2) !important; }
   .btn-o:hover { color: var(--txt); border-color: var(--brd3) !important; }
+  .btn-d { background: var(--red-d); color: var(--red); border: 1px solid rgba(239,68,68,.2) !important; font-size: 10px; padding: 4px 8px; }
 
-  .btn-d {
-    background: var(--red-d);
-    color: var(--red);
-    border: 1px solid rgba(239,68,68,.2) !important;
-    font-size: 10px;
-    padding: 4px 8px;
-  }
-
-  /* Form input */
   .fi {
-    width: 100%;
-    background: var(--bg4);
-    border: 1px solid var(--brd2);
-    border-radius: var(--r);
-    color: var(--txt);
-    font-size: 12px;
-    padding: 8px 11px;
-    font-family: var(--sans);
-    outline: none;
-    transition: border .15s;
+    width: 100%; background: var(--bg4); border: 1px solid var(--brd2);
+    border-radius: var(--r); color: var(--txt); font-size: 12px;
+    padding: 8px 11px; font-family: var(--sans); outline: none; transition: border .15s;
   }
   .fi:focus { border-color: var(--ac); }
   textarea.fi { resize: vertical; min-height: 60px; }
 
-  /* Subtab */
   .stab {
-    padding: 9px 16px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    color: var(--txt2);
-    border-bottom: 2px solid transparent;
-    background: none;
-    border-top: 0; border-left: 0; border-right: 0;
-    font-family: var(--sans);
-    transition: .1s;
+    padding: 9px 16px; font-size: 12px; font-weight: 600;
+    cursor: pointer; color: var(--txt2); border-bottom: 2px solid transparent;
+    background: none; border-top: 0; border-left: 0; border-right: 0;
+    font-family: var(--sans); transition: .1s;
   }
   .stab:hover { color: var(--txt); }
   .stab.active { color: var(--ac2); border-bottom-color: var(--ac); }
 
-  /* Stat row */
-  .sr {
-    @apply flex justify-between;
-    padding: 9px 18px;
-    border-bottom: 1px solid var(--brd);
-  }
+  .sr { @apply flex justify-between; padding: 9px 18px; border-bottom: 1px solid var(--brd); }
   .sr:last-child { border-bottom: none; }
   .sr-n { font-size: 11px; color: var(--txt2); }
   .sr-v { font-size: 11px; font-weight: 600; font-family: var(--mono); }
 
-  /* Color utilities */
-  .c-green  { color: var(--ac); }
-  .c-red    { color: var(--red); }
-  .c-txt2   { color: var(--txt2); }
-  .c-txt3   { color: var(--txt3); }
-  .fw-mono  { font-family: var(--mono); }
+  .c-green { color: var(--ac); }
+  .c-red   { color: var(--red); }
+  .c-txt2  { color: var(--txt2); }
+  .c-txt3  { color: var(--txt3); }
+  .fw-mono { font-family: var(--mono); }
 
-  /* Empty state */
-  .empty {
-    @apply text-center;
-    padding: 36px;
+  .empty { @apply text-center; padding: 36px; color: var(--txt3); font-size: 11px; }
+}
+
+/* ─── Mobile layout helpers ───────────────────────────────────────────────── */
+.mobile-sidebar { display: none; }
+.mobile-bottom-nav { display: none; }
+
+/* ─── MOBILE (≤768px) ────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* App layout */
+  .desktop-sidebar { display: none !important; }
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: var(--bg2);
+    border-top: 1px solid var(--brd);
+    z-index: 100;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 4px;
+  }
+
+  .mobile-bottom-nav a,
+  .mobile-bottom-nav button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    flex: 1;
+    padding: 6px 4px;
     color: var(--txt3);
-    font-size: 11px;
+    text-decoration: none;
+    font-size: 9px;
+    font-weight: 600;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: .1s;
+  }
+
+  .mobile-bottom-nav a.active,
+  .mobile-bottom-nav button.active {
+    color: var(--ac);
+  }
+
+  .mobile-bottom-nav .nav-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  /* Main content padding for bottom nav */
+  .app-main-content {
+    padding-bottom: 72px !important;
+  }
+
+  /* Topbar mobile */
+  .topbar-mobile {
+    padding: 0 12px !important;
+  }
+
+  /* Dashboard grids */
+  .dashboard-kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .dashboard-chart-row {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .dashboard-bottom-row {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
   }
 }
