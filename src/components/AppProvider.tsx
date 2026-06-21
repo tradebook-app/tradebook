@@ -44,7 +44,8 @@ function GatedStrategies({ userId }: { userId: string }) {
 }
 
 function GatedImport({ userId, existingTrades, onImported }: { userId: string, existingTrades: any[], onImported: () => void }) {
-  const { isPro } = usePlan()
+  const { isPro, loading } = usePlan()
+  if (loading) return null
   if (!isPro) return <UpgradeWall feature="Broker Import — Pro Feature" description="Upgrade to Pro to import your trades from DAS Trader, ThinkOrSwim, and more brokers coming soon." />
   return <BrokerImport userId={userId} existingTrades={existingTrades} onImported={onImported} />
 }
