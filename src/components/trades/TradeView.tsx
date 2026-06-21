@@ -183,8 +183,9 @@ export function TradeView({ trades, filter, onEdit, onDelete, onDeleteFiltered }
                   <td style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>{t.symbol}</td>
                   <td>
                     <span style={{
-  fontSize: '9px', fontWeight: 800, padding: '3px 10px',
+fontSize: '9px', fontWeight: 800, padding: '3px 10px',
   borderRadius: '20px', display: 'inline-block', letterSpacing: '.04em',
+  minWidth: '42px', textAlign: 'center' as const,,
   ...(isW ? {
     background: 'rgba(16,185,129,.18)', color: '#10B981',
     border: '1px solid rgba(16,185,129,.35)',
