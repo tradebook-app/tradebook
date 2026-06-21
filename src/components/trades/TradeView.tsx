@@ -182,9 +182,25 @@ export function TradeView({ trades, filter, onEdit, onDelete, onDeleteFiltered }
                   <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{fmtDate(t.date)}</td>
                   <td style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>{t.symbol}</td>
                   <td>
-                    <span className={`badge badge-${isW ? 'win' : isL ? 'loss' : 'be'}`}>
-                      {isW ? 'WIN' : isL ? 'LOSS' : 'BE'}
-                    </span>
+                    <span style={{
+  fontSize: '9px', fontWeight: 800, padding: '3px 10px',
+  borderRadius: '20px', display: 'inline-block', letterSpacing: '.04em',
+  ...(isW ? {
+    background: 'rgba(16,185,129,.18)', color: '#10B981',
+    border: '1px solid rgba(16,185,129,.35)',
+    textShadow: '0 0 8px rgba(16,185,129,.4)',
+  } : isL ? {
+    background: 'rgba(239,68,68,.18)', color: '#EF4444',
+    border: '1px solid rgba(239,68,68,.35)',
+    textShadow: '0 0 8px rgba(239,68,68,.4)',
+  } : {
+    background: 'rgba(245,158,11,.15)', color: '#F59E0B',
+    border: '1px solid rgba(245,158,11,.3)',
+    textShadow: '0 0 8px rgba(245,158,11,.3)',
+  })
+}}>
+  {isW ? 'WIN' : isL ? 'LOSS' : 'BE'}
+</span>
                   </td>
                   <td style={{ fontSize: '11px' }}>{t.type}</td>
                   <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{t.setup || '—'}</td>
