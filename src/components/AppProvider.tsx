@@ -26,19 +26,22 @@ type Props = {
 }
 
 function GatedReports({ trades, filter }: { trades: any[], filter: any }) {
-  const { isPro } = usePlan()
+  const { isPro, loading } = usePlan()
+  if (loading) return null
   if (!isPro) return <UpgradeWall feature="Full Reports — Pro Feature" description="Upgrade to Pro to unlock all 7 report tabs with 25+ performance metrics including Day & Time, Symbols, Risk/R-Multiple, Win vs Loss, and Setups." />
   return <Reports trades={trades} filter={filter} />
 }
 
 function GatedNotebook({ userId }: { userId: string }) {
-  const { isPro } = usePlan()
+  const { isPro, loading } = usePlan()
+  if (loading) return null
   if (!isPro) return <UpgradeWall feature="Notebook — Pro Feature" description="Upgrade to Pro to unlock the Notebook and keep all your trade ideas, rules, and notes in one place." />
   return <Notebook userId={userId} />
 }
 
 function GatedStrategies({ userId }: { userId: string }) {
-  const { isPro } = usePlan()
+  const { isPro, loading } = usePlan()
+  if (loading) return null
   if (!isPro) return <UpgradeWall feature="Strategies — Pro Feature" description="Upgrade to Pro to build and manage your trading strategies with full notes and screenshots." />
   return <Strategies userId={userId} />
 }
