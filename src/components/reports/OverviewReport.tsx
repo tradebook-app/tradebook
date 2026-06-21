@@ -52,11 +52,11 @@ export function OverviewReport({ trades }: Props) {
   const bestMo  = moE.length ? moE.reduce((a, b) => (a[1] > b[1] ? a : b)) : ['—', 0] as [string, number]
   const worstMo = moE.length ? moE.reduce((a, b) => (a[1] < b[1] ? a : b)) : ['—', 0] as [string, number]
 
-  // By week (Monday-started)
+  // By week
   const weekKey = (ds: string) => {
     const d = new Date(`${ds}T12:00:00`)
-    const dow = d.getDay()                 // 0=Sun
-    const diff = (dow === 0 ? -6 : 1) - dow // shift back to Monday
+    const dow = d.getDay()
+    const diff = (dow === 0 ? -6 : 1) - dow
     d.setDate(d.getDate() + diff)
     return d.toISOString().substring(0, 10)
   }
@@ -94,72 +94,3 @@ export function OverviewReport({ trades }: Props) {
     ['Max drawdown', `-$${maxDD.toFixed(2)}`],
     ['Avg R-multiple', `${avgRR.toFixed(2)}R`],
     ['Avg win day P&L', fmt(winDays.length ? winDays.reduce((s, d) => s + d[1], 0) / winDays.length : 0)],
-    ['Avg loss day P&L', fmt(lossDays.length ? lossDays.reduce((s, d) => s + d[1], 0) / lossDays.length : 0)],
-    ['Total trades volume', String(totalVol)],
-    ['Avg daily volume', dayE.length ? (totalVol / dayE.length).toFixed(1) : '0'],
-    ['Recovery factor', recovery],
-  ]
-
-  const monthLabel = (m: string) => {
-    if (m === '—') return '—'
-    const [y, mo] = m.split('-')
-    const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-    return `${names[parseInt(mo, 10) - 1]} ${y}`
-  }
-
-  const topCard = (label: string, value: string, sub: string) => (
-    <div>
-      <div style={{ fontSize: '9px', color: 'var(--txt3)' }}>{label}</div>
-      <div style={{ fontSize: '18px', fontWeight: 800, fontFamily: 'var(--mono)' }}>{value}</div>
-      <div style={{ fontSize: '8px', color: 'var(--txt3)' }}>{sub}</div>
-    </div>
-  )
-
-  const StatCol = ({ rows, borderRight }: { rows: [string, string][]; borderRight?: boolean }) => (
-    <div style={{ borderRight: borderRight ? '1px solid var(--brd)' : 'none' }}>
-      {rows.map(([n, v], i) => (
-        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--brd)' }}>
-          <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{n}</span>
-          <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--txt)' }}>{v}</span>
-        </div>
-      ))}
-    </div>
-  )
-
-  if (closed.length === 0) {
-    return <div style={{ padding: '30px', textAlign: 'center', color: 'var(--txt3)', fontSize: '12px' }}>No closed trades yet.</div>
-  }
-
-  return (
-    <div>
-      {/* Best / Worst — Day, Week, Month */}
-      <div style={{ background: 'var(--bg4, #16161e)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '14px 18px', marginBottom: '14px' }}>
-        <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '12px' }}>Your Stats</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '22px' }}>
-          {([
-            ['Day',   bestDay,            worstDay],
-            ['Week',  bestWeek,           worstWeek],
-            ['Month', bestMo[1] as number, worstMo[1] as number],
-          ] as [string, number, number][]).map(([period, b, w]) => (
-            <div key={period}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '7px 0', borderBottom: '1px solid var(--brd)' }}>
-                <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>Best {period}</span>
-                <span style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'var(--mono)', color: b >= 0 ? 'var(--ac)' : 'var(--red)' }}>{fmtK(b)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '7px 0' }}>
-                <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>Worst {period}</span>
-                <span style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'var(--mono)', color: w >= 0 ? 'var(--ac)' : 'var(--red)' }}>{fmtK(w)}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Stats grid */}
-      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-        <StatCol rows={left} borderRight />
-        <StatCol rows={right} />
-      </div>
-    </div>
-  )
-}
