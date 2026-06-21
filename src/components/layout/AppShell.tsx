@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
@@ -22,7 +21,7 @@ const BOTTOM_NAV = [
   { href: '/trades',       icon: '⫐',  label: 'Trades' },
   { href: '/reports',      icon: '◩',  label: 'Reports' },
   { href: '/notebook',     icon: '☰',  label: 'Notebook' },
-  { href: '/settings',     icon: '⚙',  label: 'Settings' },
+  { href: '/settings',     icon: '⚙',  label: 'More' },
 ]
 
 export function AppShell({
@@ -43,11 +42,13 @@ export function AppShell({
       overflow: 'hidden',
       background: 'var(--bg)',
     }}>
-      {/* Desktop sidebar — hidden on mobile via CSS class */}
+
+      {/* Sidebar — hidden on mobile via CSS */}
       <div className="desktop-sidebar" style={{ flexShrink: 0 }}>
         <Sidebar onAddTrade={onAddTrade} userEmail={userEmail} />
       </div>
 
+      {/* Main content */}
       <div style={{
         flex: 1,
         display: 'flex',
@@ -61,7 +62,6 @@ export function AppShell({
           filter={filter}
           onFilterChange={onFilterChange}
           actions={topbarActions}
-          onAddTrade={onAddTrade}
         />
 
         <div
@@ -77,7 +77,7 @@ export function AppShell({
         </div>
       </div>
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav — shown only on mobile via CSS */}
       <nav className="mobile-bottom-nav">
         {BOTTOM_NAV.map(({ href, icon, label }) => (
           <Link
@@ -89,11 +89,12 @@ export function AppShell({
             {label}
           </Link>
         ))}
-        <button onClick={onAddTrade} className={undefined}>
-          <span className="nav-icon">＋</span>
+        <button onClick={onAddTrade}>
+          <span className="nav-icon" style={{ fontSize: '22px', fontWeight: 300 }}>＋</span>
           Add
         </button>
       </nav>
+
     </div>
   )
 }

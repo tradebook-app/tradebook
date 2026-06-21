@@ -153,7 +153,6 @@ html, body {
 }
 
 /* ─── Mobile layout helpers ───────────────────────────────────────────────── */
-.mobile-sidebar { display: none; }
 .mobile-bottom-nav { display: none; }
 
 /* ─── MOBILE (≤768px) ────────────────────────────────────────────────────── */
