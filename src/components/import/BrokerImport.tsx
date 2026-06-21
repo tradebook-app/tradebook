@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { TradeRow } from '@/lib/types'
 import { DasImport } from './DasImport'
 import { TosImport } from './TosImport'
+import { IbkrImport } from './IbkrImport'
 
 type Props = {
   userId: string
@@ -40,8 +41,8 @@ const brokers: Broker[] = [
   {
     id: 'ibkr',
     name: 'Interactive Brokers',
-    description: 'Coming soon',
-    available: false,
+    description: 'Import from IBKR Activity Statement',
+    available: true,
     logo: '/brokers/ibkr.png',
     bg: '#1A0A0A',
   },
@@ -117,10 +118,7 @@ export function BrokerImport({ userId, existingTrades, onImported }: Props) {
   if (selected === 'das') {
     return (
       <div>
-        <button
-          onClick={() => setSelected(null)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--txt3)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', padding: 0 }}
-        >
+        <button onClick={() => setSelected(null)} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--txt3)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', padding: 0 }}>
           ← Back to brokers
         </button>
         <DasImport userId={userId} existingTrades={existingTrades} onImported={onImported} />
@@ -131,13 +129,21 @@ export function BrokerImport({ userId, existingTrades, onImported }: Props) {
   if (selected === 'tos') {
     return (
       <div>
-        <button
-          onClick={() => setSelected(null)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--txt3)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', padding: 0 }}
-        >
+        <button onClick={() => setSelected(null)} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--txt3)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', padding: 0 }}>
           ← Back to brokers
         </button>
         <TosImport userId={userId} existingTrades={existingTrades} onImported={onImported} />
+      </div>
+    )
+  }
+
+  if (selected === 'ibkr') {
+    return (
+      <div>
+        <button onClick={() => setSelected(null)} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--txt3)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', padding: 0 }}>
+          ← Back to brokers
+        </button>
+        <IbkrImport userId={userId} existingTrades={existingTrades} onImported={onImported} />
       </div>
     )
   }
@@ -176,17 +182,10 @@ export function BrokerImport({ userId, existingTrades, onImported }: Props) {
               padding: '16px 18px',
               background: 'var(--bg2)', border: '1px solid var(--brd)',
               borderRadius: '12px', cursor: 'pointer',
-              textAlign: 'left', transition: '.15s',
-              width: '100%',
+              textAlign: 'left', transition: '.15s', width: '100%',
             }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = '#10B981'
-              e.currentTarget.style.background = 'rgba(16,185,129,.04)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'var(--brd)'
-              e.currentTarget.style.background = 'var(--bg2)'
-            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#10B981'; e.currentTarget.style.background = 'rgba(16,185,129,.04)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--brd)'; e.currentTarget.style.background = 'var(--bg2)' }}
           >
             <BrokerIcon logo={broker.logo} bg={broker.bg} name={broker.name} />
             <div>
@@ -213,8 +212,7 @@ export function BrokerImport({ userId, existingTrades, onImported }: Props) {
                   display: 'flex', alignItems: 'center', gap: '14px',
                   padding: '16px 18px',
                   background: 'var(--bg2)', border: '1px solid var(--brd)',
-                  borderRadius: '12px', opacity: 0.5,
-                  cursor: 'not-allowed',
+                  borderRadius: '12px', opacity: 0.5, cursor: 'not-allowed',
                 }}
               >
                 <BrokerIcon logo={broker.logo} bg={broker.bg} name={broker.name} />
