@@ -105,11 +105,38 @@ export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }
 
   return (
     <>
+      <style>{`
+        .dash-chart-row {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+          margin-top: 12px;
+          margin-bottom: 12px;
+          align-items: stretch;
+        }
+        .dash-bottom-row {
+          display: grid;
+          grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+          gap: 12px;
+          margin-bottom: 12px;
+          align-items: stretch;
+        }
+        @media (max-width: 768px) {
+          .dash-chart-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+          .dash-bottom-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+        }
+      `}</style>
       {/* KPI cards */}
       <DashboardKPIs kpi={kpi} openCount={open.length} openPnl={openPnl} />
 
       {/* Row 1: Cumulative | Net daily | Recent trades */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px', marginTop: '12px', marginBottom: '12px', alignItems: 'stretch' }}>
+      <div className='dash-chart-row'>
         {chartCard(
           'Daily net cumulative P&L',
           (cumMode === '%' && accountSize <= 0) ? (
@@ -166,7 +193,7 @@ export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }
       </div>
 
       {/* Row 2: Calendar + weekly | Drawdown */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '12px', marginBottom: '12px', alignItems: 'stretch' }}>
+      <div className='dash-bottom-row'>
         <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '14px 16px' }}>
           <MonthCalendar days={dailyPnl} trades={filtered} />
         </div>
