@@ -12,7 +12,7 @@ export function PerformanceReport({ trades }: Props) {
   const grossWin  = closed.filter(t => t.pnl > 0).reduce((s, t) => s + t.pnl, 0)
   const grossLoss = Math.abs(closed.filter(t => t.pnl < 0).reduce((s, t) => s + t.pnl, 0))
   const totalComm = closed.reduce((s, t) => s + (t.commission || 0), 0)
-  const bestTrade = closed.length ? closed.reduce((a, b) => a.pnl > b.pnl ? a : b) : null
+  const bestTrade  = closed.length ? closed.reduce((a, b) => a.pnl > b.pnl ? a : b) : null
   const worstTrade = closed.length ? closed.reduce((a, b) => a.pnl < b.pnl ? a : b) : null
   const longTrades  = closed.filter(t => t.type === 'Long')
   const shortTrades = closed.filter(t => t.type === 'Short')
@@ -21,7 +21,6 @@ export function PerformanceReport({ trades }: Props) {
   const longPnl  = longTrades.reduce((s, t) => s + t.pnl, 0)
   const shortPnl = shortTrades.reduce((s, t) => s + t.pnl, 0)
 
-  // Average hold times (only trades that have an exit date)
   const withExit = closed.filter(t => t.exit_date)
   const holdMs = (t: TradeRow) => Math.max(0, new Date(t.exit_date!).getTime() - new Date(t.date).getTime())
   const avgHold = (arr: TradeRow[]) => arr.length ? arr.reduce((s, t) => s + holdMs(t), 0) / arr.length : 0
@@ -48,49 +47,72 @@ export function PerformanceReport({ trades }: Props) {
   ] as [string, string, string][]
 
   const SIDE_ROWS = [
-    ['Long Trades',   String(longTrades.length),        'var(--txt)'],
-    ['Long P&L',      fmtPnl(longPnl),                 longPnl >= 0 ? 'var(--ac)' : 'var(--red)'],
-    ['Long Win Rate', `${longWR.toFixed(1)}%`,           longWR >= 50 ? 'var(--ac)' : 'var(--red)'],
-    ['Short Trades',  String(shortTrades.length),        'var(--txt)'],
-    ['Short P&L',     fmtPnl(shortPnl),                 shortPnl >= 0 ? 'var(--ac)' : 'var(--red)'],
-    ['Short Win Rate',`${shortWR.toFixed(1)}%`,          shortWR >= 50 ? 'var(--ac)' : 'var(--red)'],
+    ['Long Trades',    String(longTrades.length),  'var(--txt)'],
+    ['Long P&L',       fmtPnl(longPnl),            longPnl >= 0 ? 'var(--ac)' : 'var(--red)'],
+    ['Long Win Rate',  `${longWR.toFixed(1)}%`,    longWR >= 50 ? 'var(--ac)' : 'var(--red)'],
+    ['Short Trades',   String(shortTrades.length), 'var(--txt)'],
+    ['Short P&L',      fmtPnl(shortPnl),           shortPnl >= 0 ? 'var(--ac)' : 'var(--red)'],
+    ['Short Win Rate', `${shortWR.toFixed(1)}%`,   shortWR >= 50 ? 'var(--ac)' : 'var(--red)'],
   ] as [string, string, string][]
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', alignItems: 'start' }}>
-      <Card title="Overall Performance">
-        {ROWS.map(([label, val, color], i) => (
-          <Row key={i} label={label} val={val} color={color} />
-        ))}
-      </Card>
+    <>
+      <style>{`
+        .perf-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+        .hold-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 14px;
+        }
+        @media (max-width: 768px) {
+          .perf-grid {
+            grid-template-columns: 1fr;
+          }
+          .hold-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+      `}</style>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <Card title="Long vs Short">
-          {SIDE_ROWS.map(([label, val, color], i) => (
+      <div className="perf-grid">
+        <Card title="Overall Performance">
+          {ROWS.map(([label, val, color], i) => (
             <Row key={i} label={label} val={val} color={color} />
           ))}
         </Card>
 
-        {/* Average hold times — fill the empty space under Long vs Short */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-          {([
-            ['Avg hold time (all)', avgAll],
-            ['Avg winner hold',     avgWinH],
-            ['Avg loser hold',      avgLossH],
-          ] as [string, number][]).map(([label, ms]) => (
-            <div key={label} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '16px 18px' }}>
-              <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>{label}</div>
-              <div style={{ fontSize: '20px', fontWeight: 800, fontFamily: 'var(--mono)', color: 'var(--txt)' }}>{fmtDur(ms)}</div>
-            </div>
-          ))}
-        </div>
-        {withExit.length === 0 && (
-          <div style={{ fontSize: '10px', color: 'var(--txt3)' }}>
-            Hold times need an exit date on your trades. Re-import with the latest version to capture them.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <Card title="Long vs Short">
+            {SIDE_ROWS.map(([label, val, color], i) => (
+              <Row key={i} label={label} val={val} color={color} />
+            ))}
+          </Card>
+
+          <div className="hold-grid">
+            {([
+              ['Avg hold time (all)', avgAll],
+              ['Avg winner hold',     avgWinH],
+              ['Avg loser hold',      avgLossH],
+            ] as [string, number][]).map(([label, ms]) => (
+              <div key={label} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '16px 18px' }}>
+                <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>{label}</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, fontFamily: 'var(--mono)', color: 'var(--txt)' }}>{fmtDur(ms)}</div>
+              </div>
+            ))}
           </div>
-        )}
+          {withExit.length === 0 && (
+            <div style={{ fontSize: '10px', color: 'var(--txt3)' }}>
+              Hold times need an exit date on your trades.
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
