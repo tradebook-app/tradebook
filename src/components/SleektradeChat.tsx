@@ -90,7 +90,7 @@ export function SleektradeChat() {
                     color: m.role === 'user' ? '#000' : '#e0e0e0',
                     fontSize: '12px', lineHeight: 1.6, fontWeight: m.role === 'user' ? 600 : 400,
                   }}>
-                    {m.content}
+                  <span dangerouslySetInnerHTML={{ __html: m.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
                   </div>
                 </div>
               ))}
