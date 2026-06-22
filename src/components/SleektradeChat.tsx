@@ -46,10 +46,10 @@ export function SleektradeChat() {
 
   return (
     <>
-      <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}>
+      <div style={{ position: 'fixed', bottom: '24px', left: '24px', zIndex: 1000 }}>
         {open && (
           <div style={{
-            position: 'absolute', bottom: '64px', right: 0,
+            position: 'absolute', bottom: '64px', left: 0,
             width: '360px', height: '500px',
             background: '#0d0d11', border: '1px solid rgba(16,185,129,.25)',
             borderRadius: '16px', display: 'flex', flexDirection: 'column',
@@ -90,7 +90,7 @@ export function SleektradeChat() {
                     color: m.role === 'user' ? '#000' : '#e0e0e0',
                     fontSize: '12px', lineHeight: 1.6, fontWeight: m.role === 'user' ? 600 : 400,
                   }}>
-                  <span dangerouslySetInnerHTML={{ __html: m.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
+                    <span dangerouslySetInnerHTML={{ __html: m.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
                   </div>
                 </div>
               ))}
