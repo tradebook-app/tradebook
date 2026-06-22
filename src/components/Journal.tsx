@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import type { TradeRow } from '@/lib/types'
 
 type Props = {
@@ -86,7 +86,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
   const currentIndex = trades.findIndex(t => t.id === trade.id)
 
   // Keyboard navigation
-  useState(() => {
+  useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'ArrowUp') { e.preventDefault(); if (currentIndex > 0) onNavigate(trades[currentIndex - 1]) }
       if (e.key === 'ArrowDown') { e.preventDefault(); if (currentIndex < trades.length - 1) onNavigate(trades[currentIndex + 1]) }
@@ -94,7 +94,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  })
+  }, [currentIndex, trades, onNavigate, onClose])
   const rows = [
     { l: 'Symbol', v: trade.symbol },
     { l: 'Side', v: trade.type },
