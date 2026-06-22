@@ -28,6 +28,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
   const router   = useRouter()
   const supabase = createClient()
   const [showMenu, setShowMenu] = useState(false)
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const menuRef = useRef<HTMLDivElement>(null)
 
   const initials = userEmail
@@ -38,6 +39,19 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
+  }
+
+  // Read saved theme on mount
+  useEffect(() => {
+    const saved = (localStorage.getItem('sleek-theme') as 'dark' | 'light') || 'dark'
+    setTheme(saved)
+  }, [])
+
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    localStorage.setItem('sleek-theme', next)
+    document.documentElement.setAttribute('data-theme', next)
   }
 
   // Close menu on outside click
@@ -229,7 +243,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
         })}
       </div>
 
-      {/* Footer — User info */}
+      {/* Footer — User info + theme toggle + sign out */}
       <div style={{ marginTop: 'auto', padding: '10px 12px', borderTop: '1px solid var(--brd)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
           <div style={{
@@ -247,6 +261,26 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
             <div style={{ fontSize: '8px', color: 'var(--txt3)' }}>Swing + Day Trader</div>
           </div>
         </div>
+
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          style={{
+            width: '100%', padding: '5px 8px', background: 'transparent',
+            border: '1px solid var(--brd2)', borderRadius: 'var(--r)',
+            color: 'var(--txt2)', fontSize: '9px', fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'var(--sans)',
+            textAlign: 'center', transition: '.1s',
+            marginBottom: '6px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brd3)'; e.currentTarget.style.color = 'var(--txt)' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--brd2)'; e.currentTarget.style.color = 'var(--txt2)' }}
+        >
+          {theme === 'dark' ? '☀ Light mode' : '☾ Dark mode'}
+        </button>
+
+        {/* Sign out */}
         <button
           onClick={handleLogout}
           style={{

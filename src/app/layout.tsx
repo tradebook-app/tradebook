@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import Script from 'next/script'
 
 export const metadata: Metadata = {
   title: 'Sleektrade — The Professional Trading Journal',
@@ -30,6 +31,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {/* Apply saved theme before paint to prevent flash */}
+        <Script id="theme-init" strategy="beforeInteractive">{`
+          try {
+            var t = localStorage.getItem('sleek-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', t);
+          } catch(e) {}
+        `}</Script>
+      </head>
       <body>{children}</body>
     </html>
   )

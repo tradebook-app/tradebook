@@ -44,6 +44,39 @@
   --sidebar-w: 175px;
 }
 
+/* ─── Light Theme ────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:  #F4F4F6;
+  --bg2: #FFFFFF;
+  --bg3: #F0F0F3;
+  --bg4: #E8E8ED;
+  --bg5: #E0E0E8;
+
+  --brd:  #E2E2EA;
+  --brd2: #D4D4E0;
+  --brd3: #C4C4D4;
+
+  --ac:    #10B981;
+  --ac2:   #059669;
+  --ac-d:  rgba(16,185,129,.10);
+  --ac-d2: rgba(16,185,129,.05);
+
+  --red:   #DC2626;
+  --red2:  #EF4444;
+  --red-d: rgba(220,38,38,.08);
+
+  --blue:   #2563EB;
+  --blue-d: rgba(37,99,235,.08);
+
+  --orange:   #D97706;
+  --orange-d: rgba(217,119,6,.08);
+
+  --txt:  #111118;
+  --txt2: #52526A;
+  --txt3: #8888A0;
+  --txt4: #BBBBCC;
+}
+
 /* ─── Base ───────────────────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -96,12 +129,12 @@ html, body {
   .tbl td { padding: 8px 10px; font-size: 11px; border-bottom: 1px solid var(--brd); }
   .tbl tr:hover td { background: rgba(255,255,255,.02); }
 
-.badge { font-size: 9px; font-weight: 800; padding: 3px 10px; border-radius: 20px; display: inline-block; letter-spacing: .04em; }
-.badge-win  { background: rgba(16,185,129,.18); color: #10B981; border: 1px solid rgba(16,185,129,.35); text-shadow: 0 0 8px rgba(16,185,129,.4); }
-.badge-loss { background: rgba(239,68,68,.18);  color: #EF4444; border: 1px solid rgba(239,68,68,.35);  text-shadow: 0 0 8px rgba(239,68,68,.4); }
-.badge-be   { background: rgba(245,158,11,.15); color: #F59E0B; border: 1px solid rgba(245,158,11,.3);  text-shadow: 0 0 8px rgba(245,158,11,.3); }
-.badge-long  { background: rgba(16,185,129,.18); color: #10B981; border: 1px solid rgba(16,185,129,.35); }
-.badge-short { background: rgba(239,68,68,.18);  color: #EF4444; border: 1px solid rgba(239,68,68,.35); }
+  .badge { font-size: 9px; font-weight: 800; padding: 3px 10px; border-radius: 20px; display: inline-block; letter-spacing: .04em; }
+  .badge-win  { background: rgba(16,185,129,.18); color: #10B981; border: 1px solid rgba(16,185,129,.35); text-shadow: 0 0 8px rgba(16,185,129,.4); }
+  .badge-loss { background: rgba(239,68,68,.18);  color: #EF4444; border: 1px solid rgba(239,68,68,.35);  text-shadow: 0 0 8px rgba(239,68,68,.4); }
+  .badge-be   { background: rgba(245,158,11,.15); color: #F59E0B; border: 1px solid rgba(245,158,11,.3);  text-shadow: 0 0 8px rgba(245,158,11,.3); }
+  .badge-long  { background: rgba(16,185,129,.18); color: #10B981; border: 1px solid rgba(16,185,129,.35); }
+  .badge-short { background: rgba(239,68,68,.18);  color: #EF4444; border: 1px solid rgba(239,68,68,.35); }
 
   .tag {
     font-size: 9px; padding: 1px 6px; border-radius: 3px;
