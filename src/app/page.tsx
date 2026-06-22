@@ -273,7 +273,7 @@ export default async function HomePage() {
             ].map(b => (
               <div key={b.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', opacity: 0.85 }}>
                 <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: b.bg, border: '1px solid rgba(255,255,255,.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  <img src={b.logo} alt={b.name} width={36} height={36} style={{ objectFit: 'contain' }} onError={(e: any) => { e.target.style.display='none' }} />
+                  <img src={b.logo} alt={b.name} width={36} height={36} style={{ objectFit: 'contain' }} />
                 </div>
                 <span style={{ fontSize: '11px', color: 'var(--txt3)', fontWeight: 600 }}>{b.name}</span>
               </div>
