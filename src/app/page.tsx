@@ -666,107 +666,214 @@ export default async function HomePage() {
         </div>
 
         {/* Feature 3 — Journal */}
-        <div className="feature-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'72px', alignItems:'center', marginBottom:'100px' }}>
-          <div className="feature-mock-order">
-            <MockWrap>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px' }}>
-                <span style={{ fontSize:'13px', fontWeight:700 }}>Journal</span>
-                <div style={{ display:'flex', gap:'4px' }}>
-                  {['Week','Month'].map((v,i) => (
-                    <span key={v} style={{ fontSize:'9px', padding:'3px 8px', borderRadius:'5px', background:i===0?'#10B981':'var(--bg3)', color:i===0?'#000':'var(--txt3)', border:'1px solid var(--brd)', fontWeight:600 }}>{v}</span>
-                  ))}
-                </div>
-              </div>
-              {[
-                { date:'Mon Jun 22', pnl:'+$1,060', trades:4, note:'Good discipline today. Stuck to my plan on NVDA breakout. Missed AAPL entry — too slow on confirmation.', tags:['Breakout','Momentum'] },
-                { date:'Fri Jun 19', pnl:'+$350', trades:3, note:'MSFT setup was clean. Should have sized up. Let winners run more next time.', tags:['Breakout','Size'] },
-                { date:'Thu Jun 18', pnl:'-$300', trades:2, note:'AMZN trade was a mistake — chased the move. Violated my rules. No more FOMO entries.', tags:['Mistake','FOMO'] },
-                { date:'Wed Jun 17', pnl:'+$1,500', trades:5, note:'Best day this week. SPY trend was clear. Added to winners properly. Felt very in sync.', tags:['Trend','Confidence'] },
-              ].map((d, i) => (
-                <div key={i} style={{ background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'10px', padding:'12px', marginBottom:'8px' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'6px' }}>
-                    <span style={{ fontSize:'11px', fontWeight:700 }}>{d.date}</span>
-                    <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
-                      <span style={{ fontSize:'10px', color:'var(--txt3)' }}>{d.trades} trades</span>
-                      <span style={{ fontSize:'12px', fontWeight:700, color:d.pnl.startsWith('+')?'#10B981':'#EF4444' }}>{d.pnl}</span>
-                    </div>
-                  </div>
-                  <p style={{ fontSize:'10px', color:'var(--txt2)', lineHeight:1.6, margin:'0 0 8px' }}>{d.note}</p>
-                  <div style={{ display:'flex', gap:'4px', flexWrap:'wrap' }}>
-                    {d.tags.map(tag => (
-                      <span key={tag} style={{ fontSize:'9px', padding:'2px 6px', borderRadius:'4px', background:'rgba(16,185,129,.1)', color:'#10B981', border:'1px solid rgba(16,185,129,.2)', fontWeight:600 }}>{tag}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </MockWrap>
-          </div>
-          <div>
+        <div style={{ marginBottom: '120px' }}>
+          <div style={{ marginBottom: '32px' }}>
             <div style={{ display:'inline-block', fontSize:'11px', fontWeight:700, color:'#10B981', background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:'20px', padding:'3px 12px', marginBottom:'16px' }}>Journal</div>
-            <h3 className="feature-h3" style={{ fontSize:'30px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'16px', lineHeight:1.2 }}>Your trading mind.<br />On paper.</h3>
-            <p style={{ fontSize:'15px', color:'var(--txt2)', lineHeight:1.7, marginBottom:'20px' }}>
-              Write daily notes, tag your mindset, and review your thoughts alongside your P&L. The best traders reflect — Sleektrade makes it effortless.
+            <h3 style={{ fontSize:'36px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'12px', lineHeight:1.2 }}>Your trading mind. On paper.</h3>
+            <p style={{ fontSize:'16px', color:'var(--txt2)', lineHeight:1.7, maxWidth:'600px' }}>
+              Write daily notes, tag your mindset, and review your thoughts alongside your P&L. See your week at a glance — green days, red days, and everything in between.
             </p>
-            {['Daily notes with P&L overlay', 'Week and month views', 'Tag emotions and setups', 'Search past journal entries', 'Linked to your trade data'].map(f => (
-              <div key={f} style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', fontSize:'13px', color:'var(--txt2)' }}>
-                <span style={{ color:'#10B981', fontWeight:700, fontSize:'14px' }}>✓</span> {f}
-              </div>
-            ))}
           </div>
-        </div>
-
-        {/* Feature 4 — Position Size */}
-        <div className="feature-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'72px', alignItems:'center', marginBottom:'100px' }}>
-          <div>
-            <div style={{ display:'inline-block', fontSize:'11px', fontWeight:700, color:'#10B981', background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:'20px', padding:'3px 12px', marginBottom:'16px' }}>Position Size</div>
-            <h3 className="feature-h3" style={{ fontSize:'30px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'16px', lineHeight:1.2 }}>Risk the right amount.<br />Every time.</h3>
-            <p style={{ fontSize:'15px', color:'var(--txt2)', lineHeight:1.7, marginBottom:'20px' }}>
-              Enter your account size, risk percentage, entry, and stop — Sleektrade instantly tells you exactly how many shares to buy.
-            </p>
-            {['Dollar and percentage risk modes', 'Instant share size calculation', 'R-multiple target planning', 'Works for stocks and futures', 'No more guessing position size'].map(f => (
-              <div key={f} style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', fontSize:'13px', color:'var(--txt2)' }}>
-                <span style={{ color:'#10B981', fontWeight:700, fontSize:'14px' }}>✓</span> {f}
-              </div>
-            ))}
-          </div>
-          <MockWrap>
-            <div style={{ fontSize:'13px', fontWeight:700, marginBottom:'16px' }}>Position Size Calculator</div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'14px' }}>
-              {[{ l:'Account Size', v:'$50,000' },{ l:'Risk %', v:'1.0%' },{ l:'Entry Price', v:'$132.40' },{ l:'Stop Loss', v:'$130.50' }].map(f => (
-                <div key={f.l} style={{ background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'8px', padding:'10px 12px' }}>
-                  <div style={{ fontSize:'9px', color:'var(--txt3)', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'.05em' }}>{f.l}</div>
-                  <div style={{ fontSize:'14px', fontWeight:700, fontFamily:'var(--mono)' }}>{f.v}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ background:'rgba(16,185,129,.08)', border:'1px solid rgba(16,185,129,.25)', borderRadius:'10px', padding:'16px', marginBottom:'12px', textAlign:'center' }}>
-              <div style={{ fontSize:'10px', color:'var(--txt3)', marginBottom:'6px', textTransform:'uppercase', letterSpacing:'.06em' }}>Shares to Buy</div>
-              <div style={{ fontSize:'36px', fontWeight:800, color:'#10B981', fontFamily:'var(--mono)' }}>263</div>
-              <div style={{ fontSize:'11px', color:'var(--txt3)', marginTop:'4px' }}>shares @ $132.40</div>
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'8px' }}>
-              {[{ l:'Max Risk', v:'$500' },{ l:'Stop Dist', v:'$1.90' },{ l:'Position Size', v:'$34,801' }].map(m => (
-                <div key={m.l} style={{ background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'8px', padding:'8px', textAlign:'center' }}>
-                  <div style={{ fontSize:'8px', color:'var(--txt3)', marginBottom:'3px' }}>{m.l}</div>
-                  <div style={{ fontSize:'12px', fontWeight:700 }}>{m.v}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop:'12px', background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'8px', padding:'10px 12px' }}>
-              <div style={{ fontSize:'9px', color:'var(--txt3)', marginBottom:'6px' }}>R-Multiple Targets</div>
-              <div style={{ display:'flex', gap:'8px' }}>
-                {[{ r:'1R', p:'$134.30', pnl:'+$500' },{ r:'2R', p:'$136.20', pnl:'+$1,000' },{ r:'3R', p:'$138.10', pnl:'+$1,500' }].map(t => (
-                  <div key={t.r} style={{ flex:1, background:'rgba(16,185,129,.06)', borderRadius:'6px', padding:'6px', textAlign:'center' }}>
-                    <div style={{ fontSize:'9px', fontWeight:700, color:'#10B981' }}>{t.r}</div>
-                    <div style={{ fontSize:'9px', color:'var(--txt2)' }}>{t.p}</div>
-                    <div style={{ fontSize:'9px', fontWeight:700, color:'#10B981' }}>{t.pnl}</div>
-                  </div>
+          <div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
+            {/* Header */}
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
+              <span style={{ fontSize:'14px', fontWeight:700 }}>Journal</span>
+              <div style={{ display:'flex', gap:'6px' }}>
+                {['Week','Month'].map((v,i) => (
+                  <span key={v} style={{ fontSize:'10px', padding:'4px 12px', borderRadius:'6px', background:i===0?'#10B981':'#1e1e26', color:i===0?'#000':'#666', border:'1px solid #2a2a35', fontWeight:600 }}>{v}</span>
                 ))}
               </div>
             </div>
-          </MockWrap>
-        </div>
 
+            {/* Week nav */}
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px', background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'10px 16px' }}>
+              <span style={{ fontSize:'12px', color:'#555', cursor:'pointer' }}>← Prev</span>
+              <span style={{ fontSize:'13px', fontWeight:700 }}>Week of Jun 16 – Jun 22, 2026</span>
+              <span style={{ fontSize:'12px', color:'#555', cursor:'pointer' }}>Next →</span>
+            </div>
+
+            {/* Weekly P&L summary bar */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'8px', marginBottom:'14px' }}>
+              {[
+                { day:'Mon Jun 16', pnl:'+$1,500', trades:5, result:'win' },
+                { day:'Tue Jun 17', pnl:'+$660', trades:3, result:'win' },
+                { day:'Wed Jun 18', pnl:'+$1,410', trades:4, result:'win' },
+                { day:'Thu Jun 19', pnl:'-$300', trades:2, result:'loss' },
+                { day:'Fri Jun 20', pnl:'+$230', trades:2, result:'win' },
+              ].map(d => (
+                <div key={d.day} style={{ background: d.result==='win'?'rgba(16,185,129,.08)':'rgba(239,68,68,.08)', border:`1px solid ${d.result==='win'?'rgba(16,185,129,.2)':'rgba(239,68,68,.2)'}`, borderRadius:'8px', padding:'12px', textAlign:'center' }}>
+                  <div style={{ fontSize:'9px', color:'#555', marginBottom:'4px' }}>{d.day}</div>
+                  <div style={{ fontSize:'18px', fontWeight:800, color:d.result==='win'?'#10B981':'#EF4444', fontFamily:'monospace', marginBottom:'2px' }}>{d.pnl}</div>
+                  <div style={{ fontSize:'9px', color:'#555' }}>{d.trades} trades</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Daily journal entries */}
+            {[
+              {
+                date:'Mon Jun 22', pnl:'+$1,060', trades:4, tags:['Breakout','Momentum'],
+                note:'Great discipline today. Stuck to my plan on the NVDA breakout — waited for confirmation and sized properly. Missed AAPL entry, was too slow on the trigger. Need to be faster on obvious setups.',
+                trades_list:[{s:'NVDA',p:'+$490',g:'A'},{s:'TSLA',p:'+$570',g:'A'},{s:'AAPL',p:'-$70',g:'C'},{s:'QQQ',p:'+$70',g:'B'}]
+              },
+              {
+                date:'Fri Jun 19', pnl:'+$350', trades:3, tags:['Breakout','Size'],
+                note:'MSFT setup was clean. Should have sized up more — I was too conservative after the loss on Thursday. Let winners run more next time. Confidence was lower than usual today.',
+                trades_list:[{s:'MSFT',p:'+$350',g:'A'},{s:'NVDA',p:'+$540',g:'A'},{s:'SPY',p:'-$540',g:'D'}]
+              },
+              {
+                date:'Thu Jun 18', pnl:'-$300', trades:2, tags:['Mistake','FOMO'],
+                note:'AMZN trade was a clear mistake — chased the move after it already ran 2%. Violated my no-FOMO rule. Need to respect my entry criteria. Stop loss was in the right place at least.',
+                trades_list:[{s:'AMZN',p:'-$300',g:'D'},{s:'SPY',p:'+$0',g:'B'}]
+              },
+              {
+                date:'Wed Jun 17', pnl:'+$1,500', trades:5, tags:['Trend','Confidence'],
+                note:'Best day this week. SPY trend was crystal clear from the open. Added to winners at every pullback. Felt very in sync with the market. This is what disciplined trading looks like.',
+                trades_list:[{s:'SPY',p:'+$960',g:'A'},{s:'QQQ',p:'+$660',g:'A'},{s:'NVDA',p:'+$320',g:'B'},{s:'TSLA',p:'-$140',g:'C'},{s:'META',p:'-$300',g:'D'}]
+              },
+            ].map((d, i) => (
+              <div key={i} style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'10px', padding:'16px', marginBottom:'10px' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'10px' }}>
+                  <div>
+                    <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'6px' }}>
+                      <span style={{ fontSize:'13px', fontWeight:700 }}>{d.date}</span>
+                      <span style={{ fontSize:'12px', fontWeight:800, color:d.pnl.startsWith('+')?'#10B981':'#EF4444', fontFamily:'monospace' }}>{d.pnl}</span>
+                      <span style={{ fontSize:'10px', color:'#555' }}>{d.trades} trades</span>
+                    </div>
+                    <div style={{ display:'flex', gap:'5px', flexWrap:'wrap' }}>
+                      {d.tags.map(tag => (
+                        <span key={tag} style={{ fontSize:'9px', padding:'2px 8px', borderRadius:'4px', background:'rgba(16,185,129,.1)', color:'#10B981', border:'1px solid rgba(16,185,129,.2)', fontWeight:600 }}>{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', gap:'6px' }}>
+                    {d.trades_list.map((t,j) => (
+                      <div key={j} style={{ textAlign:'center', background:'#131318', border:'1px solid #252530', borderRadius:'6px', padding:'4px 8px' }}>
+                        <div style={{ fontSize:'9px', fontWeight:700 }}>{t.s}</div>
+                        <div style={{ fontSize:'9px', color:t.p.startsWith('+')?'#10B981':'#EF4444', fontFamily:'monospace', fontWeight:700 }}>{t.p}</div>
+                        <div style={{ fontSize:'8px', fontWeight:700, color:t.g==='A'?'#10B981':t.g==='B'?'#60a5fa':t.g==='C'?'#f59e0b':'#EF4444' }}>{t.g}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <p style={{ fontSize:'12px', color:'#888', lineHeight:1.6, margin:0 }}>{d.note}</p>
+              </div>
+            ))}
+
+            {/* Weekly summary footer */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'8px', paddingBottom:'0', marginTop:'4px' }}>
+              {[
+                { l:'Week P&L', v:'+$3,150', c:'#10B981' },
+                { l:'Total Trades', v:'16', c:'#fff' },
+                { l:'Win Rate', v:'75%', c:'#10B981' },
+                { l:'Best Day', v:'Mon +$1,060', c:'#10B981' },
+              ].map(m => (
+                <div key={m.l} style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'10px 14px' }}>
+                  <div style={{ fontSize:'9px', color:'#555', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'.05em' }}>{m.l}</div>
+                  <div style={{ fontSize:'15px', fontWeight:800, color:m.c, fontFamily:'monospace' }}>{m.v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {/* Feature 4 — Position Size */}
+        <div style={{ marginBottom: '120px' }}>
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display:'inline-block', fontSize:'11px', fontWeight:700, color:'#10B981', background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:'20px', padding:'3px 12px', marginBottom:'16px' }}>Position Size</div>
+            <h3 style={{ fontSize:'36px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'12px', lineHeight:1.2 }}>Risk the right amount. Every time.</h3>
+            <p style={{ fontSize:'16px', color:'var(--txt2)', lineHeight:1.7, maxWidth:'600px' }}>
+              Enter your account size, risk percentage, entry, and stop — Sleektrade instantly tells you exactly how many shares to buy. No more guessing.
+            </p>
+          </div>
+          <div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
+            <div style={{ fontSize:'14px', fontWeight:700, marginBottom:'16px' }}>Position Size Calculator</div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' }}>
+              {/* Left: inputs + result */}
+              <div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', marginBottom:'12px' }}>
+                  {[
+                    { l:'Account Size', v:'$50,000', hint:'Your total trading capital' },
+                    { l:'Risk %', v:'1.0%', hint:'Max loss per trade' },
+                    { l:'Entry Price', v:'$132.40', hint:'Your planned entry' },
+                    { l:'Stop Loss', v:'$130.50', hint:'Your stop loss price' },
+                  ].map(f => (
+                    <div key={f.l} style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'12px 14px' }}>
+                      <div style={{ fontSize:'9px', color:'#555', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'.05em' }}>{f.l}</div>
+                      <div style={{ fontSize:'18px', fontWeight:700, fontFamily:'monospace' }}>{f.v}</div>
+                      <div style={{ fontSize:'9px', color:'#444', marginTop:'2px' }}>{f.hint}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Result */}
+                <div style={{ background:'rgba(16,185,129,.08)', border:'1px solid rgba(16,185,129,.3)', borderRadius:'12px', padding:'20px', textAlign:'center', marginBottom:'12px' }}>
+                  <div style={{ fontSize:'11px', color:'#10B981', fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', marginBottom:'8px' }}>Shares to Buy</div>
+                  <div style={{ fontSize:'52px', fontWeight:800, color:'#10B981', fontFamily:'monospace', lineHeight:1 }}>263</div>
+                  <div style={{ fontSize:'12px', color:'#555', marginTop:'6px' }}>shares @ $132.40</div>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'8px' }}>
+                  {[{ l:'Max Risk', v:'$500' },{ l:'Stop Distance', v:'$1.90' },{ l:'Position Size', v:'$34,801' }].map(m => (
+                    <div key={m.l} style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'10px 12px', textAlign:'center' }}>
+                      <div style={{ fontSize:'8px', color:'#555', marginBottom:'3px', textTransform:'uppercase', letterSpacing:'.05em' }}>{m.l}</div>
+                      <div style={{ fontSize:'13px', fontWeight:700, fontFamily:'monospace' }}>{m.v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Right: R-multiple targets + recent calcs */}
+              <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+                <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
+                  <div style={{ fontSize:'10px', color:'#555', marginBottom:'12px', fontWeight:600 }}>R-Multiple Targets</div>
+                  {[
+                    { r:'1R', price:'$134.30', pnl:'+$500', pct:'+1.0%', c:'#10B981' },
+                    { r:'2R', price:'$136.20', pnl:'+$1,000', pct:'+2.0%', c:'#10B981' },
+                    { r:'3R', price:'$138.10', pnl:'+$1,500', pct:'+3.0%', c:'#10B981' },
+                    { r:'5R', price:'$141.90', pnl:'+$2,500', pct:'+5.0%', c:'#60a5fa' },
+                  ].map(t => (
+                    <div key={t.r} style={{ display:'grid', gridTemplateColumns:'30px 80px 1fr 50px', alignItems:'center', padding:'8px 0', borderBottom:'1px solid #252530', gap:'8px' }}>
+                      <span style={{ fontSize:'11px', fontWeight:800, color:t.c }}>{t.r}</span>
+                      <span style={{ fontSize:'11px', fontFamily:'monospace', color:'#aaa' }}>{t.price}</span>
+                      <span style={{ fontSize:'12px', fontWeight:700, color:t.c, fontFamily:'monospace' }}>{t.pnl}</span>
+                      <span style={{ fontSize:'10px', color:'#555', textAlign:'right' }}>{t.pct}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
+                  <div style={{ fontSize:'10px', color:'#555', marginBottom:'12px', fontWeight:600 }}>Recent Calculations</div>
+                  {[
+                    { sym:'TSLA', entry:'248.10', stop:'244.50', shares:135, risk:'$500' },
+                    { sym:'SPY', entry:'548.20', stop:'545.80', shares:208, risk:'$500' },
+                    { sym:'QQQ', entry:'472.80', stop:'469.90', shares:172, risk:'$500' },
+                    { sym:'AAPL', entry:'211.50', stop:'209.20', shares:217, risk:'$499' },
+                  ].map((c, i) => (
+                    <div key={i} style={{ display:'grid', gridTemplateColumns:'50px 70px 70px 60px 50px', alignItems:'center', padding:'7px 0', borderBottom:'1px solid #1e1e26', gap:'6px' }}>
+                      <span style={{ fontSize:'11px', fontWeight:700 }}>{c.sym}</span>
+                      <span style={{ fontSize:'9px', color:'#555', fontFamily:'monospace' }}>@ {c.entry}</span>
+                      <span style={{ fontSize:'9px', color:'#555', fontFamily:'monospace' }}>SL {c.stop}</span>
+                      <span style={{ fontSize:'11px', fontWeight:700, color:'#10B981' }}>{c.shares} sh</span>
+                      <span style={{ fontSize:'10px', color:'#555', fontFamily:'monospace' }}>{c.risk}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background:'rgba(16,185,129,.05)', border:'1px solid rgba(16,185,129,.15)', borderRadius:'8px', padding:'14px' }}>
+                  <div style={{ fontSize:'10px', color:'#555', marginBottom:'10px', fontWeight:600 }}>Risk Summary</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                    {[
+                      { l:'Risk per trade', v:'1.0% / $500' },
+                      { l:'Portfolio risk', v:'0.70%' },
+                      { l:'Max daily loss', v:'$1,500' },
+                      { l:'Buying power used', v:'69.6%' },
+                    ].map(m => (
+                      <div key={m.l}>
+                        <div style={{ fontSize:'8px', color:'#555', marginBottom:'2px' }}>{m.l}</div>
+                        <div style={{ fontSize:'12px', fontWeight:700, fontFamily:'monospace', color:'#10B981' }}>{m.v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* WHO IT'S FOR */}
