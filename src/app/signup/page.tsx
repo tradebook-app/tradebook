@@ -53,6 +53,15 @@ function SignupForm() {
       return
     }
 
+    // Send welcome email — fire and forget, don't block the UI
+    fetch('/api/welcome', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).catch(() => {
+      // Silently fail — welcome email is non-critical
+    })
+
     setSuccess(true)
     setLoading(false)
   }
