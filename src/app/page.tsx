@@ -572,17 +572,29 @@ export default async function HomePage() {
                   { sym:'TSLA', side:'SHORT', pnl:'+$570', grade:'A' },
                   { sym:'AAPL', side:'LONG', pnl:'-$70', grade:'C' },
                   { sym:'SPY', side:'LONG', pnl:'+$960', grade:'A' },
+                  { sym:'QQQ', side:'SHORT', pnl:'+$540', grade:'B' },
+                  { sym:'META', side:'LONG', pnl:'+$230', grade:'B' },
+                  { sym:'AMZN', side:'LONG', pnl:'-$300', grade:'D' },
+                  { sym:'MSFT', side:'LONG', pnl:'+$350', grade:'A' },
                 ].map((t,i) => (
                   <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', padding:'6px 8px', borderBottom:'1px solid #1e1e26', alignItems:'center' }}>
                     <span style={{ fontSize:'11px', fontWeight:700, color:'#F1F1F3' }}>{t.sym}</span>
                     <span style={{ fontSize:'10px', fontWeight:600, color:t.side==='LONG'?'#10B981':'#EF4444' }}>{t.side}</span>
                     <span style={{ fontSize:'11px', fontWeight:700, color:t.pnl.startsWith('+')?'#10B981':'#EF4444', fontFamily:'monospace' }}>{t.pnl}</span>
                     <span style={{ fontSize:'10px', fontWeight:700 }}>
-                      <span style={{ background:t.grade==='A'?'rgba(16,185,129,.15)':'rgba(245,158,11,.15)', color:t.grade==='A'?'#10B981':'#f59e0b', padding:'2px 6px', borderRadius:'4px' }}>{t.grade}</span>
+                      <span style={{ background:t.grade==='A'?'rgba(16,185,129,.15)':t.grade==='B'?'rgba(96,165,250,.15)':t.grade==='C'?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)', color:t.grade==='A'?'#10B981':t.grade==='B'?'#60a5fa':t.grade==='C'?'#f59e0b':'#EF4444', padding:'2px 6px', borderRadius:'4px' }}>{t.grade}</span>
                     </span>
                   </div>
                 ))}
-                <div style={{ textAlign:'center', marginTop:'12px', fontSize:'11px', color:'#555', fontWeight:600 }}>🌙 Dark Mode</div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'6px', margin:'10px 0' }}>
+                  {[{l:'Best Day',v:'+$2,140'},{l:'Avg Hold',v:'18 min'},{l:'Profit Factor',v:'2.38'}].map(m => (
+                    <div key={m.l} style={{ background:'#131318', border:'1px solid #252530', borderRadius:'6px', padding:'8px 10px' }}>
+                      <div style={{ fontSize:'8px', color:'#555', marginBottom:'2px' }}>{m.l}</div>
+                      <div style={{ fontSize:'12px', fontWeight:700, color:'#10B981', fontFamily:'monospace' }}>{m.v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ textAlign:'center', padding:'8px 0', fontSize:'11px', color:'#555', fontWeight:600 }}>🌙 Dark Mode</div>
               </div>
 
               {/* RIGHT — Light side */}
@@ -625,17 +637,29 @@ export default async function HomePage() {
                   { sym:'TSLA', side:'SHORT', pnl:'+$570', grade:'A' },
                   { sym:'AAPL', side:'LONG', pnl:'-$70', grade:'C' },
                   { sym:'SPY', side:'LONG', pnl:'+$960', grade:'A' },
+                  { sym:'QQQ', side:'SHORT', pnl:'+$540', grade:'B' },
+                  { sym:'META', side:'LONG', pnl:'+$230', grade:'B' },
+                  { sym:'AMZN', side:'LONG', pnl:'-$300', grade:'D' },
+                  { sym:'MSFT', side:'LONG', pnl:'+$350', grade:'A' },
                 ].map((t,i) => (
                   <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', padding:'6px 8px', borderBottom:'1px solid #ebebef', alignItems:'center' }}>
                     <span style={{ fontSize:'11px', fontWeight:700, color:'#111' }}>{t.sym}</span>
                     <span style={{ fontSize:'10px', fontWeight:600, color:t.side==='LONG'?'#059669':'#DC2626' }}>{t.side}</span>
                     <span style={{ fontSize:'11px', fontWeight:700, color:t.pnl.startsWith('+')?'#059669':'#DC2626', fontFamily:'monospace' }}>{t.pnl}</span>
                     <span style={{ fontSize:'10px', fontWeight:700 }}>
-                      <span style={{ background:t.grade==='A'?'rgba(5,150,105,.12)':'rgba(245,158,11,.12)', color:t.grade==='A'?'#059669':'#d97706', padding:'2px 6px', borderRadius:'4px' }}>{t.grade}</span>
+                      <span style={{ background:t.grade==='A'?'rgba(5,150,105,.12)':t.grade==='B'?'rgba(59,130,246,.12)':t.grade==='C'?'rgba(245,158,11,.12)':'rgba(220,38,38,.12)', color:t.grade==='A'?'#059669':t.grade==='B'?'#3b82f6':t.grade==='C'?'#d97706':'#DC2626', padding:'2px 6px', borderRadius:'4px' }}>{t.grade}</span>
                     </span>
                   </div>
                 ))}
-                <div style={{ textAlign:'center', marginTop:'12px', fontSize:'11px', color:'#aaa', fontWeight:600 }}>☀️ Light Mode</div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'6px', margin:'10px 0' }}>
+                  {[{l:'Best Day',v:'+$2,140'},{l:'Avg Hold',v:'18 min'},{l:'Profit Factor',v:'2.38'}].map(m => (
+                    <div key={m.l} style={{ background:'#fff', border:'1px solid #e0e0e8', borderRadius:'6px', padding:'8px 10px', boxShadow:'0 1px 3px rgba(0,0,0,.06)' }}>
+                      <div style={{ fontSize:'8px', color:'#aaa', marginBottom:'2px' }}>{m.l}</div>
+                      <div style={{ fontSize:'12px', fontWeight:700, color:'#059669', fontFamily:'monospace' }}>{m.v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ textAlign:'center', padding:'8px 0', fontSize:'11px', color:'#aaa', fontWeight:600 }}>☀️ Light Mode</div>
               </div>
             </div>
           </div>
