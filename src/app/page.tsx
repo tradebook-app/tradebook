@@ -671,106 +671,117 @@ export default async function HomePage() {
             <div style={{ display:'inline-block', fontSize:'11px', fontWeight:700, color:'#10B981', background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:'20px', padding:'3px 12px', marginBottom:'16px' }}>Journal</div>
             <h3 style={{ fontSize:'36px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'12px', lineHeight:1.2 }}>Your trading mind. On paper.</h3>
             <p style={{ fontSize:'16px', color:'var(--txt2)', lineHeight:1.7, maxWidth:'600px' }}>
-              Write daily notes, tag your mindset, and review your thoughts alongside your P&L. See your week at a glance — green days, red days, and everything in between.
+              Review every trading day in detail. See your P&L chart, stats, and every trade — by day or by week. Switch views with one click.
             </p>
           </div>
           <div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
-            {/* Header */}
+            {/* Header: Journal + Day/Week toggle */}
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
               <span style={{ fontSize:'14px', fontWeight:700 }}>Journal</span>
-              <div style={{ display:'flex', gap:'6px' }}>
-                {['Week','Month'].map((v,i) => (
-                  <span key={v} style={{ fontSize:'10px', padding:'4px 12px', borderRadius:'6px', background:i===0?'#10B981':'#1e1e26', color:i===0?'#000':'#666', border:'1px solid #2a2a35', fontWeight:600 }}>{v}</span>
+              <div style={{ display:'flex', gap:'4px' }}>
+                {['Day','Week'].map((v,i) => (
+                  <span key={v} style={{ fontSize:'11px', padding:'5px 14px', borderRadius:'7px', background:i===1?'#10B981':'#1e1e26', color:i===1?'#000':'#666', border:'1px solid #2a2a35', fontWeight:700, cursor:'pointer' }}>{v}</span>
                 ))}
               </div>
             </div>
 
-            {/* Week nav */}
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px', background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'10px 16px' }}>
-              <span style={{ fontSize:'12px', color:'#555', cursor:'pointer' }}>← Prev</span>
-              <span style={{ fontSize:'13px', fontWeight:700 }}>Week of Jun 16 – Jun 22, 2026</span>
-              <span style={{ fontSize:'12px', color:'#555', cursor:'pointer' }}>Next →</span>
+            {/* Week header: Jun 14 – Jun 20 */}
+            <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'12px 16px', marginBottom:'14px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <div>
+                <div style={{ fontSize:'16px', fontWeight:800 }}>Jun 14 – Jun 20, 2026</div>
+                <div style={{ fontSize:'12px', marginTop:'2px' }}>Net P&L: <span style={{ color:'#10B981', fontWeight:700 }}>+$28,629.34</span></div>
+              </div>
+              <div style={{ display:'flex', gap:'6px' }}>
+                <span style={{ fontSize:'11px', padding:'5px 12px', borderRadius:'6px', background:'#1e1e26', color:'#666', border:'1px solid #2a2a35', cursor:'pointer' }}>← Prev</span>
+                <span style={{ fontSize:'11px', padding:'5px 12px', borderRadius:'6px', background:'#1e1e26', color:'#666', border:'1px solid #2a2a35', cursor:'pointer' }}>This Week</span>
+                <span style={{ fontSize:'11px', padding:'5px 12px', borderRadius:'6px', background:'#1e1e26', color:'#666', border:'1px solid #2a2a35', cursor:'pointer' }}>Next →</span>
+              </div>
             </div>
 
-            {/* Weekly P&L summary bar */}
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'8px', marginBottom:'14px' }}>
+            {/* Day columns: Sun–Sat */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'6px', marginBottom:'14px' }}>
               {[
-                { day:'Mon Jun 16', pnl:'+$1,500', trades:5, result:'win' },
-                { day:'Tue Jun 17', pnl:'+$660', trades:3, result:'win' },
-                { day:'Wed Jun 18', pnl:'+$1,410', trades:4, result:'win' },
-                { day:'Thu Jun 19', pnl:'-$300', trades:2, result:'loss' },
-                { day:'Fri Jun 20', pnl:'+$230', trades:2, result:'win' },
+                { day:'SUN', date:'14', pnl:null, trades:null, color:'#1a1a22' },
+                { day:'MON', date:'15', pnl:'-738', trades:12, color:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.25)' },
+                { day:'TUE', date:'16', pnl:'+1850', trades:11, color:'rgba(16,185,129,.08)', border:'rgba(16,185,129,.2)' },
+                { day:'WED', date:'17', pnl:'-498', trades:12, color:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.25)', active:true },
+                { day:'THU', date:'18', pnl:null, trades:null, color:'#1a1a22' },
+                { day:'FRI', date:'19', pnl:'+20000', trades:11, color:'rgba(16,185,129,.08)', border:'rgba(16,185,129,.2)' },
+                { day:'SAT', date:'20', pnl:null, trades:null, color:'#1a1a22' },
               ].map(d => (
-                <div key={d.day} style={{ background: d.result==='win'?'rgba(16,185,129,.08)':'rgba(239,68,68,.08)', border:`1px solid ${d.result==='win'?'rgba(16,185,129,.2)':'rgba(239,68,68,.2)'}`, borderRadius:'8px', padding:'12px', textAlign:'center' }}>
-                  <div style={{ fontSize:'9px', color:'#555', marginBottom:'4px' }}>{d.day}</div>
-                  <div style={{ fontSize:'18px', fontWeight:800, color:d.result==='win'?'#10B981':'#EF4444', fontFamily:'monospace', marginBottom:'2px' }}>{d.pnl}</div>
-                  <div style={{ fontSize:'9px', color:'#555' }}>{d.trades} trades</div>
+                <div key={d.day} style={{ background:d.color, border:`1px solid ${d.border||'#252530'}`, borderRadius:'8px', padding:'10px', textAlign:'center', outline:d.active?'2px solid #10B981':'none' }}>
+                  <div style={{ fontSize:'9px', color:'#555', marginBottom:'2px', fontWeight:700 }}>{d.day}</div>
+                  <div style={{ fontSize:'16px', fontWeight:700, color:d.pnl?'#fff':'#333', marginBottom:'2px' }}>{d.date}</div>
+                  {d.pnl && <div style={{ fontSize:'11px', fontWeight:700, color:d.pnl.startsWith('+')?'#10B981':'#EF4444', fontFamily:'monospace' }}>{d.pnl.startsWith('+')?'+$':'-$'}{Math.abs(parseInt(d.pnl)).toLocaleString()}</div>}
+                  {d.trades && <div style={{ fontSize:'9px', color:'#555' }}>{d.trades}t</div>}
                 </div>
               ))}
             </div>
 
-            {/* Daily journal entries */}
-            {[
-              {
-                date:'Mon Jun 22', pnl:'+$1,060', trades:4, tags:['Breakout','Momentum'],
-                note:'Great discipline today. Stuck to my plan on the NVDA breakout — waited for confirmation and sized properly. Missed AAPL entry, was too slow on the trigger. Need to be faster on obvious setups.',
-                trades_list:[{s:'NVDA',p:'+$490',g:'A'},{s:'TSLA',p:'+$570',g:'A'},{s:'AAPL',p:'-$70',g:'C'},{s:'QQQ',p:'+$70',g:'B'}]
-              },
-              {
-                date:'Fri Jun 19', pnl:'+$350', trades:3, tags:['Breakout','Size'],
-                note:'MSFT setup was clean. Should have sized up more — I was too conservative after the loss on Thursday. Let winners run more next time. Confidence was lower than usual today.',
-                trades_list:[{s:'MSFT',p:'+$350',g:'A'},{s:'NVDA',p:'+$540',g:'A'},{s:'SPY',p:'-$540',g:'D'}]
-              },
-              {
-                date:'Thu Jun 18', pnl:'-$300', trades:2, tags:['Mistake','FOMO'],
-                note:'AMZN trade was a clear mistake — chased the move after it already ran 2%. Violated my no-FOMO rule. Need to respect my entry criteria. Stop loss was in the right place at least.',
-                trades_list:[{s:'AMZN',p:'-$300',g:'D'},{s:'SPY',p:'+$0',g:'B'}]
-              },
-              {
-                date:'Wed Jun 17', pnl:'+$1,500', trades:5, tags:['Trend','Confidence'],
-                note:'Best day this week. SPY trend was crystal clear from the open. Added to winners at every pullback. Felt very in sync with the market. This is what disciplined trading looks like.',
-                trades_list:[{s:'SPY',p:'+$960',g:'A'},{s:'QQQ',p:'+$660',g:'A'},{s:'NVDA',p:'+$320',g:'B'},{s:'TSLA',p:'-$140',g:'C'},{s:'META',p:'-$300',g:'D'}]
-              },
-            ].map((d, i) => (
-              <div key={i} style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'10px', padding:'16px', marginBottom:'10px' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'10px' }}>
-                  <div>
-                    <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'6px' }}>
-                      <span style={{ fontSize:'13px', fontWeight:700 }}>{d.date}</span>
-                      <span style={{ fontSize:'12px', fontWeight:800, color:d.pnl.startsWith('+')?'#10B981':'#EF4444', fontFamily:'monospace' }}>{d.pnl}</span>
-                      <span style={{ fontSize:'10px', color:'#555' }}>{d.trades} trades</span>
-                    </div>
-                    <div style={{ display:'flex', gap:'5px', flexWrap:'wrap' }}>
-                      {d.tags.map(tag => (
-                        <span key={tag} style={{ fontSize:'9px', padding:'2px 8px', borderRadius:'4px', background:'rgba(16,185,129,.1)', color:'#10B981', border:'1px solid rgba(16,185,129,.2)', fontWeight:600 }}>{tag}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ display:'flex', gap:'6px' }}>
-                    {d.trades_list.map((t,j) => (
-                      <div key={j} style={{ textAlign:'center', background:'#131318', border:'1px solid #252530', borderRadius:'6px', padding:'4px 8px' }}>
-                        <div style={{ fontSize:'9px', fontWeight:700 }}>{t.s}</div>
-                        <div style={{ fontSize:'9px', color:t.p.startsWith('+')?'#10B981':'#EF4444', fontFamily:'monospace', fontWeight:700 }}>{t.p}</div>
-                        <div style={{ fontSize:'8px', fontWeight:700, color:t.g==='A'?'#10B981':t.g==='B'?'#60a5fa':t.g==='C'?'#f59e0b':'#EF4444' }}>{t.g}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <p style={{ fontSize:'12px', color:'#888', lineHeight:1.6, margin:0 }}>{d.note}</p>
-              </div>
-            ))}
+            {/* P&L chart */}
+            <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'12px', marginBottom:'14px' }}>
+              <svg viewBox="0 0 900 80" width="100%" height="80">
+                <defs>
+                  <linearGradient id="jg" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.2"/>
+                    <stop offset="100%" stopColor="#10B981" stopOpacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0,40 L100,40 L200,50 L280,48 L350,45 L450,42 L550,42 L650,40 L700,38 L750,15 L800,5 L900,2" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round"/>
+                <path d="M0,40 L100,40 L200,50 L280,48 L350,45 L450,42 L550,42 L650,40 L700,38 L750,15 L800,5 L900,2 L900,80 L0,80Z" fill="url(#jg)"/>
+              </svg>
+            </div>
 
-            {/* Weekly summary footer */}
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'8px', paddingBottom:'0', marginTop:'4px' }}>
+            {/* Stats row */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'8px', marginBottom:'14px' }}>
               {[
-                { l:'Week P&L', v:'+$3,150', c:'#10B981' },
-                { l:'Total Trades', v:'16', c:'#fff' },
-                { l:'Win Rate', v:'75%', c:'#10B981' },
-                { l:'Best Day', v:'Mon +$1,060', c:'#10B981' },
+                { l:'Total Trades', v:'27' },
+                { l:'Win Rate', v:'40.7%' },
+                { l:'Winners', v:'11' },
+                { l:'Losers', v:'16' },
+                { l:'Net P&L', v:'+$28,629', c:'#10B981' },
+                { l:'Profit Factor', v:'12.32' },
               ].map(m => (
                 <div key={m.l} style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'10px 14px' }}>
                   <div style={{ fontSize:'9px', color:'#555', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'.05em' }}>{m.l}</div>
-                  <div style={{ fontSize:'15px', fontWeight:800, color:m.c, fontFamily:'monospace' }}>{m.v}</div>
+                  <div style={{ fontSize:'16px', fontWeight:800, color:m.c||'#fff', fontFamily:'monospace' }}>{m.v}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Trades table — with STATUS (Win/Loss) not Side */}
+            <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px 8px 0 0', overflow:'hidden' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'110px 90px 80px 70px 90px 90px 70px 90px 70px 1fr', padding:'8px 14px', borderBottom:'1px solid #252530', background:'#16161e' }}>
+                {['Day','Time','Symbol','Status','Entry','Exit','Shares','P&L','Grade','Setup'].map(h => (
+                  <span key={h} style={{ fontSize:'8px', color:'#555', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em' }}>{h}</span>
+                ))}
+              </div>
+              {[
+                { day:'Mon, Jun 15', time:'09:32 AM', sym:'MU', status:'Loss', entry:'$1,875.25', exit:'$1,868.04', shares:10, pnl:'-72.88', grade:'A-', setup:'Gap' },
+                { day:'Mon, Jun 15', time:'09:32 AM', sym:'MU', status:'Loss', entry:'$1,875.25', exit:'$1,869.59', shares:10, pnl:'-57.35', grade:'—', setup:'—' },
+                { day:'Mon, Jun 15', time:'09:35 AM', sym:'MSTR', status:'Loss', entry:'$135.35', exit:'$131.89', shares:50, pnl:'-173.79', grade:'—', setup:'—' },
+                { day:'Mon, Jun 15', time:'09:51 AM', sym:'MU', status:'Win', entry:'$1,066.98', exit:'$1,067.71', shares:20, pnl:'+13.45', grade:'—', setup:'—' },
+                { day:'Mon, Jun 15', time:'10:00 AM', sym:'KLAC', status:'Loss', entry:'$256.25', exit:'$257.47', shares:50, pnl:'-61.93', grade:'—', setup:'—' },
+                { day:'Mon, Jun 15', time:'10:02 AM', sym:'AMD', status:'Win', entry:'$550.46', exit:'$552.95', shares:50, pnl:'+122.95', grade:'—', setup:'—' },
+                { day:'Mon, Jun 15', time:'10:03 AM', sym:'MU', status:'Win', entry:'$1,060.98', exit:'$1,062.39', shares:10, pnl:'+13.17', grade:'—', setup:'—' },
+                { day:'Mon, Jun 15', time:'10:06 AM', sym:'AMD', status:'Loss', entry:'$554.33', exit:'$552.22', shares:50, pnl:'-186.69', grade:'—', setup:'—' },
+                { day:'Tue, Jun 16', time:'09:31 AM', sym:'SPY', status:'Win', entry:'$548.20', exit:'$551.40', shares:300, pnl:'+960.00', grade:'A', setup:'Breakout' },
+                { day:'Fri, Jun 19', time:'09:30 AM', sym:'NVDA', status:'Win', entry:'$132.40', exit:'$134.85', shares:200, pnl:'+490.00', grade:'A', setup:'Breakout' },
+                { day:'Fri, Jun 19', time:'10:15 AM', sym:'TSLA', status:'Win', entry:'$248.10', exit:'$244.30', shares:150, pnl:'+570.00', grade:'A', setup:'Reversal' },
+              ].map((t, i) => (
+                <div key={i} style={{ display:'grid', gridTemplateColumns:'110px 90px 80px 70px 90px 90px 70px 90px 70px 1fr', padding:'7px 14px', borderBottom:'1px solid #1e1e26', alignItems:'center', background:i%2===0?'transparent':'rgba(255,255,255,.01)' }}>
+                  <span style={{ fontSize:'9px', color:'#555' }}>{t.day}</span>
+                  <span style={{ fontSize:'10px', color:'#555', fontFamily:'monospace' }}>{t.time}</span>
+                  <span style={{ fontSize:'12px', fontWeight:700 }}>{t.sym}</span>
+                  <span>
+                    <span style={{ fontSize:'9px', fontWeight:700, padding:'2px 7px', borderRadius:'4px', background:t.status==='Win'?'rgba(16,185,129,.15)':'rgba(239,68,68,.15)', color:t.status==='Win'?'#10B981':'#EF4444' }}>{t.status}</span>
+                  </span>
+                  <span style={{ fontSize:'10px', fontFamily:'monospace', color:'#aaa' }}>{t.entry}</span>
+                  <span style={{ fontSize:'10px', fontFamily:'monospace', color:'#aaa' }}>{t.exit}</span>
+                  <span style={{ fontSize:'10px', color:'#666' }}>{t.shares}</span>
+                  <span style={{ fontSize:'11px', fontWeight:700, color:t.pnl.startsWith('+')?'#10B981':'#EF4444', fontFamily:'monospace' }}>{t.pnl.startsWith('+')?'+$':'-$'}{Math.abs(parseFloat(t.pnl)).toFixed(2)}</span>
+                  <span style={{ fontSize:'10px', color:t.grade==='A'||t.grade==='A-'?'#10B981':'#555' }}>{t.grade}</span>
+                  <span style={{ fontSize:'10px', color:'#555' }}>{t.setup}</span>
                 </div>
               ))}
             </div>
