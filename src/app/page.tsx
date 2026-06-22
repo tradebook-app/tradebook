@@ -217,7 +217,7 @@ export default async function HomePage() {
           {/* Full trades table */}
           <div style={{ background: '#1a1a22', border: '1px solid #252530', borderRadius: '8px 8px 0 0', overflow: 'hidden' }}>
             <div style={{ display:'grid', gridTemplateColumns:'90px 70px 60px 80px 80px 70px 80px 60px 80px', padding:'8px 14px', borderBottom:'1px solid #252530', background:'#16161e' }}>
-              {['Date','Symbol','Side','Entry','Exit','Shares','P&L','Grade','Setup'].map(h => (
+              {['Date','Symbol','Side','Status','Entry','Exit','Shares','P&L','Grade'].map(h => (
                 <span key={h} style={{ fontSize:'9px', color:'#555', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em' }}>{h}</span>
               ))}
             </div>
@@ -310,38 +310,37 @@ export default async function HomePage() {
                 ))}
               </div>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'100px 80px 65px 85px 85px 65px 85px 60px 90px 1fr', padding:'8px 14px', borderBottom:'1px solid #252530', background:'#16161e', borderRadius:'6px 6px 0 0' }}>
-              {['Date','Symbol','Side','Entry','Exit','Shares','P&L','Grade','Setup','Notes'].map(h => (
+            <div style={{ display:'grid', gridTemplateColumns:'95px 70px 60px 65px 80px 80px 60px 80px 55px', padding:'8px 14px', borderBottom:'1px solid #252530', background:'#16161e', borderRadius:'6px 6px 0 0' }}>
+              {['Date','Symbol','Side','Status','Entry','Exit','Shares','P&L','Grade'].map(h => (
                 <span key={h} style={{ fontSize:'9px', color:'#555', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em' }}>{h}</span>
               ))}
             </div>
             {[
-              { date:'Jun 22  9:32', sym:'NVDA', side:'LONG', entry:'132.40', exit:'134.85', shares:200, pnl:'+$490', grade:'A', setup:'Breakout', note:'Clean break above HOD' },
-              { date:'Jun 22 10:15', sym:'TSLA', side:'SHORT', entry:'248.10', exit:'244.30', shares:150, pnl:'+$570', grade:'A', setup:'Reversal', note:'Failed breakout, perfect entry' },
-              { date:'Jun 22 11:02', sym:'AAPL', side:'LONG', entry:'211.50', exit:'210.80', shares:100, pnl:'-$70', grade:'C', setup:'VWAP', note:'Stopped out, bad timing' },
-              { date:'Jun 21  9:45', sym:'SPY', side:'LONG', entry:'548.20', exit:'551.40', shares:300, pnl:'+$960', grade:'A', setup:'Breakout', note:'Strong open, held trend all day' },
-              { date:'Jun 21 14:30', sym:'QQQ', side:'SHORT', entry:'472.80', exit:'470.10', shares:200, pnl:'+$540', grade:'B', setup:'Reversal', note:'EOD fade, decent entry' },
-              { date:'Jun 20  9:38', sym:'META', side:'LONG', entry:'615.20', exit:'619.80', shares:50, pnl:'+$230', grade:'B', setup:'VWAP', note:'Slow grind, patient hold' },
-              { date:'Jun 20 11:20', sym:'AMZN', side:'LONG', entry:'198.40', exit:'196.90', shares:200, pnl:'-$300', grade:'D', setup:'Breakout', note:'Chased the move, violated rules' },
-              { date:'Jun 19  9:55', sym:'MSFT', side:'LONG', entry:'442.10', exit:'445.60', shares:100, pnl:'+$350', grade:'A', setup:'Breakout', note:'Perfect setup, good size' },
-              { date:'Jun 19 13:40', sym:'NVDA', side:'SHORT', entry:'135.20', exit:'133.40', shares:300, pnl:'+$540', grade:'A', setup:'Reversal', note:'Topped out, clean short entry' },
-              { date:'Jun 18  9:31', sym:'SPY', side:'LONG', entry:'545.80', exit:'548.20', shares:400, pnl:'+$960', grade:'A', setup:'Breakout', note:'Gap and go, added to winner' },
-              { date:'Jun 18 11:15', sym:'TSLA', side:'LONG', entry:'243.60', exit:'248.10', shares:100, pnl:'+$450', grade:'B', setup:'VWAP', note:'VWAP reclaim, held well' },
-              { date:'Jun 17  9:35', sym:'QQQ', side:'LONG', entry:'468.40', exit:'472.80', shares:150, pnl:'+$660', grade:'A', setup:'Breakout', note:'Strong trend day, held all day' },
+              { date:'Jun 22  9:32', sym:'NVDA', side:'Long', win:true, entry:'132.40', exit:'134.85', shares:200, pnl:'+$490', grade:'A' },
+              { date:'Jun 22 10:15', sym:'TSLA', side:'Short', win:true, entry:'248.10', exit:'244.30', shares:150, pnl:'+$570', grade:'A' },
+              { date:'Jun 22 11:02', sym:'AAPL', side:'Long', win:false, entry:'211.50', exit:'210.80', shares:100, pnl:'-$70', grade:'C' },
+              { date:'Jun 21  9:45', sym:'SPY', side:'Long', win:true, entry:'548.20', exit:'551.40', shares:300, pnl:'+$960', grade:'A' },
+              { date:'Jun 21 14:30', sym:'QQQ', side:'Short', win:true, entry:'472.80', exit:'470.10', shares:200, pnl:'+$540', grade:'B' },
+              { date:'Jun 20  9:38', sym:'META', side:'Long', win:true, entry:'615.20', exit:'619.80', shares:50, pnl:'+$230', grade:'B' },
+              { date:'Jun 20 11:20', sym:'AMZN', side:'Long', win:false, entry:'198.40', exit:'196.90', shares:200, pnl:'-$300', grade:'D' },
+              { date:'Jun 19  9:55', sym:'MSFT', side:'Long', win:true, entry:'442.10', exit:'445.60', shares:100, pnl:'+$350', grade:'A' },
+              { date:'Jun 19 13:40', sym:'NVDA', side:'Short', win:true, entry:'135.20', exit:'133.40', shares:300, pnl:'+$540', grade:'A' },
+              { date:'Jun 18  9:31', sym:'SPY', side:'Long', win:true, entry:'545.80', exit:'548.20', shares:400, pnl:'+$960', grade:'A' },
+              { date:'Jun 18 11:15', sym:'TSLA', side:'Long', win:true, entry:'243.60', exit:'248.10', shares:100, pnl:'+$450', grade:'B' },
+              { date:'Jun 17  9:35', sym:'QQQ', side:'Long', win:true, entry:'468.40', exit:'472.80', shares:150, pnl:'+$660', grade:'A' },
             ].map((t, i) => (
-              <div key={i} style={{ display:'grid', gridTemplateColumns:'100px 80px 65px 85px 85px 65px 85px 60px 90px 1fr', padding:'7px 14px', borderBottom:'1px solid #1e1e26', alignItems:'center', background:i%2===0?'transparent':'rgba(255,255,255,.01)' }}>
+              <div key={i} style={{ display:'grid', gridTemplateColumns:'95px 70px 60px 65px 80px 80px 60px 80px 55px', padding:'7px 14px', borderBottom:'1px solid #1e1e26', alignItems:'center', background:i%2===0?'transparent':'rgba(255,255,255,.01)' }}>
                 <span style={{ fontSize:'10px', color:'#555', fontFamily:'monospace' }}>{t.date}</span>
                 <span style={{ fontSize:'12px', fontWeight:700 }}>{t.sym}</span>
-                <span style={{ fontSize:'10px', fontWeight:700, color:t.side==='LONG'?'#10B981':'#EF4444' }}>{t.side}</span>
+                <span style={{ fontSize:'10px', fontWeight:600, color:t.side==='Long'?'#10B981':'#EF4444' }}>{t.side}</span>
+                <span><span style={{ fontSize:'9px', fontWeight:700, padding:'2px 6px', borderRadius:'4px', background:t.win?'rgba(16,185,129,.15)':'rgba(239,68,68,.15)', color:t.win?'#10B981':'#EF4444' }}>{t.win?'Win':'Loss'}</span></span>
                 <span style={{ fontSize:'10px', fontFamily:'monospace', color:'#aaa' }}>${t.entry}</span>
                 <span style={{ fontSize:'10px', fontFamily:'monospace', color:'#aaa' }}>${t.exit}</span>
                 <span style={{ fontSize:'10px', color:'#666' }}>{t.shares}</span>
-                <span style={{ fontSize:'12px', fontWeight:700, color:t.pnl.startsWith('+')?'#10B981':'#EF4444', fontFamily:'monospace' }}>{t.pnl}</span>
+                <span style={{ fontSize:'11px', fontWeight:700, color:t.pnl.startsWith('+')?'#10B981':'#EF4444', fontFamily:'monospace' }}>{t.pnl}</span>
                 <span style={{ fontSize:'10px', fontWeight:700 }}>
-                  <span style={{ background:t.grade==='A'?'rgba(16,185,129,.15)':t.grade==='B'?'rgba(96,165,250,.15)':t.grade==='C'?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)', color:t.grade==='A'?'#10B981':t.grade==='B'?'#60a5fa':t.grade==='C'?'#f59e0b':'#EF4444', padding:'2px 6px', borderRadius:'4px' }}>{t.grade}</span>
+                  <span style={{ background:t.grade==='A'?'rgba(16,185,129,.15)':t.grade==='B'?'rgba(96,165,250,.15)':t.grade==='C'?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)', color:t.grade==='A'?'#10B981':t.grade==='B'?'#60a5fa':t.grade==='C'?'#f59e0b':'#EF4444', padding:'2px 5px', borderRadius:'4px' }}>{t.grade}</span>
                 </span>
-                <span style={{ fontSize:'10px', color:'#555' }}>{t.setup}</span>
-                <span style={{ fontSize:'9px', color:'#444', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.note}</span>
               </div>
             ))}
             <div style={{ display:'flex', justifyContent:'space-between', padding:'10px 14px', fontSize:'11px', color:'#555' }}>
