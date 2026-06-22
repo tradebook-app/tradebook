@@ -254,15 +254,15 @@ export default async function HomePage() {
       </section>
 
       {/* BROKERS STRIP */}
-      <section style={{ borderBottom: '1px solid var(--brd)', background: 'var(--bg)', padding: '64px 48px' }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '12px' }}>
+      <section style={{ borderTop: '1px solid var(--brd)', borderBottom: '1px solid var(--brd)', background: 'var(--bg2)', padding: '80px 48px', marginTop: '80px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: '40px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '14px' }}>
             Import your trades in seconds
           </h2>
-          <p style={{ fontSize: '16px', color: 'var(--txt2)', marginBottom: '48px' }}>
+          <p style={{ fontSize: '17px', color: 'var(--txt2)', marginBottom: '56px', maxWidth: '560px', margin: '0 auto 56px' }}>
             Connect your broker and Sleektrade turns your raw data into clear, actionable insights.
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '32px', flexWrap: 'wrap', marginBottom: '36px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '48px', flexWrap: 'wrap', marginBottom: '48px' }}>
             {[
               { name: 'DAS Trader', logo: '/brokers/das.png', bg: '#0A1628' },
               { name: 'ThinkOrSwim', logo: '/brokers/tos.png', bg: '#0D3B0D' },
@@ -271,16 +271,16 @@ export default async function HomePage() {
               { name: 'Tastytrade', logo: '/brokers/tastytrade.png', bg: '#1A0E06' },
               { name: 'TradeStation', logo: '/brokers/tradestation.png', bg: '#1A1400' },
             ].map(b => (
-              <div key={b.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', opacity: 0.85 }}>
-                <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: b.bg, border: '1px solid rgba(255,255,255,.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  <img src={b.logo} alt={b.name} width={36} height={36} style={{ objectFit: 'contain' }} />
+              <div key={b.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '72px', height: '72px', borderRadius: '18px', background: b.bg, border: '1px solid rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,.3)' }}>
+                  <img src={b.logo} alt={b.name} width={48} height={48} style={{ objectFit: 'contain' }} />
                 </div>
-                <span style={{ fontSize: '11px', color: 'var(--txt3)', fontWeight: 600 }}>{b.name}</span>
+                <span style={{ fontSize: '13px', color: 'var(--txt2)', fontWeight: 600 }}>{b.name}</span>
               </div>
             ))}
           </div>
-          <Link href="/import" style={{ fontSize: '13px', fontWeight: 600, color: '#10B981', textDecoration: 'none', border: '1px solid rgba(16,185,129,.3)', borderRadius: '8px', padding: '8px 20px', display: 'inline-block' }}>
-            View all supported brokers →
+          <Link href="/import" style={{ fontSize: '14px', fontWeight: 600, color: '#10B981', textDecoration: 'none', border: '1px solid rgba(16,185,129,.3)', borderRadius: '8px', padding: '10px 24px', display: 'inline-block' }}>
+            Start importing your trades →
           </Link>
         </div>
       </section>
