@@ -116,15 +116,16 @@ export default async function HomePage() {
       `}</style>
 
       {/* HERO */}
-      <section className="hero-grid" style={{ maxWidth: '1200px', margin: '0 auto', padding: '80px 48px 60px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '64px', alignItems: 'center' }}>
-        <div>
+      <section style={{ padding: '72px 48px 0', maxWidth: '1400px', margin: '0 auto' }}>
+        {/* Text block — left aligned, not centered */}
+        <div style={{ maxWidth: '580px', marginBottom: '48px' }}>
           <div style={{ display: 'inline-block', fontSize: '11px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '20px', padding: '4px 14px', marginBottom: '24px', letterSpacing: '.05em', textTransform: 'uppercase' }}>
             Built for traders & investors
           </div>
-          <h1 className="hero-h1" style={{ fontSize: '52px', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.03em', marginBottom: '20px' }}>
+          <h1 className="hero-h1" style={{ fontSize: '56px', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-.03em', marginBottom: '20px' }}>
             Know exactly why<br /><span style={{ color: '#10B981' }}>you win and lose.</span>
           </h1>
-          <p style={{ fontSize: '17px', color: 'var(--txt2)', lineHeight: 1.7, marginBottom: '36px' }}>
+          <p style={{ fontSize: '18px', color: 'var(--txt2)', lineHeight: 1.7, marginBottom: '36px', maxWidth: '500px' }}>
             Sleektrade is the professional trading journal that turns your raw trade data into clear, actionable insight — whether you day trade, swing trade, or invest long-term.
           </p>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -134,74 +135,121 @@ export default async function HomePage() {
           <p style={{ fontSize: '12px', color: 'var(--txt3)', marginTop: '14px' }}>No credit card required · Free plan available</p>
         </div>
 
-        {/* HERO DASHBOARD MOCK */}
-        <div className="hero-mock">
-          <MockWrap>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 700 }}>Dashboard</span>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                {['1W','1M','3M','YTD'].map((t,i) => (
-                  <span key={t} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '5px', background: i===1?'#10B981':'var(--bg3)', color: i===1?'#000':'var(--txt3)', border: '1px solid var(--brd)', fontWeight: 600 }}>{t}</span>
-                ))}
-              </div>
+        {/* FULL WIDTH DASHBOARD MOCK */}
+        <div className="hero-mock" style={{
+          background: '#131318', border: '1px solid #252530',
+          borderRadius: '16px 16px 0 0', padding: '20px 20px 0',
+          boxShadow: '0 -8px 60px rgba(16,185,129,.08), 0 0 0 1px rgba(255,255,255,.04)',
+          width: '100%',
+        }}>
+          {/* Mock top bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 700 }}>Dashboard</span>
+              <span style={{ fontSize: '11px', color: 'var(--txt3)' }}>June 2026</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '8px', marginBottom: '14px' }}>
-              {[{ l: 'Net P&L', v: '+$8,421', c: '#10B981' }, { l: 'Win Rate', v: '71.4%', c: '#10B981' }, { l: 'Profit Factor', v: '2.38', c: '#10B981' }, { l: 'Total Trades', v: '84', c: 'var(--txt)' }].map(m => (
-                <div key={m.l} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', padding: '10px 12px' }}>
-                  <div style={{ fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.l}</div>
-                  <div style={{ fontSize: '15px', fontWeight: 800, color: m.c }}>{m.v}</div>
-                </div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {['1W','1M','3M','YTD'].map((t,i) => (
+                <span key={t} style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '6px', background: i===1?'#10B981':'#1e1e26', color: i===1?'#000':'#666', border: '1px solid #2a2a35', fontWeight: 600 }}>{t}</span>
               ))}
             </div>
-            <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', padding: '12px', marginBottom: '14px' }}>
-              <div style={{ fontSize: '10px', color: 'var(--txt3)', marginBottom: '8px' }}>Cumulative P&L — June 2026</div>
-              <svg viewBox="0 0 340 80" width="100%" height="80">
+          </div>
+
+          {/* Stats row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: '8px', marginBottom: '14px' }}>
+            {[
+              { l: 'Net P&L', v: '+$8,421', c: '#10B981' },
+              { l: 'Win Rate', v: '71.4%', c: '#10B981' },
+              { l: 'Profit Factor', v: '2.38', c: '#10B981' },
+              { l: 'Total Trades', v: '84', c: '#fff' },
+              { l: 'Avg Win', v: '+$384', c: '#10B981' },
+              { l: 'Avg Loss', v: '-$162', c: '#EF4444' },
+            ].map(m => (
+              <div key={m.l} style={{ background: '#1a1a22', border: '1px solid #252530', borderRadius: '8px', padding: '10px 14px' }}>
+                <div style={{ fontSize: '9px', color: '#555', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.06em' }}>{m.l}</div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: m.c, fontFamily: 'monospace' }}>{m.v}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Chart + sidebar */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '10px', marginBottom: '14px' }}>
+            <div style={{ background: '#1a1a22', border: '1px solid #252530', borderRadius: '8px', padding: '14px' }}>
+              <div style={{ fontSize: '10px', color: '#555', marginBottom: '10px' }}>Cumulative P&L — June 2026</div>
+              <svg viewBox="0 0 600 100" width="100%" height="100">
                 <defs>
-                  <linearGradient id="hg2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.3"/>
+                  <linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.25"/>
                     <stop offset="100%" stopColor="#10B981" stopOpacity="0"/>
                   </linearGradient>
                 </defs>
-                <path d="M0,75 L20,70 L40,62 L60,58 L80,62 L100,52 L120,44 L140,38 L160,30 L180,22 L200,18 L220,24 L240,14 L260,8 L280,5 L300,3 L320,2 L340,1" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round"/>
-                <path d="M0,75 L20,70 L40,62 L60,58 L80,62 L100,52 L120,44 L140,38 L160,30 L180,22 L200,18 L220,24 L240,14 L260,8 L280,5 L300,3 L320,2 L340,1 L340,80 L0,80Z" fill="url(#hg2)"/>
+                <path d="M0,95 L30,88 L60,80 L90,74 L120,78 L150,65 L180,55 L210,46 L240,38 L270,28 L300,22 L330,28 L360,18 L390,10 L420,6 L450,4 L480,3 L510,2 L540,1 L570,1 L600,0" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round"/>
+                <path d="M0,95 L30,88 L60,80 L90,74 L120,78 L150,65 L180,55 L210,46 L240,38 L270,28 L300,22 L330,28 L360,18 L390,10 L420,6 L450,4 L480,3 L510,2 L540,1 L570,1 L600,0 L600,100 L0,100Z" fill="url(#heroGrad)"/>
+                {[0,100,200,300,400,500,600].map((x,i) => (
+                  <line key={i} x1={x} y1="0" x2={x} y2="100" stroke="#252530" strokeWidth="0.5"/>
+                ))}
               </svg>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
-              <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', padding: '10px 12px' }}>
-                <div style={{ fontSize: '9px', color: 'var(--txt3)', marginBottom: '6px' }}>P&L by Day</div>
-                <div style={{ display: 'flex', gap: '4px', alignItems: 'flex-end', height: '40px' }}>
-                  {[{h:28,c:'#10B981'},{h:38,c:'#10B981'},{h:14,c:'#EF4444'},{h:42,c:'#10B981'},{h:32,c:'#10B981'}].map((b,i) => (
-                    <div key={i} style={{ flex:1, height:`${b.h}px`, background:b.c, borderRadius:'3px 3px 0 0', opacity:0.85 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ background: '#1a1a22', border: '1px solid #252530', borderRadius: '8px', padding: '12px', flex: 1 }}>
+                <div style={{ fontSize: '9px', color: '#555', marginBottom: '8px' }}>P&L by Day of Week</div>
+                <div style={{ display: 'flex', gap: '5px', alignItems: 'flex-end', height: '48px' }}>
+                  {[{d:'Mon',h:40,c:'#10B981'},{d:'Tue',h:60,c:'#10B981'},{d:'Wed',h:18,c:'#EF4444'},{d:'Thu',h:52,c:'#10B981'},{d:'Fri',h:35,c:'#10B981'}].map(b => (
+                    <div key={b.d} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:'3px', justifyContent:'flex-end' }}>
+                      <div style={{ width:'100%', height:`${b.h}%`, background:b.c, borderRadius:'3px 3px 0 0', opacity:0.8 }} />
+                      <div style={{ fontSize:'8px', color:'#555' }}>{b.d}</div>
+                    </div>
                   ))}
                 </div>
               </div>
-              <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', padding: '10px 12px' }}>
-                <div style={{ fontSize: '9px', color: 'var(--txt3)', marginBottom: '6px' }}>Best Symbols</div>
-                {[{s:'NVDA',v:'+$2,140'},{s:'TSLA',v:'+$1,820'},{s:'SPY',v:'+$960'}].map(x => (
-                  <div key={x.s} style={{ display:'flex', justifyContent:'space-between', fontSize:'10px', marginBottom:'4px' }}>
+              <div style={{ background: '#1a1a22', border: '1px solid #252530', borderRadius: '8px', padding: '12px', flex: 1 }}>
+                <div style={{ fontSize: '9px', color: '#555', marginBottom: '8px' }}>Top Symbols</div>
+                {[{s:'NVDA',v:'+$2,140'},{s:'TSLA',v:'+$1,570'},{s:'SPY',v:'+$960'},{s:'QQQ',v:'+$540'}].map(x => (
+                  <div key={x.s} style={{ display:'flex', justifyContent:'space-between', fontSize:'11px', marginBottom:'5px' }}>
                     <span style={{ fontWeight:700 }}>{x.s}</span>
-                    <span style={{ color:'#10B981', fontWeight:700 }}>{x.v}</span>
+                    <span style={{ color:'#10B981', fontWeight:700, fontFamily:'monospace' }}>{x.v}</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', overflow: 'hidden' }}>
-              <div style={{ display:'grid', gridTemplateColumns:'80px 60px 60px 70px 50px', padding:'6px 10px', borderBottom:'1px solid var(--brd)' }}>
-                {['Symbol','Side','Shares','P&L','Grade'].map(h => (
-                  <span key={h} style={{ fontSize:'8px', color:'var(--txt3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em' }}>{h}</span>
-                ))}
-              </div>
-              {trades.slice(0,5).map((t, i) => (
-                <div key={i} style={{ display:'grid', gridTemplateColumns:'80px 60px 60px 70px 50px', padding:'6px 10px', borderBottom: i<4?'1px solid var(--brd)':'none', alignItems:'center' }}>
-                  <span style={{ fontSize:'11px', fontWeight:700 }}>{t.sym}</span>
-                  <span style={{ fontSize:'10px', fontWeight:600, color: t.side==='LONG'?'#10B981':'#EF4444' }}>{t.side}</span>
-                  <span style={{ fontSize:'10px', color:'var(--txt2)' }}>{t.shares}</span>
-                  <span style={{ fontSize:'11px', fontWeight:700, color: t.pnl.startsWith('+')?'#10B981':'#EF4444' }}>{t.pnl}</span>
-                  <span style={{ fontSize:'10px', fontWeight:700, color: t.grade==='A'?'#10B981':t.grade==='B'?'#60a5fa':t.grade==='C'?'#f59e0b':'#EF4444' }}>{t.grade}</span>
-                </div>
+          </div>
+
+          {/* Full trades table */}
+          <div style={{ background: '#1a1a22', border: '1px solid #252530', borderRadius: '8px 8px 0 0', overflow: 'hidden' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'90px 70px 60px 80px 80px 70px 80px 60px 80px', padding:'8px 14px', borderBottom:'1px solid #252530', background:'#16161e' }}>
+              {['Date','Symbol','Side','Entry','Exit','Shares','P&L','Grade','Setup'].map(h => (
+                <span key={h} style={{ fontSize:'9px', color:'#555', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em' }}>{h}</span>
               ))}
             </div>
-          </MockWrap>
+            {[
+              { date:'Jun 22  9:32', sym:'NVDA', side:'LONG', entry:'132.40', exit:'134.85', shares:200, pnl:'+$490', grade:'A', setup:'Breakout' },
+              { date:'Jun 22 10:15', sym:'TSLA', side:'SHORT', entry:'248.10', exit:'244.30', shares:150, pnl:'+$570', grade:'A', setup:'Reversal' },
+              { date:'Jun 22 11:02', sym:'AAPL', side:'LONG', entry:'211.50', exit:'210.80', shares:100, pnl:'-$70', grade:'C', setup:'VWAP' },
+              { date:'Jun 21  9:45', sym:'SPY', side:'LONG', entry:'548.20', exit:'551.40', shares:300, pnl:'+$960', grade:'A', setup:'Breakout' },
+              { date:'Jun 21 14:30', sym:'QQQ', side:'SHORT', entry:'472.80', exit:'470.10', shares:200, pnl:'+$540', grade:'B', setup:'Reversal' },
+              { date:'Jun 20  9:38', sym:'META', side:'LONG', entry:'615.20', exit:'619.80', shares:50, pnl:'+$230', grade:'B', setup:'VWAP' },
+              { date:'Jun 20 11:20', sym:'AMZN', side:'LONG', entry:'198.40', exit:'196.90', shares:200, pnl:'-$300', grade:'D', setup:'Breakout' },
+              { date:'Jun 19  9:55', sym:'MSFT', side:'LONG', entry:'442.10', exit:'445.60', shares:100, pnl:'+$350', grade:'A', setup:'Breakout' },
+              { date:'Jun 19 13:40', sym:'NVDA', side:'SHORT', entry:'135.20', exit:'133.40', shares:300, pnl:'+$540', grade:'A', setup:'Reversal' },
+              { date:'Jun 18  9:31', sym:'SPY', side:'LONG', entry:'545.80', exit:'548.20', shares:400, pnl:'+$960', grade:'A', setup:'Breakout' },
+              { date:'Jun 18 11:15', sym:'TSLA', side:'LONG', entry:'243.60', exit:'248.10', shares:100, pnl:'+$450', grade:'B', setup:'VWAP' },
+              { date:'Jun 17  9:35', sym:'QQQ', side:'LONG', entry:'468.40', exit:'472.80', shares:150, pnl:'+$660', grade:'A', setup:'Breakout' },
+            ].map((t, i) => (
+              <div key={i} style={{ display:'grid', gridTemplateColumns:'90px 70px 60px 80px 80px 70px 80px 60px 80px', padding:'7px 14px', borderBottom:'1px solid #1e1e26', alignItems:'center', background: i%2===0?'transparent':'rgba(255,255,255,.01)' }}>
+                <span style={{ fontSize:'10px', color:'#555', fontFamily:'monospace' }}>{t.date}</span>
+                <span style={{ fontSize:'12px', fontWeight:700 }}>{t.sym}</span>
+                <span style={{ fontSize:'10px', fontWeight:700, color:t.side==='LONG'?'#10B981':'#EF4444' }}>{t.side}</span>
+                <span style={{ fontSize:'10px', fontFamily:'monospace', color:'#aaa' }}>${t.entry}</span>
+                <span style={{ fontSize:'10px', fontFamily:'monospace', color:'#aaa' }}>${t.exit}</span>
+                <span style={{ fontSize:'10px', color:'#666' }}>{t.shares}</span>
+                <span style={{ fontSize:'12px', fontWeight:700, color:t.pnl.startsWith('+')?'#10B981':'#EF4444', fontFamily:'monospace' }}>{t.pnl}</span>
+                <span style={{ fontSize:'11px', fontWeight:700, color:t.grade==='A'?'#10B981':t.grade==='B'?'#60a5fa':t.grade==='C'?'#f59e0b':'#EF4444' }}>
+                  <span style={{ background:t.grade==='A'?'rgba(16,185,129,.15)':t.grade==='B'?'rgba(96,165,250,.15)':t.grade==='C'?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)', padding:'2px 6px', borderRadius:'4px' }}>{t.grade}</span>
+                </span>
+                <span style={{ fontSize:'10px', color:'#555' }}>{t.setup}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
