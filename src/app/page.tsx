@@ -361,31 +361,93 @@ export default async function HomePage() {
             </p>
           </div>
           <div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
-            <div style={{ display:'flex', gap:'6px', marginBottom:'16px', flexWrap:'wrap' }}>
+            {/* Tabs */}
+            <div style={{ display:'flex', gap:'6px', marginBottom:'16px' }}>
               {['Performance','Overview','Day & Time','Symbols','Risk/R','Win/Loss','Setups'].map((t,i) => (
-                <div key={t} style={{ fontSize:'11px', fontWeight:600, padding:'5px 14px', borderRadius:'7px', background:i===0?'#10B981':'#1e1e26', color:i===0?'#000':'#666', border:'1px solid #2a2a35' }}>{t}</div>
+                <div key={t} style={{ fontSize:'11px', fontWeight:600, padding:'6px 14px', borderRadius:'7px', background:i===0?'#10B981':'#1e1e26', color:i===0?'#000':'#666', border:'1px solid #2a2a35', cursor:'pointer' }}>{t}</div>
               ))}
             </div>
+            {/* Top 6 stats */}
             <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'8px', marginBottom:'14px' }}>
               {[
-                { l:'Total Trades', v:'142', c:'#fff' },
+                { l:'Net P&L', v:'+$8,421', c:'#10B981' },
                 { l:'Win Rate', v:'71.8%', c:'#10B981' },
                 { l:'Profit Factor', v:'2.38', c:'#10B981' },
+                { l:'Total Trades', v:'142', c:'#fff' },
                 { l:'Avg Win', v:'+$384', c:'#10B981' },
                 { l:'Avg Loss', v:'-$180', c:'#EF4444' },
-                { l:'Best Day', v:'+$2,140', c:'#10B981' },
               ].map(m => (
                 <div key={m.l} style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'12px 14px' }}>
-                  <div style={{ fontSize:'9px', color:'#555', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'.06em' }}>{m.l}</div>
-                  <div style={{ fontSize:'18px', fontWeight:800, color:m.c, fontFamily:'monospace' }}>{m.v}</div>
+                  <div style={{ fontSize:'9px', color:'#555', marginBottom:'6px', textTransform:'uppercase', letterSpacing:'.06em' }}>{m.l}</div>
+                  <div style={{ fontSize:'20px', fontWeight:800, color:m.c, fontFamily:'monospace' }}>{m.v}</div>
                 </div>
               ))}
             </div>
+            {/* Row 2: cumulative P&L chart + win/loss pie + hold time */}
+            <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:'12px', marginBottom:'14px' }}>
+              {/* Cumulative P&L */}
+              <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
+                <div style={{ fontSize:'10px', color:'#555', marginBottom:'10px' }}>Cumulative P&L — June 2026</div>
+                <svg viewBox="0 0 400 80" width="100%" height="80">
+                  <defs>
+                    <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10B981" stopOpacity="0.25"/>
+                      <stop offset="100%" stopColor="#10B981" stopOpacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M0,75 L30,68 L60,58 L90,52 L120,56 L150,44 L180,34 L210,26 L240,18 L270,12 L300,8 L330,10 L360,4 L400,1" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round"/>
+                  <path d="M0,75 L30,68 L60,58 L90,52 L120,56 L150,44 L180,34 L210,26 L240,18 L270,12 L300,8 L330,10 L360,4 L400,1 L400,80 L0,80Z" fill="url(#rg)"/>
+                </svg>
+              </div>
+              {/* Win vs Loss */}
+              <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
+                <div style={{ fontSize:'10px', color:'#555', marginBottom:'10px' }}>Win vs Loss</div>
+                <div style={{ display:'flex', gap:'8px', alignItems:'center', marginBottom:'10px' }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:'9px', color:'#555', marginBottom:'3px' }}>Wins</div>
+                    <div style={{ fontSize:'18px', fontWeight:800, color:'#10B981', fontFamily:'monospace' }}>102</div>
+                    <div style={{ fontSize:'9px', color:'#555' }}>71.8%</div>
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:'9px', color:'#555', marginBottom:'3px' }}>Losses</div>
+                    <div style={{ fontSize:'18px', fontWeight:800, color:'#EF4444', fontFamily:'monospace' }}>40</div>
+                    <div style={{ fontSize:'9px', color:'#555' }}>28.2%</div>
+                  </div>
+                </div>
+                <div style={{ height:'8px', background:'#252530', borderRadius:'4px', overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:'71.8%', background:'#10B981', borderRadius:'4px' }} />
+                </div>
+              </div>
+              {/* Hold time distribution */}
+              <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
+                <div style={{ fontSize:'10px', color:'#555', marginBottom:'10px' }}>Avg Hold Time</div>
+                <div style={{ fontSize:'28px', fontWeight:800, fontFamily:'monospace', color:'#fff', marginBottom:'6px' }}>18 min</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:'4px' }}>
+                  {[{l:'<5 min',w:'20%',v:28},{l:'5-30 min',w:'55%',v:76},{l:'30-60 min',w:'18%',v:25},{l:'>1 hour',w:'7%',v:13}].map(x => (
+                    <div key={x.l} style={{ display:'grid', gridTemplateColumns:'55px 1fr 25px', alignItems:'center', gap:'5px' }}>
+                      <span style={{ fontSize:'8px', color:'#555' }}>{x.l}</span>
+                      <div style={{ height:'4px', background:'#252530', borderRadius:'2px', overflow:'hidden' }}>
+                        <div style={{ height:'100%', width:x.w, background:'#10B981', borderRadius:'2px', opacity:0.8 }} />
+                      </div>
+                      <span style={{ fontSize:'8px', color:'#666', textAlign:'right' }}>{x.v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* Row 3: P&L by day + best time + top symbols */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px', marginBottom:'14px' }}>
+              {/* P&L by day of week */}
               <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
                 <div style={{ fontSize:'10px', color:'#555', marginBottom:'12px' }}>P&L by Day of Week</div>
-                <div style={{ display:'flex', gap:'8px', alignItems:'flex-end', height:'90px' }}>
-                  {[{d:'Mon',h:55,v:'+$1,240',c:'#10B981'},{d:'Tue',h:78,v:'+$2,100',c:'#10B981'},{d:'Wed',h:22,v:'-$420',c:'#EF4444'},{d:'Thu',h:65,v:'+$1,840',c:'#10B981'},{d:'Fri',h:45,v:'+$960',c:'#10B981'}].map(b => (
+                <div style={{ display:'flex', gap:'8px', alignItems:'flex-end', height:'80px' }}>
+                  {[
+                    {d:'Mon',h:52,v:'+$1,240',c:'#10B981'},
+                    {d:'Tue',h:75,v:'+$2,100',c:'#10B981'},
+                    {d:'Wed',h:22,v:'-$420',c:'#EF4444'},
+                    {d:'Thu',h:65,v:'+$1,840',c:'#10B981'},
+                    {d:'Fri',h:42,v:'+$960',c:'#10B981'},
+                  ].map(b => (
                     <div key={b.d} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', justifyContent:'flex-end' }}>
                       <div style={{ fontSize:'8px', color:b.c, fontFamily:'monospace', fontWeight:700 }}>{b.v}</div>
                       <div style={{ width:'100%', height:`${b.h}%`, background:b.c, borderRadius:'4px 4px 0 0', opacity:0.85 }} />
@@ -394,21 +456,39 @@ export default async function HomePage() {
                   ))}
                 </div>
               </div>
+              {/* Best time of day */}
               <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
-                <div style={{ fontSize:'10px', color:'#555', marginBottom:'12px' }}>Best Time of Day</div>
-                <div style={{ display:'flex', gap:'5px', alignItems:'flex-end', height:'90px' }}>
-                  {[{t:'9:30',h:80},{t:'10:00',h:95},{t:'11:00',h:45},{t:'12:00',h:20},{t:'13:00',h:25},{t:'14:00',h:50},{t:'15:00',h:65},{t:'15:30',h:35}].map(b => (
+                <div style={{ fontSize:'10px', color:'#555', marginBottom:'12px' }}>P&L by Time of Day</div>
+                <div style={{ display:'flex', gap:'5px', alignItems:'flex-end', height:'80px' }}>
+                  {[
+                    {t:'9:30',h:85,c:'#10B981'},
+                    {t:'10:00',h:95,c:'#10B981'},
+                    {t:'11:00',h:48,c:'#10B981'},
+                    {t:'12:00',h:15,c:'#EF4444'},
+                    {t:'13:00',h:22,c:'#EF4444'},
+                    {t:'14:00',h:52,c:'#10B981'},
+                    {t:'15:00',h:68,c:'#10B981'},
+                    {t:'15:30',h:38,c:'#10B981'},
+                  ].map(b => (
                     <div key={b.t} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:'3px', justifyContent:'flex-end' }}>
-                      <div style={{ width:'100%', height:`${b.h}%`, background:'#10B981', borderRadius:'3px 3px 0 0', opacity:0.75 }} />
+                      <div style={{ width:'100%', height:`${b.h}%`, background:b.c, borderRadius:'3px 3px 0 0', opacity:0.8 }} />
                       <div style={{ fontSize:'7px', color:'#555', whiteSpace:'nowrap' }}>{b.t}</div>
                     </div>
                   ))}
                 </div>
               </div>
+              {/* Top symbols */}
               <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
                 <div style={{ fontSize:'10px', color:'#555', marginBottom:'12px' }}>Top Symbols by P&L</div>
-                {[{s:'NVDA',pnl:'+$2,140',wr:'79%'},{s:'TSLA',pnl:'+$1,570',wr:'72%'},{s:'SPY',pnl:'+$960',wr:'68%'},{s:'QQQ',pnl:'+$540',wr:'64%'},{s:'META',pnl:'+$380',wr:'75%'},{s:'AAPL',pnl:'-$210',wr:'42%'}].map(x => (
-                  <div key={x.s} style={{ display:'grid', gridTemplateColumns:'45px 1fr 35px 60px', alignItems:'center', marginBottom:'8px', gap:'6px' }}>
+                {[
+                  {s:'NVDA',pnl:'+$2,140',trades:24,wr:'79%'},
+                  {s:'TSLA',pnl:'+$1,570',trades:18,wr:'72%'},
+                  {s:'SPY', pnl:'+$960', trades:31,wr:'68%'},
+                  {s:'QQQ', pnl:'+$540', trades:14,wr:'64%'},
+                  {s:'META',pnl:'+$380', trades:8, wr:'75%'},
+                  {s:'AAPL',pnl:'-$210', trades:12,wr:'42%'},
+                ].map(x => (
+                  <div key={x.s} style={{ display:'grid', gridTemplateColumns:'40px 1fr 35px 65px', alignItems:'center', marginBottom:'8px', gap:'6px' }}>
                     <span style={{ fontSize:'12px', fontWeight:700 }}>{x.s}</span>
                     <div style={{ height:'5px', background:'#252530', borderRadius:'3px', overflow:'hidden' }}>
                       <div style={{ height:'100%', width:x.wr, background:parseInt(x.wr)>60?'#10B981':'#EF4444', borderRadius:'3px' }} />
@@ -419,20 +499,21 @@ export default async function HomePage() {
                 ))}
               </div>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'8px', paddingBottom:'0' }}>
+            {/* Row 4: 8 metric cards */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(8,1fr)', gap:'8px' }}>
               {[
-                { l:'Avg Hold Time', v:'18 min' },
+                { l:'Avg Hold', v:'18 min' },
                 { l:'Largest Win', v:'+$960' },
                 { l:'Largest Loss', v:'-$420' },
                 { l:'Avg R-Multiple', v:'1.84R' },
-                { l:'Consecutive Wins', v:'7' },
-                { l:'Total Commission', v:'-$284' },
+                { l:'Consec. Wins', v:'7' },
+                { l:'Commission', v:'-$284' },
                 { l:'Sharpe Ratio', v:'2.12' },
                 { l:'Worst Day', v:'-$420' },
               ].map(m => (
-                <div key={m.l} style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'12px 14px' }}>
-                  <div style={{ fontSize:'9px', color:'#555', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'.05em' }}>{m.l}</div>
-                  <div style={{ fontSize:'15px', fontWeight:700, fontFamily:'monospace' }}>{m.v}</div>
+                <div key={m.l} style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'10px 12px' }}>
+                  <div style={{ fontSize:'8px', color:'#555', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'.05em' }}>{m.l}</div>
+                  <div style={{ fontSize:'14px', fontWeight:700, fontFamily:'monospace' }}>{m.v}</div>
                 </div>
               ))}
             </div>
