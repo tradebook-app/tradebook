@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     }
 
     await resend.emails.send({
-      from: 'Ahmad Yassine at Sleektrade <noreply@sleektrade.app>',
+      from: 'Sleektrade <noreply@sleektrade.app>',
       to: email,
       subject: 'Welcome to Sleektrade 🎯',
       html: `
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
               </p>
               <p style="font-size:12px;color:#9999AA;margin:16px 0 0;">
                 Trade well,<br/>
-                <span style="color:#F1F1F3;font-weight:600;">Ahmad</span><br/>
+                <span style="color:#F1F1F3;font-weight:600;">Yassine</span><br/>
                 <span style="color:#606070;">Founder, Sleektrade</span>
               </p>
 
