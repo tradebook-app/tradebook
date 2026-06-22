@@ -116,16 +116,16 @@ export default async function HomePage() {
       `}</style>
 
       {/* HERO */}
-      <section style={{ padding: '72px 48px 0', maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Text block — left aligned, not centered */}
-        <div style={{ maxWidth: '580px', marginBottom: '48px' }}>
+      <section style={{ padding: '72px 48px 0', maxWidth: '1400px', margin: '0 auto', display: 'grid', gridTemplateColumns: '400px 1fr', gap: '48px', alignItems: 'flex-start' }}>
+        {/* Text block — left column */}
+        <div style={{ paddingTop: '40px' }}>
           <div style={{ display: 'inline-block', fontSize: '11px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '20px', padding: '4px 14px', marginBottom: '24px', letterSpacing: '.05em', textTransform: 'uppercase' }}>
             Built for traders & investors
           </div>
-          <h1 className="hero-h1" style={{ fontSize: '56px', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-.03em', marginBottom: '20px' }}>
+          <h1 className="hero-h1" style={{ fontSize: '46px', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-.03em', marginBottom: '20px' }}>
             Know exactly why<br /><span style={{ color: '#10B981' }}>you win and lose.</span>
           </h1>
-          <p style={{ fontSize: '18px', color: 'var(--txt2)', lineHeight: 1.7, marginBottom: '36px', maxWidth: '500px' }}>
+          <p style={{ fontSize: '16px', color: 'var(--txt2)', lineHeight: 1.7, marginBottom: '32px' }}>
             Sleektrade is the professional trading journal that turns your raw trade data into clear, actionable insight — whether you day trade, swing trade, or invest long-term.
           </p>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
