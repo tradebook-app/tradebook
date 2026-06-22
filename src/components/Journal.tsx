@@ -81,8 +81,20 @@ function MiniChart({ trades }: { trades: TradeRow[] }) {
   )
 }
 
-function TradeDetailPanel({ trade, onClose, onEdit }: { trade: TradeRow, onClose: () => void, onEdit: (t: TradeRow) => void }) {
+function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trade: TradeRow, trades: TradeRow[], onClose: () => void, onEdit: (t: TradeRow) => void, onNavigate: (t: TradeRow) => void }) {
   const pnlColor = trade.pnl > 0 ? 'var(--ac)' : trade.pnl < 0 ? 'var(--red)' : 'var(--txt3)'
+  const currentIndex = trades.findIndex(t => t.id === trade.id)
+
+  // Keyboard navigation
+  useState(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'ArrowUp') { e.preventDefault(); if (currentIndex > 0) onNavigate(trades[currentIndex - 1]) }
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (currentIndex < trades.length - 1) onNavigate(trades[currentIndex + 1]) }
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  })
   const rows = [
     { l: 'Symbol', v: trade.symbol },
     { l: 'Side', v: trade.type },
@@ -105,7 +117,11 @@ function TradeDetailPanel({ trade, onClose, onEdit }: { trade: TradeRow, onClose
             {new Date(trade.date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--txt3)', cursor: 'pointer', fontSize: '18px', lineHeight: 1, padding: '2px 6px' }}>×</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button onClick={() => currentIndex > 0 && onNavigate(trades[currentIndex - 1])} disabled={currentIndex <= 0} title="Previous (↑)" style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '5px', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: currentIndex <= 0 ? 'not-allowed' : 'pointer', opacity: currentIndex <= 0 ? 0.3 : 1, color: 'var(--txt2)', fontSize: '11px' }}>↑</button>
+          <button onClick={() => currentIndex < trades.length - 1 && onNavigate(trades[currentIndex + 1])} disabled={currentIndex >= trades.length - 1} title="Next (↓)" style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '5px', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: currentIndex >= trades.length - 1 ? 'not-allowed' : 'pointer', opacity: currentIndex >= trades.length - 1 ? 0.3 : 1, color: 'var(--txt2)', fontSize: '11px' }}>↓</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--txt3)', cursor: 'pointer', fontSize: '18px', lineHeight: 1, padding: '2px 4px' }}>×</button>
+        </div>
       </div>
 
       {/* P&L */}
@@ -441,9 +457,8 @@ export function Journal({ trades, onEdit }: Props) {
           </div>
         </div>
 
-        {/* Trade detail panel — below calendar */}
         {selectedTrade && (
-          <TradeDetailPanel trade={selectedTrade} onClose={() => setSelectedTrade(null)} onEdit={onEdit} />
+          <TradeDetailPanel trade={selectedTrade} trades={mode === 'day' ? dayTrades : weekTrades} onClose={() => setSelectedTrade(null)} onEdit={onEdit} onNavigate={t => setSelectedTrade(t)} />
         )}
       </div>
     </div>

@@ -7,16 +7,20 @@ import { getScreenshotUrl } from '@/lib/tradeService'
 
 type Props = {
   trade: TradeRow | null
+  trades: TradeRow[]
   onClose: () => void
   onEdit: (trade: TradeRow) => void
   onDelete: (id: string) => void
+  onNavigate: (trade: TradeRow) => void
 }
 
 type Tab = 'stats' | 'notes' | 'screenshot' | 'tags'
 
-export function TradePanel({ trade, onClose, onEdit, onDelete }: Props) {
+export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigate }: Props) {
   const [tab, setTab] = useState<Tab>('stats')
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
+
+  const currentIndex = trade ? trades.findIndex(t => t.id === trade.id) : -1
 
   useEffect(() => {
     if (trade?.screenshot_url) {
@@ -26,6 +30,24 @@ export function TradePanel({ trade, onClose, onEdit, onDelete }: Props) {
     }
     setTab('stats')
   }, [trade])
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!trade) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        if (currentIndex > 0) onNavigate(trades[currentIndex - 1])
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        if (currentIndex < trades.length - 1) onNavigate(trades[currentIndex + 1])
+      }
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [trade, currentIndex, trades, onNavigate, onClose])
 
   if (!trade) return null
 
@@ -78,7 +100,25 @@ export function TradePanel({ trade, onClose, onEdit, onDelete }: Props) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, background: 'var(--bg2)', zIndex: 1,
       }}>
-        <div style={{ fontSize: '14px', fontWeight: 700 }}>Trade Preview</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 700 }}>Trade Preview</div>
+          {/* Arrow nav */}
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <button
+              onClick={() => currentIndex > 0 && onNavigate(trades[currentIndex - 1])}
+              disabled={currentIndex <= 0}
+              title="Previous trade (↑)"
+              style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '5px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: currentIndex <= 0 ? 'not-allowed' : 'pointer', opacity: currentIndex <= 0 ? 0.3 : 1, color: 'var(--txt2)', fontSize: '12px' }}
+            >↑</button>
+            <button
+              onClick={() => currentIndex < trades.length - 1 && onNavigate(trades[currentIndex + 1])}
+              disabled={currentIndex >= trades.length - 1}
+              title="Next trade (↓)"
+              style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '5px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: currentIndex >= trades.length - 1 ? 'not-allowed' : 'pointer', opacity: currentIndex >= trades.length - 1 ? 0.3 : 1, color: 'var(--txt2)', fontSize: '12px' }}
+            >↓</button>
+            <span style={{ fontSize: '9px', color: 'var(--txt3)', alignSelf: 'center', marginLeft: '2px' }}>{currentIndex + 1}/{trades.length}</span>
+          </div>
+        </div>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--txt3)', fontSize: '18px', cursor: 'pointer' }}>✕</button>
       </div>
 
@@ -117,17 +157,7 @@ export function TradePanel({ trade, onClose, onEdit, onDelete }: Props) {
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--brd)', padding: '0 20px' }}>
         {TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            style={{
-              padding: '10px 16px', fontSize: '11px', fontWeight: 600,
-              cursor: 'pointer', background: 'none', border: 'none',
-              borderBottom: `2px solid ${tab === key ? 'var(--ac)' : 'transparent'}`,
-              color: tab === key ? 'var(--ac2)' : 'var(--txt3)',
-              fontFamily: 'var(--sans)', transition: '.1s',
-            }}
-          >{label}</button>
+          <button key={key} onClick={() => setTab(key)} style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none', borderBottom: `2px solid ${tab === key ? 'var(--ac)' : 'transparent'}`, color: tab === key ? 'var(--ac2)' : 'var(--txt3)', fontFamily: 'var(--sans)', transition: '.1s' }}>{label}</button>
         ))}
       </div>
 
@@ -139,48 +169,16 @@ export function TradePanel({ trade, onClose, onEdit, onDelete }: Props) {
             <span style={{ fontSize: '12px', fontWeight: 600, fontFamily: 'var(--mono)' }}>{val}</span>
           </div>
         ))}
-
-        {tab === 'notes' && (
-          trade.notes
-            ? <div style={{ fontSize: '12px', lineHeight: 1.7, whiteSpace: 'pre-line' }}>{trade.notes}</div>
-            : <div style={{ color: 'var(--txt3)', fontSize: '11px' }}>No notes. Click Edit to add.</div>
-        )}
-
-        {tab === 'screenshot' && (
-          screenshotUrl
-            ? <img src={screenshotUrl} style={{ width: '100%', borderRadius: 'var(--r)', border: '1px solid var(--brd)', cursor: 'pointer' }}
-                onClick={() => window.open(screenshotUrl, '_blank')} />
-            : <div style={{ color: 'var(--txt3)', fontSize: '11px' }}>No screenshot attached.</div>
-        )}
-
-        {tab === 'tags' && (
-          (trade.tags || []).length
-            ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {trade.tags.map((t, i) => (
-                  <span key={i} style={{ fontSize: '11px', padding: '4px 10px', margin: '3px', borderRadius: '3px', background: 'var(--bg)', border: '1px solid var(--brd2)', color: 'var(--txt2)' }}>{t}</span>
-                ))}
-              </div>
-            : <div style={{ color: 'var(--txt3)', fontSize: '11px' }}>No tags. Click Edit to add.</div>
-        )}
+        {tab === 'notes' && (trade.notes ? <div style={{ fontSize: '12px', lineHeight: 1.7, whiteSpace: 'pre-line' }}>{trade.notes}</div> : <div style={{ color: 'var(--txt3)', fontSize: '11px' }}>No notes. Click Edit to add.</div>)}
+        {tab === 'screenshot' && (screenshotUrl ? <img src={screenshotUrl} style={{ width: '100%', borderRadius: 'var(--r)', border: '1px solid var(--brd)', cursor: 'pointer' }} onClick={() => window.open(screenshotUrl, '_blank')} /> : <div style={{ color: 'var(--txt3)', fontSize: '11px' }}>No screenshot attached.</div>)}
+        {tab === 'tags' && ((trade.tags || []).length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>{trade.tags.map((t, i) => <span key={i} style={{ fontSize: '11px', padding: '4px 10px', margin: '3px', borderRadius: '3px', background: 'var(--bg)', border: '1px solid var(--brd2)', color: 'var(--txt2)' }}>{t}</span>)}</div> : <div style={{ color: 'var(--txt3)', fontSize: '11px' }}>No tags. Click Edit to add.</div>)}
       </div>
 
       {/* Footer */}
-      <div style={{
-        padding: '14px 20px', borderTop: '1px solid var(--brd)',
-        display: 'flex', gap: '8px',
-        position: 'sticky', bottom: 0, background: 'var(--bg2)',
-      }}>
+      <div style={{ padding: '14px 20px', borderTop: '1px solid var(--brd)', display: 'flex', gap: '8px', position: 'sticky', bottom: 0, background: 'var(--bg2)' }}>
         <button className="btn btn-o" onClick={onClose}>Close</button>
-        <button
-          className="btn btn-o"
-          onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=${trade.symbol}`, '_blank')}
-          style={{ color: 'var(--blue)', borderColor: 'rgba(59,130,246,.3)' }}
-        >📊 TradingView</button>
-        <button
-          className="btn btn-d"
-          onClick={() => { if (confirm('Delete this trade?')) { onDelete(trade.id); onClose() } }}
-          style={{ marginLeft: 'auto' }}
-        >🗑 Delete</button>
+        <button className="btn btn-o" onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=${trade.symbol}`, '_blank')} style={{ color: 'var(--blue)', borderColor: 'rgba(59,130,246,.3)' }}>📊 TradingView</button>
+        <button className="btn btn-d" onClick={() => { if (confirm('Delete this trade?')) { onDelete(trade.id); onClose() } }} style={{ marginLeft: 'auto' }}>🗑 Delete</button>
         <button className="btn btn-p" onClick={() => onEdit(trade)}>✎ Edit</button>
       </div>
     </div>
