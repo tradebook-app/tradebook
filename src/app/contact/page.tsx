@@ -1,10 +1,41 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 
 export default function ContactPage() {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [subject, setSubject] = useState('')
+  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, subject, message }),
+      })
+
+      if (!res.ok) throw new Error('Failed')
+      setSuccess(true)
+    } catch {
+      setError('Something went wrong. Please email us directly at support@sleektrade.app')
+    }
+
+    setLoading(false)
+  }
+
   return (
     <div style={{ background: 'var(--bg)', color: 'var(--txt)', fontFamily: 'var(--sans)', minHeight: '100vh' }}>
 
-      {/* NAV */}
       <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', height: '60px', borderBottom: '1px solid var(--brd)', background: 'rgba(13,13,17,0.95)', backdropFilter: 'blur(12px)', position: 'sticky', top: 0, zIndex: 100 }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
           <svg width="28" height="28" viewBox="0 0 64 64">
@@ -15,7 +46,7 @@ export default function ContactPage() {
             Sleek<span style={{ color: '#1D9E75' }}>trade</span>
           </span>
         </Link>
-        <Link href="/login" style={{ fontSize: '13px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '8px', padding: '8px 16px', textDecoration: 'none' }}>Start for free</Link>
+        <Link href="/signup" style={{ fontSize: '13px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '8px', padding: '8px 16px', textDecoration: 'none' }}>Start for free</Link>
       </nav>
 
       <div style={{ maxWidth: '640px', margin: '0 auto', padding: '80px 24px' }}>
@@ -29,48 +60,89 @@ export default function ContactPage() {
           </p>
         </div>
 
-        {/* Contact options */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '48px' }}>
-          <a href="mailto:support@sleektrade.app" style={{
-            display: 'flex', alignItems: 'center', gap: '16px',
-            background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: '12px',
-            padding: '20px 24px', textDecoration: 'none', transition: '.15s',
-          }}>
-            <div style={{ width: '40px', height: '40px', background: 'rgba(16,185,129,.1)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-              </svg>
+        {success ? (
+          <div style={{ background: 'rgba(16,185,129,.08)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '14px', padding: '40px', textAlign: 'center' }}>
+            <div style={{ fontSize: '32px', marginBottom: '16px' }}>✅</div>
+            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--txt)', marginBottom: '8px' }}>Message sent!</div>
+            <div style={{ fontSize: '14px', color: 'var(--txt2)', lineHeight: 1.6 }}>
+              Thanks for reaching out. I'll get back to you within 24 hours.
             </div>
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--txt)', marginBottom: '2px' }}>Email us</div>
-              <div style={{ fontSize: '13px', color: 'var(--txt2)' }}>support@sleektrade.app</div>
-            </div>
-          </a>
-
-          <a href="https://x.com/sleektrade" target="_blank" rel="noopener noreferrer" style={{
-            display: 'flex', alignItems: 'center', gap: '16px',
-            background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: '12px',
-            padding: '20px 24px', textDecoration: 'none', transition: '.15s',
-          }}>
-            <div style={{ width: '40px', height: '40px', background: 'rgba(16,185,129,.1)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#10B981">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.742l7.73-8.835L1.254 2.25H8.08l4.259 5.63 5.905-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--txt)', marginBottom: '2px' }}>X (Twitter)</div>
-              <div style={{ fontSize: '13px', color: 'var(--txt2)' }}>@sleektrade</div>
-            </div>
-          </a>
-        </div>
-
-        {/* Response time note */}
-        <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: '12px', padding: '20px 24px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--txt)', marginBottom: '6px' }}>⏱ Response time</div>
-          <div style={{ fontSize: '13px', color: 'var(--txt2)', lineHeight: 1.6 }}>
-            I typically respond within a few hours during business days. For urgent issues, email is the fastest way to reach me.
+            <button
+              onClick={() => { setSuccess(false); setName(''); setEmail(''); setSubject(''); setMessage('') }}
+              style={{ marginTop: '24px', background: 'transparent', border: '1px solid var(--brd2)', borderRadius: '8px', padding: '8px 20px', color: 'var(--txt2)', fontSize: '13px', cursor: 'pointer', fontFamily: 'var(--sans)' }}
+            >
+              Send another message
+            </button>
           </div>
-        </div>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Name *</label>
+                <input
+                  className="fi"
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Your name"
+                  required
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Email *</label>
+                <input
+                  className="fi"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Subject</label>
+              <input
+                className="fi"
+                type="text"
+                value={subject}
+                onChange={e => setSubject(e.target.value)}
+                placeholder="What's this about?"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Message *</label>
+              <textarea
+                className="fi"
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                placeholder="Tell me what's on your mind..."
+                required
+                style={{ minHeight: '140px', resize: 'vertical' }}
+              />
+            </div>
+
+            {error && (
+              <div style={{ background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: 'var(--red)' }}>
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ background: '#10B981', color: '#000', border: 'none', borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--sans)', opacity: loading ? 0.7 : 1, transition: '.15s' }}
+            >
+              {loading ? 'Sending...' : 'Send message'}
+            </button>
+
+            <p style={{ fontSize: '12px', color: 'var(--txt3)', textAlign: 'center' }}>
+              Or email directly: <a href="mailto:support@sleektrade.app" style={{ color: '#10B981', textDecoration: 'none' }}>support@sleektrade.app</a>
+            </p>
+          </form>
+        )}
 
         <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid var(--brd)', display: 'flex', gap: '20px', fontSize: '12px' }}>
           <Link href="/" style={{ color: 'var(--txt3)', textDecoration: 'none' }}>← Back to home</Link>
