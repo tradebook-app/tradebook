@@ -56,7 +56,7 @@ export async function POST(req: Request) {
                 Welcome aboard 👋
               </p>
               <p style="font-size:14px;color:#9999AA;line-height:1.7;margin:0 0 28px;">
-                I'm Ahmad — I built Sleektrade because I was frustrated with spreadsheets and generic tools that weren't built for real traders. Sleektrade is the journal I wished I had when I started.
+                I'm Yassine — I built Sleektrade because I was frustrated with spreadsheets and generic tools that weren't built for real traders. Sleektrade is the journal I wished I had when I started.
               </p>
 
               <!-- Divider -->
@@ -163,3 +163,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
   }
 }
+
