@@ -520,6 +520,127 @@ export default async function HomePage() {
           </div>
         </div>
 
+        {/* Dark/Light Mode Split */}
+        <div style={{ marginBottom: '120px' }}>
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display:'inline-block', fontSize:'11px', fontWeight:700, color:'#10B981', background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:'20px', padding:'3px 12px', marginBottom:'16px' }}>Dark & Light Mode</div>
+            <h3 style={{ fontSize:'36px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'12px', lineHeight:1.2 }}>Your preference.<br />Your journal.</h3>
+            <p style={{ fontSize:'16px', color:'var(--txt2)', lineHeight:1.7, maxWidth:'600px' }}>
+              Switch between dark and light mode with one click. Sleektrade looks great either way — built for traders who work at any hour.
+            </p>
+          </div>
+          {/* Split dark/light mock */}
+          <div style={{ borderRadius:'16px 16px 0 0', overflow:'hidden', boxShadow:'0 24px 80px rgba(0,0,0,.5)', border:'1px solid #252530' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr' }}>
+              {/* LEFT — Dark side */}
+              <div style={{ background:'#0d0d11', padding:'24px', borderRight:'2px solid #10B981' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                    <div style={{ width:'28px', height:'28px', borderRadius:'7px', background:'#062e21', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <svg width="16" height="16" viewBox="0 0 64 64" fill="none">
+                        <polyline points="11,51 22,39 33,45 51,27" stroke="#5DCAA5" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <span style={{ fontSize:'13px', fontWeight:800, color:'#F1F1F3' }}>Sleek<span style={{ color:'#10B981' }}>trade</span></span>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:'6px', background:'#1a1a22', border:'1px solid #252530', borderRadius:'20px', padding:'4px 10px' }}>
+                    <span style={{ fontSize:'10px', color:'#555' }}>☀️</span>
+                    <div style={{ width:'28px', height:'16px', background:'#10B981', borderRadius:'8px', position:'relative' }}>
+                      <div style={{ position:'absolute', right:'2px', top:'2px', width:'12px', height:'12px', background:'#fff', borderRadius:'50%' }} />
+                    </div>
+                    <span style={{ fontSize:'10px', color:'#10B981' }}>🌙</span>
+                  </div>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'6px', marginBottom:'12px' }}>
+                  {[{ l:'Net P&L', v:'+$8,421', c:'#10B981' },{ l:'Win Rate', v:'71.4%', c:'#10B981' },{ l:'Trades', v:'84', c:'#F1F1F3' }].map(m => (
+                    <div key={m.l} style={{ background:'#131318', border:'1px solid #252530', borderRadius:'8px', padding:'10px 12px' }}>
+                      <div style={{ fontSize:'8px', color:'#555', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'.05em' }}>{m.l}</div>
+                      <div style={{ fontSize:'16px', fontWeight:800, color:m.c, fontFamily:'monospace' }}>{m.v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'8px', padding:'12px', marginBottom:'10px' }}>
+                  <div style={{ fontSize:'9px', color:'#555', marginBottom:'8px' }}>Cumulative P&L</div>
+                  <svg viewBox="0 0 300 60" width="100%" height="60">
+                    <defs><linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#10B981" stopOpacity="0.3"/><stop offset="100%" stopColor="#10B981" stopOpacity="0"/></linearGradient></defs>
+                    <path d="M0,55 L40,48 L80,38 L120,30 L160,20 L200,13 L240,7 L300,2" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M0,55 L40,48 L80,38 L120,30 L160,20 L200,13 L240,7 L300,2 L300,60 L0,60Z" fill="url(#dg)"/>
+                  </svg>
+                </div>
+                {[
+                  { sym:'NVDA', side:'LONG', pnl:'+$490', grade:'A' },
+                  { sym:'TSLA', side:'SHORT', pnl:'+$570', grade:'A' },
+                  { sym:'AAPL', side:'LONG', pnl:'-$70', grade:'C' },
+                  { sym:'SPY', side:'LONG', pnl:'+$960', grade:'A' },
+                ].map((t,i) => (
+                  <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', padding:'6px 8px', borderBottom:'1px solid #1e1e26', alignItems:'center' }}>
+                    <span style={{ fontSize:'11px', fontWeight:700, color:'#F1F1F3' }}>{t.sym}</span>
+                    <span style={{ fontSize:'10px', fontWeight:600, color:t.side==='LONG'?'#10B981':'#EF4444' }}>{t.side}</span>
+                    <span style={{ fontSize:'11px', fontWeight:700, color:t.pnl.startsWith('+')?'#10B981':'#EF4444', fontFamily:'monospace' }}>{t.pnl}</span>
+                    <span style={{ fontSize:'10px', fontWeight:700 }}>
+                      <span style={{ background:t.grade==='A'?'rgba(16,185,129,.15)':'rgba(245,158,11,.15)', color:t.grade==='A'?'#10B981':'#f59e0b', padding:'2px 6px', borderRadius:'4px' }}>{t.grade}</span>
+                    </span>
+                  </div>
+                ))}
+                <div style={{ textAlign:'center', marginTop:'12px', fontSize:'11px', color:'#555', fontWeight:600 }}>🌙 Dark Mode</div>
+              </div>
+
+              {/* RIGHT — Light side */}
+              <div style={{ background:'#f8f9fa', padding:'24px' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                    <div style={{ width:'28px', height:'28px', borderRadius:'7px', background:'#062e21', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <svg width="16" height="16" viewBox="0 0 64 64" fill="none">
+                        <polyline points="11,51 22,39 33,45 51,27" stroke="#5DCAA5" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <span style={{ fontSize:'13px', fontWeight:800, color:'#111' }}>Sleek<span style={{ color:'#10B981' }}>trade</span></span>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:'6px', background:'#e8e8ec', border:'1px solid #d0d0d8', borderRadius:'20px', padding:'4px 10px' }}>
+                    <span style={{ fontSize:'10px', color:'#10B981' }}>☀️</span>
+                    <div style={{ width:'28px', height:'16px', background:'#ccc', borderRadius:'8px', position:'relative' }}>
+                      <div style={{ position:'absolute', left:'2px', top:'2px', width:'12px', height:'12px', background:'#fff', borderRadius:'50%' }} />
+                    </div>
+                    <span style={{ fontSize:'10px', color:'#aaa' }}>🌙</span>
+                  </div>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'6px', marginBottom:'12px' }}>
+                  {[{ l:'Net P&L', v:'+$8,421', c:'#059669' },{ l:'Win Rate', v:'71.4%', c:'#059669' },{ l:'Trades', v:'84', c:'#111' }].map(m => (
+                    <div key={m.l} style={{ background:'#fff', border:'1px solid #e0e0e8', borderRadius:'8px', padding:'10px 12px', boxShadow:'0 1px 4px rgba(0,0,0,.06)' }}>
+                      <div style={{ fontSize:'8px', color:'#aaa', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'.05em' }}>{m.l}</div>
+                      <div style={{ fontSize:'16px', fontWeight:800, color:m.c, fontFamily:'monospace' }}>{m.v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background:'#fff', border:'1px solid #e0e0e8', borderRadius:'8px', padding:'12px', marginBottom:'10px', boxShadow:'0 1px 4px rgba(0,0,0,.06)' }}>
+                  <div style={{ fontSize:'9px', color:'#aaa', marginBottom:'8px' }}>Cumulative P&L</div>
+                  <svg viewBox="0 0 300 60" width="100%" height="60">
+                    <defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#10B981" stopOpacity="0.2"/><stop offset="100%" stopColor="#10B981" stopOpacity="0"/></linearGradient></defs>
+                    <path d="M0,55 L40,48 L80,38 L120,30 L160,20 L200,13 L240,7 L300,2" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M0,55 L40,48 L80,38 L120,30 L160,20 L200,13 L240,7 L300,2 L300,60 L0,60Z" fill="url(#lg)"/>
+                  </svg>
+                </div>
+                {[
+                  { sym:'NVDA', side:'LONG', pnl:'+$490', grade:'A' },
+                  { sym:'TSLA', side:'SHORT', pnl:'+$570', grade:'A' },
+                  { sym:'AAPL', side:'LONG', pnl:'-$70', grade:'C' },
+                  { sym:'SPY', side:'LONG', pnl:'+$960', grade:'A' },
+                ].map((t,i) => (
+                  <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', padding:'6px 8px', borderBottom:'1px solid #ebebef', alignItems:'center' }}>
+                    <span style={{ fontSize:'11px', fontWeight:700, color:'#111' }}>{t.sym}</span>
+                    <span style={{ fontSize:'10px', fontWeight:600, color:t.side==='LONG'?'#059669':'#DC2626' }}>{t.side}</span>
+                    <span style={{ fontSize:'11px', fontWeight:700, color:t.pnl.startsWith('+')?'#059669':'#DC2626', fontFamily:'monospace' }}>{t.pnl}</span>
+                    <span style={{ fontSize:'10px', fontWeight:700 }}>
+                      <span style={{ background:t.grade==='A'?'rgba(5,150,105,.12)':'rgba(245,158,11,.12)', color:t.grade==='A'?'#059669':'#d97706', padding:'2px 6px', borderRadius:'4px' }}>{t.grade}</span>
+                    </span>
+                  </div>
+                ))}
+                <div style={{ textAlign:'center', marginTop:'12px', fontSize:'11px', color:'#aaa', fontWeight:600 }}>☀️ Light Mode</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Feature 3 — Journal */}
         <div className="feature-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'72px', alignItems:'center', marginBottom:'100px' }}>
           <div className="feature-mock-order">
