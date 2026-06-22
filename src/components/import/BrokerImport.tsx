@@ -5,6 +5,7 @@ import type { TradeRow } from '@/lib/types'
 import { DasImport } from './DasImport'
 import { TosImport } from './TosImport'
 import { IbkrImport } from './IbkrImport'
+import { WebullImport } from './WebullImport'
 
 type Props = {
   userId: string
@@ -49,8 +50,8 @@ const brokers: Broker[] = [
   {
     id: 'webull',
     name: 'Webull',
-    description: 'Coming soon',
-    available: false,
+    description: 'Import from Webull order history CSV',
+    available: true,
     logo: '/brokers/webull.png',
     bg: '#0A1A14',
   },
@@ -144,6 +145,17 @@ export function BrokerImport({ userId, existingTrades, onImported }: Props) {
           ← Back to brokers
         </button>
         <IbkrImport userId={userId} existingTrades={existingTrades} onImported={onImported} />
+      </div>
+    )
+  }
+
+  if (selected === 'webull') {
+    return (
+      <div>
+        <button onClick={() => setSelected(null)} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--txt3)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', padding: 0 }}>
+          ← Back to brokers
+        </button>
+        <WebullImport userId={userId} existingTrades={existingTrades} onImported={onImported} />
       </div>
     )
   }
