@@ -26,14 +26,25 @@ const SmallLogo = () => (
   </svg>
 )
 
-const MockWrap = ({ children }: { children: React.ReactNode }) => (
+const MockWrap = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
   <div style={{
-    background: 'var(--bg2)', border: '1px solid var(--brd2)',
-    borderRadius: '16px', padding: '20px',
-    boxShadow: '0 0 0 1px var(--brd)',
-    flex: 1,
+    background: '#131318', border: '1px solid #252530',
+    borderRadius: '16px', padding: '24px',
+    boxShadow: '0 24px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04)',
+    flex: 1, ...style,
   }}>{children}</div>
 )
+
+const trades = [
+  { date: 'Jun 22', time: '9:32', sym: 'NVDA', side: 'LONG', entry: '132.40', exit: '134.85', shares: 200, pnl: '+$490', grade: 'A', setup: 'Breakout' },
+  { date: 'Jun 22', time: '10:15', sym: 'TSLA', side: 'SHORT', entry: '248.10', exit: '244.30', shares: 150, pnl: '+$570', grade: 'A', setup: 'Reversal' },
+  { date: 'Jun 22', time: '11:02', sym: 'AAPL', side: 'LONG', entry: '211.50', exit: '210.80', shares: 100, pnl: '-$70', grade: 'C', setup: 'VWAP' },
+  { date: 'Jun 21', time: '9:45', sym: 'SPY', side: 'LONG', entry: '548.20', exit: '551.40', shares: 300, pnl: '+$960', grade: 'A', setup: 'Breakout' },
+  { date: 'Jun 21', time: '14:30', sym: 'QQQ', side: 'SHORT', entry: '472.80', exit: '470.10', shares: 200, pnl: '+$540', grade: 'B', setup: 'Reversal' },
+  { date: 'Jun 20', time: '9:38', sym: 'META', side: 'LONG', entry: '615.20', exit: '619.80', shares: 50, pnl: '+$230', grade: 'B', setup: 'VWAP' },
+  { date: 'Jun 20', time: '11:20', sym: 'AMZN', side: 'LONG', entry: '198.40', exit: '196.90', shares: 200, pnl: '-$300', grade: 'D', setup: 'Breakout' },
+  { date: 'Jun 19', time: '9:55', sym: 'MSFT', side: 'LONG', entry: '442.10', exit: '445.60', shares: 100, pnl: '+$350', grade: 'A', setup: 'Breakout' },
+]
 
 export default async function HomePage() {
   const supabase = createClient()
@@ -68,6 +79,16 @@ export default async function HomePage() {
       </nav>
 
       <style>{`
+        @keyframes scrollBrokers {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .broker-scroll-track {
+          display: flex;
+          animation: scrollBrokers 18s linear infinite;
+          width: max-content;
+        }
+        .broker-scroll-track:hover { animation-play-state: paused; }
         @media (max-width: 640px) {
           .desktop-nav-links { display: none !important; }
           .desktop-login { display: none !important; }
@@ -91,10 +112,7 @@ export default async function HomePage() {
           border: 1px solid var(--brd2); color: var(--txt3);
           text-decoration: none; transition: .15s;
         }
-        .footer-social-icon:hover {
-          border-color: var(--brd3); color: var(--txt2);
-          background: var(--bg3);
-        }
+        .footer-social-icon:hover { border-color: var(--brd3); color: var(--txt2); background: var(--bg3); }
       `}</style>
 
       {/* HERO */}
@@ -115,34 +133,71 @@ export default async function HomePage() {
           </div>
           <p style={{ fontSize: '12px', color: 'var(--txt3)', marginTop: '14px' }}>No credit card required · Free plan available</p>
         </div>
+
+        {/* HERO DASHBOARD MOCK */}
         <div className="hero-mock">
           <MockWrap>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700 }}>Dashboard</span>
-              <span style={{ fontSize: '10px', color: 'var(--txt3)' }}>June 2026</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700 }}>Dashboard</span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {['1W','1M','3M','YTD'].map((t,i) => (
+                  <span key={t} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '5px', background: i===1?'#10B981':'var(--bg3)', color: i===1?'#000':'var(--txt3)', border: '1px solid var(--brd)', fontWeight: 600 }}>{t}</span>
+                ))}
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px', marginBottom: '12px' }}>
-              {[{ l: 'Net P&L', v: '+$4,821' }, { l: 'Win Rate', v: '67.3%' }, { l: 'Profit Factor', v: '2.14' }].map(m => (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '8px', marginBottom: '14px' }}>
+              {[{ l: 'Net P&L', v: '+$8,421', c: '#10B981' }, { l: 'Win Rate', v: '71.4%', c: '#10B981' }, { l: 'Profit Factor', v: '2.38', c: '#10B981' }, { l: 'Total Trades', v: '84', c: 'var(--txt)' }].map(m => (
                 <div key={m.l} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', padding: '10px 12px' }}>
                   <div style={{ fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.l}</div>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#10B981' }}>{m.v}</div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: m.c }}>{m.v}</div>
                 </div>
               ))}
             </div>
-            <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', padding: '12px', marginBottom: '12px' }}>
-              <div style={{ fontSize: '10px', color: 'var(--txt3)', marginBottom: '8px' }}>Cumulative P&L</div>
-              <svg viewBox="0 0 300 70" width="100%" height="70">
-                <defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#10B981" stopOpacity="0.25"/><stop offset="100%" stopColor="#10B981" stopOpacity="0"/></linearGradient></defs>
-                <path d="M0,65 L30,58 L60,50 L90,44 L120,48 L150,36 L180,26 L210,20 L240,12 L270,7 L300,3" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M0,65 L30,58 L60,50 L90,44 L120,48 L150,36 L180,26 L210,20 L240,12 L270,7 L300,3 L300,70 L0,70Z" fill="url(#hg)"/>
+            <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', padding: '12px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '10px', color: 'var(--txt3)', marginBottom: '8px' }}>Cumulative P&L — June 2026</div>
+              <svg viewBox="0 0 340 80" width="100%" height="80">
+                <defs>
+                  <linearGradient id="hg2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.3"/>
+                    <stop offset="100%" stopColor="#10B981" stopOpacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0,75 L20,70 L40,62 L60,58 L80,62 L100,52 L120,44 L140,38 L160,30 L180,22 L200,18 L220,24 L240,14 L260,8 L280,5 L300,3 L320,2 L340,1" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round"/>
+                <path d="M0,75 L20,70 L40,62 L60,58 L80,62 L100,52 L120,44 L140,38 L160,30 L180,22 L200,18 L220,24 L240,14 L260,8 L280,5 L300,3 L320,2 L340,1 L340,80 L0,80Z" fill="url(#hg2)"/>
               </svg>
             </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+              <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', padding: '10px 12px' }}>
+                <div style={{ fontSize: '9px', color: 'var(--txt3)', marginBottom: '6px' }}>P&L by Day</div>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'flex-end', height: '40px' }}>
+                  {[{h:28,c:'#10B981'},{h:38,c:'#10B981'},{h:14,c:'#EF4444'},{h:42,c:'#10B981'},{h:32,c:'#10B981'}].map((b,i) => (
+                    <div key={i} style={{ flex:1, height:`${b.h}px`, background:b.c, borderRadius:'3px 3px 0 0', opacity:0.85 }} />
+                  ))}
+                </div>
+              </div>
+              <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', padding: '10px 12px' }}>
+                <div style={{ fontSize: '9px', color: 'var(--txt3)', marginBottom: '6px' }}>Best Symbols</div>
+                {[{s:'NVDA',v:'+$2,140'},{s:'TSLA',v:'+$1,820'},{s:'SPY',v:'+$960'}].map(x => (
+                  <div key={x.s} style={{ display:'flex', justifyContent:'space-between', fontSize:'10px', marginBottom:'4px' }}>
+                    <span style={{ fontWeight:700 }}>{x.s}</span>
+                    <span style={{ color:'#10B981', fontWeight:700 }}>{x.v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', overflow: 'hidden' }}>
-              {[{ sym: 'NVDA', side: 'LONG', pnl: '+$842', c: '#10B981' }, { sym: 'TSLA', side: 'SHORT', pnl: '-$210', c: '#EF4444' }, { sym: 'AAPL', side: 'LONG', pnl: '+$390', c: '#10B981' }].map((t, i) => (
-                <div key={t.sym} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '7px 12px', borderBottom: i < 2 ? '1px solid var(--brd)' : 'none' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700 }}>{t.sym}</span>
-                  <span style={{ fontSize: '10px', fontWeight: 600, color: t.c }}>{t.side}</span>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: t.c, textAlign: 'right' }}>{t.pnl}</span>
+              <div style={{ display:'grid', gridTemplateColumns:'80px 60px 60px 70px 50px', padding:'6px 10px', borderBottom:'1px solid var(--brd)' }}>
+                {['Symbol','Side','Shares','P&L','Grade'].map(h => (
+                  <span key={h} style={{ fontSize:'8px', color:'var(--txt3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em' }}>{h}</span>
+                ))}
+              </div>
+              {trades.slice(0,5).map((t, i) => (
+                <div key={i} style={{ display:'grid', gridTemplateColumns:'80px 60px 60px 70px 50px', padding:'6px 10px', borderBottom: i<4?'1px solid var(--brd)':'none', alignItems:'center' }}>
+                  <span style={{ fontSize:'11px', fontWeight:700 }}>{t.sym}</span>
+                  <span style={{ fontSize:'10px', fontWeight:600, color: t.side==='LONG'?'#10B981':'#EF4444' }}>{t.side}</span>
+                  <span style={{ fontSize:'10px', color:'var(--txt2)' }}>{t.shares}</span>
+                  <span style={{ fontSize:'11px', fontWeight:700, color: t.pnl.startsWith('+')?'#10B981':'#EF4444' }}>{t.pnl}</span>
+                  <span style={{ fontSize:'10px', fontWeight:700, color: t.grade==='A'?'#10B981':t.grade==='B'?'#60a5fa':t.grade==='C'?'#f59e0b':'#EF4444' }}>{t.grade}</span>
                 </div>
               ))}
             </div>
@@ -156,7 +211,7 @@ export default async function HomePage() {
           {[
             { value: '25+', label: 'Performance metrics' },
             { value: '7', label: 'Report tabs' },
-            { value: '3+', label: 'Broker integrations' },
+            { value: '6', label: 'Broker integrations' },
             { value: '$0', label: 'To get started' },
           ].map(s => (
             <div key={s.label} style={{ textAlign: 'center' }}>
@@ -167,48 +222,152 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* BROKERS STRIP */}
+      <section style={{ borderBottom: '1px solid var(--brd)', background: 'var(--bg)', padding: '56px 0' }}>
+        <div style={{ textAlign: 'center', marginBottom: '36px', padding: '0 24px' }}>
+          <h2 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '10px' }}>
+            Import your trades in seconds
+          </h2>
+          <p style={{ fontSize: '15px', color: 'var(--txt2)' }}>
+            Connect your broker and Sleektrade turns your raw data into clear, actionable insights.
+          </p>
+        </div>
+        <div style={{ overflow: 'hidden', position: 'relative' }}>
+          <div style={{ position:'absolute', left:0, top:0, bottom:0, width:'80px', background:'linear-gradient(to right, var(--bg), transparent)', zIndex:2, pointerEvents:'none' }} />
+          <div style={{ position:'absolute', right:0, top:0, bottom:0, width:'80px', background:'linear-gradient(to left, var(--bg), transparent)', zIndex:2, pointerEvents:'none' }} />
+          <div className="broker-scroll-track">
+            {[
+              { name: 'DAS Trader', color: '#0A1628' },
+              { name: 'ThinkOrSwim', color: '#0D3B0D' },
+              { name: 'Interactive Brokers', color: '#8B0000' },
+              { name: 'Webull', color: '#003366' },
+              { name: 'Tastytrade', color: '#8B4513' },
+              { name: 'TradeStation', color: '#1A1400' },
+              { name: 'DAS Trader', color: '#0A1628' },
+              { name: 'ThinkOrSwim', color: '#0D3B0D' },
+              { name: 'Interactive Brokers', color: '#8B0000' },
+              { name: 'Webull', color: '#003366' },
+              { name: 'Tastytrade', color: '#8B4513' },
+              { name: 'TradeStation', color: '#1A1400' },
+            ].map((b, i) => (
+              <div key={i} style={{ display:'flex', alignItems:'center', gap:'12px', padding:'14px 28px', margin:'0 8px', background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'12px', whiteSpace:'nowrap', flexShrink:0 }}>
+                <div style={{ width:'32px', height:'32px', borderRadius:'8px', background:b.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:800, color:'#fff' }}>
+                  {b.name.split(' ').map(w=>w[0]).join('').substring(0,2)}
+                </div>
+                <span style={{ fontSize:'13px', fontWeight:600, color:'var(--txt)' }}>{b.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ textAlign:'center', marginTop:'32px' }}>
+          <Link href="/import" style={{ fontSize:'13px', fontWeight:600, color:'#10B981', textDecoration:'none', border:'1px solid rgba(16,185,129,.3)', borderRadius:'8px', padding:'8px 20px', display:'inline-block' }}>
+            View all supported brokers →
+          </Link>
+        </div>
+      </section>
+
       {/* FEATURES */}
-      <section id="features" style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 48px 80px' }} className="section-pad">
+      <section id="features" style={{ maxWidth: '1200px', margin: '0 auto', padding: '80px 48px' }} className="section-pad">
         <div style={{ textAlign: 'center', marginBottom: '72px' }}>
           <h2 className="section-h2" style={{ fontSize: '38px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '12px' }}>Everything a serious trader needs</h2>
           <p style={{ fontSize: '16px', color: 'var(--txt2)' }}>Built around your real workflow — not a generic spreadsheet.</p>
         </div>
 
-        {/* Feature 1 */}
+        {/* Feature 1 — Trade View */}
         <div className="feature-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '72px', alignItems: 'center', marginBottom: '100px' }}>
+          <div className="feature-mock-order">
+            <MockWrap>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px' }}>
+                <span style={{ fontSize:'13px', fontWeight:700 }}>Trade View</span>
+                <div style={{ display:'flex', gap:'6px' }}>
+                  {['All','LONG','SHORT','Winners','Losers'].map((f,i) => (
+                    <span key={f} style={{ fontSize:'9px', padding:'3px 7px', borderRadius:'5px', background:i===0?'#10B981':'var(--bg3)', color:i===0?'#000':'var(--txt3)', border:'1px solid var(--brd)', fontWeight:600 }}>{f}</span>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'60px 55px 55px 55px 65px 55px 55px 45px', padding:'6px 8px', borderBottom:'1px solid var(--brd)' }}>
+                {['Date','Symbol','Side','Entry','Exit','Shares','P&L','Grade'].map(h => (
+                  <span key={h} style={{ fontSize:'8px', color:'var(--txt3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em' }}>{h}</span>
+                ))}
+              </div>
+              {trades.map((t, i) => (
+                <div key={i} style={{ display:'grid', gridTemplateColumns:'60px 55px 55px 55px 65px 55px 55px 45px', padding:'7px 8px', borderBottom:'1px solid var(--brd)', alignItems:'center' }}>
+                  <span style={{ fontSize:'10px', color:'var(--txt3)' }}>{t.date}</span>
+                  <span style={{ fontSize:'11px', fontWeight:700 }}>{t.sym}</span>
+                  <span style={{ fontSize:'10px', fontWeight:600, color:t.side==='LONG'?'#10B981':'#EF4444' }}>{t.side}</span>
+                  <span style={{ fontSize:'10px', fontFamily:'var(--mono)' }}>${t.entry}</span>
+                  <span style={{ fontSize:'10px', fontFamily:'var(--mono)' }}>${t.exit}</span>
+                  <span style={{ fontSize:'10px', color:'var(--txt2)' }}>{t.shares}</span>
+                  <span style={{ fontSize:'11px', fontWeight:700, color:t.pnl.startsWith('+')?'#10B981':'#EF4444' }}>{t.pnl}</span>
+                  <span style={{ fontSize:'11px', fontWeight:700, color:t.grade==='A'?'#10B981':t.grade==='B'?'#60a5fa':t.grade==='C'?'#f59e0b':'#EF4444' }}>{t.grade}</span>
+                </div>
+              ))}
+              <div style={{ display:'flex', justifyContent:'space-between', padding:'10px 8px 0', fontSize:'11px', color:'var(--txt3)' }}>
+                <span>8 trades shown</span>
+                <span style={{ color:'#10B981', fontWeight:700 }}>Net: +$2,490</span>
+              </div>
+            </MockWrap>
+          </div>
           <div>
-            <div style={{ display: 'inline-block', fontSize: '11px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '20px', padding: '3px 12px', marginBottom: '16px' }}>Reports</div>
-            <h3 className="feature-h3" style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '16px', lineHeight: 1.2 }}>7 report tabs.<br />25+ metrics.</h3>
-            <p style={{ fontSize: '15px', color: 'var(--txt2)', lineHeight: 1.7, marginBottom: '20px' }}>
-              Understand your performance at every level — by day, by time of day, by symbol, by setup.
+            <div style={{ display:'inline-block', fontSize:'11px', fontWeight:700, color:'#10B981', background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:'20px', padding:'3px 12px', marginBottom:'16px' }}>Trade View</div>
+            <h3 className="feature-h3" style={{ fontSize:'30px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'16px', lineHeight:1.2 }}>Every trade.<br />Crystal clear.</h3>
+            <p style={{ fontSize:'15px', color:'var(--txt2)', lineHeight:1.7, marginBottom:'20px' }}>
+              Log, filter, edit, and review every trade. Add grades, screenshots, notes, and setups to build a complete picture of your edge.
+            </p>
+            {['Filter by side, result, date, setup', 'Grade each trade A–D', 'Attach screenshots', 'Edit or delete any trade', 'Bulk delete with filters'].map(f => (
+              <div key={f} style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', fontSize:'13px', color:'var(--txt2)' }}>
+                <span style={{ color:'#10B981', fontWeight:700, fontSize:'14px' }}>✓</span> {f}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Feature 2 — Reports */}
+        <div className="feature-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'72px', alignItems:'center', marginBottom:'100px' }}>
+          <div>
+            <div style={{ display:'inline-block', fontSize:'11px', fontWeight:700, color:'#10B981', background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:'20px', padding:'3px 12px', marginBottom:'16px' }}>Reports</div>
+            <h3 className="feature-h3" style={{ fontSize:'30px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'16px', lineHeight:1.2 }}>7 report tabs.<br />25+ metrics.</h3>
+            <p style={{ fontSize:'15px', color:'var(--txt2)', lineHeight:1.7, marginBottom:'20px' }}>
+              Understand your performance at every level — by day, by time of day, by symbol, by setup. Stop guessing, start knowing.
             </p>
             {['Performance & Overview', 'Day & Time analysis', 'Symbols & Setups', 'Risk / R-Multiple', 'Win vs Loss breakdown'].map(f => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '13px', color: 'var(--txt2)' }}>
-                <span style={{ color: '#10B981', fontWeight: 700, fontSize: '14px' }}>✓</span> {f}
+              <div key={f} style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', fontSize:'13px', color:'var(--txt2)' }}>
+                <span style={{ color:'#10B981', fontWeight:700, fontSize:'14px' }}>✓</span> {f}
               </div>
             ))}
           </div>
           <MockWrap>
-            <div style={{ display: 'flex', gap: '4px', marginBottom: '14px', overflowX: 'auto' }}>
-              {['Performance', 'Overview', 'Day & Time', 'Symbols', 'Risk/R', 'Win/Loss', 'Setups'].map((t, i) => (
-                <div key={t} style={{ fontSize: '9px', fontWeight: 600, padding: '4px 8px', borderRadius: '6px', whiteSpace: 'nowrap', background: i === 0 ? '#10B981' : 'var(--bg3)', color: i === 0 ? '#000' : 'var(--txt3)', border: '1px solid var(--brd)' }}>{t}</div>
+            <div style={{ display:'flex', gap:'4px', marginBottom:'14px', flexWrap:'wrap' }}>
+              {['Performance','Overview','Day & Time','Symbols','Risk/R','Win/Loss','Setups'].map((t,i) => (
+                <div key={t} style={{ fontSize:'9px', fontWeight:600, padding:'4px 8px', borderRadius:'6px', whiteSpace:'nowrap', background:i===0?'#10B981':'var(--bg3)', color:i===0?'#000':'var(--txt3)', border:'1px solid var(--brd)' }}>{t}</div>
               ))}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '6px', marginBottom: '12px' }}>
-              {[{ l: 'Total Trades', v: '142' }, { l: 'Avg Win', v: '+$384' }, { l: 'Avg Loss', v: '-$180' }, { l: 'Best Day', v: '+$1,240' }, { l: 'Worst Day', v: '-$420' }, { l: 'Avg Hold', v: '18 min' }].map(m => (
-                <div key={m.l} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '6px', padding: '8px' }}>
-                  <div style={{ fontSize: '8px', color: 'var(--txt3)', marginBottom: '2px' }}>{m.l}</div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#10B981' }}>{m.v}</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'6px', marginBottom:'12px' }}>
+              {[{ l:'Total Trades', v:'142' },{ l:'Avg Win', v:'+$384' },{ l:'Avg Loss', v:'-$180' },{ l:'Best Day', v:'+$2,140' },{ l:'Worst Day', v:'-$420' },{ l:'Avg Hold', v:'18 min' }].map(m => (
+                <div key={m.l} style={{ background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'6px', padding:'8px' }}>
+                  <div style={{ fontSize:'8px', color:'var(--txt3)', marginBottom:'2px' }}>{m.l}</div>
+                  <div style={{ fontSize:'13px', fontWeight:700, color:'#10B981' }}>{m.v}</div>
                 </div>
               ))}
             </div>
-            <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', padding: '10px' }}>
-              <div style={{ fontSize: '9px', color: 'var(--txt3)', marginBottom: '8px' }}>P&L by Day of Week</div>
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-end', height: '50px' }}>
-                {[{ d: 'Mon', h: 35, c: '#10B981' }, { d: 'Tue', h: 45, c: '#10B981' }, { d: 'Wed', h: 20, c: '#EF4444' }, { d: 'Thu', h: 40, c: '#10B981' }, { d: 'Fri', h: 30, c: '#10B981' }].map(b => (
-                  <div key={b.d} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', justifyContent: 'flex-end' }}>
-                    <div style={{ width: '100%', height: `${b.h}px`, background: b.c, borderRadius: '3px 3px 0 0', opacity: 0.85 }} />
-                    <div style={{ fontSize: '8px', color: 'var(--txt3)' }}>{b.d}</div>
+            <div style={{ background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'8px', padding:'10px', marginBottom:'10px' }}>
+              <div style={{ fontSize:'9px', color:'var(--txt3)', marginBottom:'8px' }}>P&L by Day of Week</div>
+              <div style={{ display:'flex', gap:'6px', alignItems:'flex-end', height:'60px' }}>
+                {[{d:'Mon',h:40,c:'#10B981',v:'+$1,240'},{d:'Tue',h:55,c:'#10B981',v:'+$2,100'},{d:'Wed',h:18,c:'#EF4444',v:'-$420'},{d:'Thu',h:48,c:'#10B981',v:'+$1,840'},{d:'Fri',h:35,c:'#10B981',v:'+$960'}].map(b => (
+                  <div key={b.d} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:'3px', justifyContent:'flex-end' }}>
+                    <div style={{ width:'100%', height:`${b.h}px`, background:b.c, borderRadius:'3px 3px 0 0', opacity:0.85 }} />
+                    <div style={{ fontSize:'8px', color:'var(--txt3)' }}>{b.d}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'8px', padding:'10px' }}>
+              <div style={{ fontSize:'9px', color:'var(--txt3)', marginBottom:'8px' }}>Best Time of Day</div>
+              <div style={{ display:'flex', gap:'6px', alignItems:'flex-end', height:'40px' }}>
+                {[{h:50,t:'9:30'},{h:70,t:'10:00'},{h:35,t:'11:00'},{h:20,t:'12:00'},{h:30,t:'14:00'},{h:45,t:'15:00'},{h:25,t:'15:30'}].map(b => (
+                  <div key={b.t} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:'2px', justifyContent:'flex-end' }}>
+                    <div style={{ width:'100%', height:`${b.h}%`, background:'#10B981', borderRadius:'3px 3px 0 0', opacity:0.7 }} />
+                    <div style={{ fontSize:'7px', color:'var(--txt3)', whiteSpace:'nowrap' }}>{b.t}</div>
                   </div>
                 ))}
               </div>
@@ -216,63 +375,127 @@ export default async function HomePage() {
           </MockWrap>
         </div>
 
-        {/* Feature 2 */}
-        <div className="feature-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '72px', alignItems: 'center', marginBottom: '100px' }}>
+        {/* Feature 3 — Journal */}
+        <div className="feature-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'72px', alignItems:'center', marginBottom:'100px' }}>
           <div className="feature-mock-order">
             <MockWrap>
-              <div style={{ fontSize: '11px', fontWeight: 700, marginBottom: '10px' }}>Trade View</div>
-              <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-                {['All Trades', 'LONG', 'SHORT', 'Winners', 'Losers'].map((f, i) => (
-                  <div key={f} style={{ fontSize: '9px', padding: '3px 8px', borderRadius: '6px', background: i === 0 ? '#10B981' : 'var(--bg3)', color: i === 0 ? '#000' : 'var(--txt3)', border: '1px solid var(--brd)', fontWeight: 600 }}>{f}</div>
-                ))}
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px' }}>
+                <span style={{ fontSize:'13px', fontWeight:700 }}>Journal</span>
+                <div style={{ display:'flex', gap:'4px' }}>
+                  {['Week','Month'].map((v,i) => (
+                    <span key={v} style={{ fontSize:'9px', padding:'3px 8px', borderRadius:'5px', background:i===0?'#10B981':'var(--bg3)', color:i===0?'#000':'var(--txt3)', border:'1px solid var(--brd)', fontWeight:600 }}>{v}</span>
+                  ))}
+                </div>
               </div>
               {[
-                { date: 'Jun 19', sym: 'NVDA', side: 'LONG', pnl: '+$842', grade: 'A', gc: '#10B981' },
-                { date: 'Jun 19', sym: 'TSLA', side: 'SHORT', pnl: '-$210', grade: 'C', gc: '#f59e0b' },
-                { date: 'Jun 18', sym: 'AAPL', side: 'LONG', pnl: '+$390', grade: 'B', gc: '#10B981' },
-              ].map((t, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', padding: '7px 8px', borderBottom: '1px solid var(--brd)' }}>
-                  <span style={{ fontSize: '10px', color: 'var(--txt3)' }}>{t.date}</span>
-                  <span style={{ fontSize: '10px', fontWeight: 700 }}>{t.sym}</span>
-                  <span style={{ fontSize: '10px', fontWeight: 600, color: t.side === 'LONG' ? '#10B981' : '#EF4444' }}>{t.side}</span>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: t.pnl.startsWith('+') ? '#10B981' : '#EF4444' }}>{t.pnl}</span>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: t.gc }}>{t.grade}</span>
+                { date:'Mon Jun 22', pnl:'+$1,060', trades:4, note:'Good discipline today. Stuck to my plan on NVDA breakout. Missed AAPL entry — too slow on confirmation.', tags:['Breakout','Momentum'] },
+                { date:'Fri Jun 19', pnl:'+$350', trades:3, note:'MSFT setup was clean. Should have sized up. Let winners run more next time.', tags:['Breakout','Size'] },
+                { date:'Thu Jun 18', pnl:'-$300', trades:2, note:'AMZN trade was a mistake — chased the move. Violated my rules. No more FOMO entries.', tags:['Mistake','FOMO'] },
+                { date:'Wed Jun 17', pnl:'+$1,500', trades:5, note:'Best day this week. SPY trend was clear. Added to winners properly. Felt very in sync.', tags:['Trend','Confidence'] },
+              ].map((d, i) => (
+                <div key={i} style={{ background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'10px', padding:'12px', marginBottom:'8px' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'6px' }}>
+                    <span style={{ fontSize:'11px', fontWeight:700 }}>{d.date}</span>
+                    <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+                      <span style={{ fontSize:'10px', color:'var(--txt3)' }}>{d.trades} trades</span>
+                      <span style={{ fontSize:'12px', fontWeight:700, color:d.pnl.startsWith('+')?'#10B981':'#EF4444' }}>{d.pnl}</span>
+                    </div>
+                  </div>
+                  <p style={{ fontSize:'10px', color:'var(--txt2)', lineHeight:1.6, margin:'0 0 8px' }}>{d.note}</p>
+                  <div style={{ display:'flex', gap:'4px', flexWrap:'wrap' }}>
+                    {d.tags.map(tag => (
+                      <span key={tag} style={{ fontSize:'9px', padding:'2px 6px', borderRadius:'4px', background:'rgba(16,185,129,.1)', color:'#10B981', border:'1px solid rgba(16,185,129,.2)', fontWeight:600 }}>{tag}</span>
+                    ))}
+                  </div>
                 </div>
               ))}
             </MockWrap>
           </div>
           <div>
-            <div style={{ display: 'inline-block', fontSize: '11px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '20px', padding: '3px 12px', marginBottom: '16px' }}>Trade View</div>
-            <h3 className="feature-h3" style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '16px', lineHeight: 1.2 }}>Every trade.<br />Crystal clear.</h3>
-            <p style={{ fontSize: '15px', color: 'var(--txt2)', lineHeight: 1.7, marginBottom: '20px' }}>
-              Log, filter, edit, and review every trade. Add grades, screenshots, notes, and setups.
+            <div style={{ display:'inline-block', fontSize:'11px', fontWeight:700, color:'#10B981', background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:'20px', padding:'3px 12px', marginBottom:'16px' }}>Journal</div>
+            <h3 className="feature-h3" style={{ fontSize:'30px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'16px', lineHeight:1.2 }}>Your trading mind.<br />On paper.</h3>
+            <p style={{ fontSize:'15px', color:'var(--txt2)', lineHeight:1.7, marginBottom:'20px' }}>
+              Write daily notes, tag your mindset, and review your thoughts alongside your P&L. The best traders reflect — Sleektrade makes it effortless.
             </p>
-            {['Filter by side, result, date, setup', 'Grade each trade A–D', 'Attach screenshots', 'Edit or delete any trade', 'Bulk delete with filters'].map(f => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '13px', color: 'var(--txt2)' }}>
-                <span style={{ color: '#10B981', fontWeight: 700, fontSize: '14px' }}>✓</span> {f}
+            {['Daily notes with P&L overlay', 'Week and month views', 'Tag emotions and setups', 'Search past journal entries', 'Linked to your trade data'].map(f => (
+              <div key={f} style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', fontSize:'13px', color:'var(--txt2)' }}>
+                <span style={{ color:'#10B981', fontWeight:700, fontSize:'14px' }}>✓</span> {f}
               </div>
             ))}
           </div>
         </div>
+
+        {/* Feature 4 — Position Size */}
+        <div className="feature-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'72px', alignItems:'center', marginBottom:'100px' }}>
+          <div>
+            <div style={{ display:'inline-block', fontSize:'11px', fontWeight:700, color:'#10B981', background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:'20px', padding:'3px 12px', marginBottom:'16px' }}>Position Size</div>
+            <h3 className="feature-h3" style={{ fontSize:'30px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'16px', lineHeight:1.2 }}>Risk the right amount.<br />Every time.</h3>
+            <p style={{ fontSize:'15px', color:'var(--txt2)', lineHeight:1.7, marginBottom:'20px' }}>
+              Enter your account size, risk percentage, entry, and stop — Sleektrade instantly tells you exactly how many shares to buy.
+            </p>
+            {['Dollar and percentage risk modes', 'Instant share size calculation', 'R-multiple target planning', 'Works for stocks and futures', 'No more guessing position size'].map(f => (
+              <div key={f} style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', fontSize:'13px', color:'var(--txt2)' }}>
+                <span style={{ color:'#10B981', fontWeight:700, fontSize:'14px' }}>✓</span> {f}
+              </div>
+            ))}
+          </div>
+          <MockWrap>
+            <div style={{ fontSize:'13px', fontWeight:700, marginBottom:'16px' }}>Position Size Calculator</div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'14px' }}>
+              {[{ l:'Account Size', v:'$50,000' },{ l:'Risk %', v:'1.0%' },{ l:'Entry Price', v:'$132.40' },{ l:'Stop Loss', v:'$130.50' }].map(f => (
+                <div key={f.l} style={{ background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'8px', padding:'10px 12px' }}>
+                  <div style={{ fontSize:'9px', color:'var(--txt3)', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'.05em' }}>{f.l}</div>
+                  <div style={{ fontSize:'14px', fontWeight:700, fontFamily:'var(--mono)' }}>{f.v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ background:'rgba(16,185,129,.08)', border:'1px solid rgba(16,185,129,.25)', borderRadius:'10px', padding:'16px', marginBottom:'12px', textAlign:'center' }}>
+              <div style={{ fontSize:'10px', color:'var(--txt3)', marginBottom:'6px', textTransform:'uppercase', letterSpacing:'.06em' }}>Shares to Buy</div>
+              <div style={{ fontSize:'36px', fontWeight:800, color:'#10B981', fontFamily:'var(--mono)' }}>263</div>
+              <div style={{ fontSize:'11px', color:'var(--txt3)', marginTop:'4px' }}>shares @ $132.40</div>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'8px' }}>
+              {[{ l:'Max Risk', v:'$500' },{ l:'Stop Dist', v:'$1.90' },{ l:'Position Size', v:'$34,801' }].map(m => (
+                <div key={m.l} style={{ background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'8px', padding:'8px', textAlign:'center' }}>
+                  <div style={{ fontSize:'8px', color:'var(--txt3)', marginBottom:'3px' }}>{m.l}</div>
+                  <div style={{ fontSize:'12px', fontWeight:700 }}>{m.v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop:'12px', background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'8px', padding:'10px 12px' }}>
+              <div style={{ fontSize:'9px', color:'var(--txt3)', marginBottom:'6px' }}>R-Multiple Targets</div>
+              <div style={{ display:'flex', gap:'8px' }}>
+                {[{ r:'1R', p:'$134.30', pnl:'+$500' },{ r:'2R', p:'$136.20', pnl:'+$1,000' },{ r:'3R', p:'$138.10', pnl:'+$1,500' }].map(t => (
+                  <div key={t.r} style={{ flex:1, background:'rgba(16,185,129,.06)', borderRadius:'6px', padding:'6px', textAlign:'center' }}>
+                    <div style={{ fontSize:'9px', fontWeight:700, color:'#10B981' }}>{t.r}</div>
+                    <div style={{ fontSize:'9px', color:'var(--txt2)' }}>{t.p}</div>
+                    <div style={{ fontSize:'9px', fontWeight:700, color:'#10B981' }}>{t.pnl}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </MockWrap>
+        </div>
+
       </section>
 
       {/* WHO IT'S FOR */}
-      <section id="who" style={{ background: 'var(--bg2)', borderTop: '1px solid var(--brd)', borderBottom: '1px solid var(--brd)', padding: '80px 48px' }} className="section-pad">
-        <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 className="section-h2" style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '16px' }}>Built for anyone serious about their edge</h2>
-          <p style={{ fontSize: '16px', color: 'var(--txt2)', lineHeight: 1.7, marginBottom: '40px' }}>
+      <section id="who" style={{ background:'var(--bg2)', borderTop:'1px solid var(--brd)', borderBottom:'1px solid var(--brd)', padding:'80px 48px' }} className="section-pad">
+        <div style={{ maxWidth:'900px', margin:'0 auto', textAlign:'center' }}>
+          <h2 className="section-h2" style={{ fontSize:'36px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'16px' }}>Built for anyone serious about their edge</h2>
+          <p style={{ fontSize:'16px', color:'var(--txt2)', lineHeight:1.7, marginBottom:'40px' }}>
             Whether you scalp momentum plays, swing trade setups, trade Nasdaq futures, or invest long-term — Sleektrade gives you the data to understand your own performance with precision.
           </p>
-          <div className="who-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
+          <div className="who-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'12px' }}>
             {[
-              { label: 'Day traders', desc: 'Track intraday scalps with hold-time accuracy down to the minute.' },
-              { label: 'Swing traders', desc: 'Review multi-day positions and identify your best setups over time.' },
-              { label: 'Futures traders', desc: 'Log NQ, ES, MNQ and more. Works with NinjaTrader, TradeStation & more.' },
-              { label: 'Investors', desc: 'Track long-term positions, monitor performance, and review your decisions.' },
+              { label:'Day traders', desc:'Track intraday scalps with hold-time accuracy down to the minute.' },
+              { label:'Swing traders', desc:'Review multi-day positions and identify your best setups over time.' },
+              { label:'Futures traders', desc:'Log NQ, ES, MNQ and more. Works with NinjaTrader, TradeStation & more.' },
+              { label:'Investors', desc:'Track long-term positions, monitor performance, and review your decisions.' },
             ].map(item => (
-              <div key={item.label} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '10px', padding: '22px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#10B981', marginBottom: '8px' }}>{item.label}</div>
-                <div style={{ fontSize: '13px', color: 'var(--txt2)', lineHeight: 1.6 }}>{item.desc}</div>
+              <div key={item.label} style={{ background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'10px', padding:'22px' }}>
+                <div style={{ fontSize:'13px', fontWeight:700, color:'#10B981', marginBottom:'8px' }}>{item.label}</div>
+                <div style={{ fontSize:'13px', color:'var(--txt2)', lineHeight:1.6 }}>{item.desc}</div>
               </div>
             ))}
           </div>
@@ -286,58 +509,41 @@ export default async function HomePage() {
       <PricingSection />
 
       {/* FINAL CTA */}
-      <section style={{ textAlign: 'center', padding: '80px 24px', borderTop: '1px solid var(--brd)', background: 'var(--bg2)' }}>
-        <h2 className="cta-h2" style={{ fontSize: '38px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '16px' }}>Stop guessing. Start knowing.</h2>
-        <p style={{ fontSize: '16px', color: 'var(--txt2)', marginBottom: '32px' }}>Join traders and investors who use Sleektrade to understand their performance and trade with confidence.</p>
-        <Link href="/signup" style={{ fontSize: '15px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '10px', padding: '15px 36px', textDecoration: 'none', display: 'inline-block' }}>Create your free account</Link>
-        <p style={{ fontSize: '12px', color: 'var(--txt3)', marginTop: '14px' }}>No credit card required · Cancel anytime</p>
+      <section style={{ textAlign:'center', padding:'80px 24px', borderTop:'1px solid var(--brd)', background:'var(--bg2)' }}>
+        <h2 className="cta-h2" style={{ fontSize:'38px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'16px' }}>Stop guessing. Start knowing.</h2>
+        <p style={{ fontSize:'16px', color:'var(--txt2)', marginBottom:'32px' }}>Join traders and investors who use Sleektrade to understand their performance and trade with confidence.</p>
+        <Link href="/signup" style={{ fontSize:'15px', fontWeight:700, color:'#000', background:'#10B981', borderRadius:'10px', padding:'15px 36px', textDecoration:'none', display:'inline-block' }}>Create your free account</Link>
+        <p style={{ fontSize:'12px', color:'var(--txt3)', marginTop:'14px' }}>No credit card required · Cancel anytime</p>
       </section>
 
       {/* FOOTER */}
-      <footer style={{ borderTop: '1px solid var(--brd)', padding: '32px 48px' }}>
-        <div className="footer-flex" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-          {/* Logo + copyright */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <footer style={{ borderTop:'1px solid var(--brd)', padding:'32px 48px' }}>
+        <div className="footer-flex" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'24px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
             <SmallLogo />
-            <span style={{ fontSize: '12px', color: 'var(--txt3)' }}>© 2026 Sleektrade. All rights reserved.</span>
+            <span style={{ fontSize:'12px', color:'var(--txt3)' }}>© 2026 Sleektrade. All rights reserved.</span>
           </div>
-
-          {/* Nav links */}
-          <div className="footer-links" style={{ display: 'flex', gap: '20px', fontSize: '12px' }}>
-            <a href="#features" style={{ color: 'var(--txt3)', textDecoration: 'none' }}>Features</a>
-            <a href="#pricing" style={{ color: 'var(--txt3)', textDecoration: 'none' }}>Pricing</a>
-            <Link href="/contact" style={{ color: 'var(--txt3)', textDecoration: 'none' }}>Contact</Link>
-            <Link href="/privacy" style={{ color: 'var(--txt3)', textDecoration: 'none' }}>Privacy</Link>
-            <Link href="/terms" style={{ color: 'var(--txt3)', textDecoration: 'none' }}>Terms</Link>
-            <Link href="/login" style={{ color: 'var(--txt3)', textDecoration: 'none' }}>Log in</Link>
-            <Link href="/signup" style={{ color: 'var(--txt3)', textDecoration: 'none' }}>Sign up</Link>
+          <div className="footer-links" style={{ display:'flex', gap:'20px', fontSize:'12px' }}>
+            <a href="#features" style={{ color:'var(--txt3)', textDecoration:'none' }}>Features</a>
+            <a href="#pricing" style={{ color:'var(--txt3)', textDecoration:'none' }}>Pricing</a>
+            <Link href="/contact" style={{ color:'var(--txt3)', textDecoration:'none' }}>Contact</Link>
+            <Link href="/privacy" style={{ color:'var(--txt3)', textDecoration:'none' }}>Privacy</Link>
+            <Link href="/terms" style={{ color:'var(--txt3)', textDecoration:'none' }}>Terms</Link>
+            <Link href="/login" style={{ color:'var(--txt3)', textDecoration:'none' }}>Log in</Link>
+            <Link href="/signup" style={{ color:'var(--txt3)', textDecoration:'none' }}>Sign up</Link>
           </div>
-
-          {/* Social icons */}
-          <div className="footer-social" style={{ display: 'flex', gap: '8px' }}>
-            {/* X / Twitter */}
+          <div className="footer-social" style={{ display:'flex', gap:'8px' }}>
             <a href="https://x.com/sleektrade" target="_blank" rel="noopener noreferrer" className="footer-social-icon" title="X (Twitter)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.742l7.73-8.835L1.254 2.25H8.08l4.259 5.63 5.905-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-              </svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.742l7.73-8.835L1.254 2.25H8.08l4.259 5.63 5.905-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             </a>
-            {/* YouTube */}
             <a href="https://youtube.com/@sleektrade" target="_blank" rel="noopener noreferrer" className="footer-social-icon" title="YouTube">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-              </svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
             </a>
-            {/* Instagram */}
             <a href="https://instagram.com/sleektrade" target="_blank" rel="noopener noreferrer" className="footer-social-icon" title="Instagram">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/>
-              </svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
             </a>
-            {/* TikTok */}
             <a href="https://tiktok.com/@sleektrade" target="_blank" rel="noopener noreferrer" className="footer-social-icon" title="TikTok">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/>
-              </svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/></svg>
             </a>
           </div>
         </div>
