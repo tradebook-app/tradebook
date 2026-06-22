@@ -279,8 +279,8 @@ export default async function HomePage() {
               </div>
             ))}
           </div>
-          <Link href="/import" style={{ fontSize: '14px', fontWeight: 600, color: '#10B981', textDecoration: 'none', border: '1px solid rgba(16,185,129,.3)', borderRadius: '8px', padding: '10px 24px', display: 'inline-block' }}>
-            Start importing your trades →
+          <Link href="/signup" style={{ fontSize: '14px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '8px', padding: '12px 28px', display: 'inline-block', textDecoration: 'none' }}>
+            Start for free →
           </Link>
         </div>
       </section>
