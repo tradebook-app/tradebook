@@ -253,62 +253,33 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* STATS BAR */}
-      <section style={{ borderTop: '1px solid var(--brd)', borderBottom: '1px solid var(--brd)', background: 'var(--bg2)', padding: '28px 48px' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'center', gap: '64px', flexWrap: 'wrap' }}>
-          {[
-            { value: '25+', label: 'Performance metrics' },
-            { value: '7', label: 'Report tabs' },
-            { value: '6', label: 'Broker integrations' },
-            { value: '$0', label: 'To get started' },
-          ].map(s => (
-            <div key={s.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '28px', fontWeight: 800, color: '#10B981', fontFamily: 'var(--mono)' }}>{s.value}</div>
-              <div style={{ fontSize: '12px', color: 'var(--txt3)', marginTop: '2px' }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* BROKERS STRIP */}
-      <section style={{ borderBottom: '1px solid var(--brd)', background: 'var(--bg)', padding: '56px 0' }}>
-        <div style={{ textAlign: 'center', marginBottom: '36px', padding: '0 24px' }}>
-          <h2 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '10px' }}>
+      <section style={{ borderBottom: '1px solid var(--brd)', background: 'var(--bg)', padding: '64px 48px' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '12px' }}>
             Import your trades in seconds
           </h2>
-          <p style={{ fontSize: '15px', color: 'var(--txt2)' }}>
+          <p style={{ fontSize: '16px', color: 'var(--txt2)', marginBottom: '48px' }}>
             Connect your broker and Sleektrade turns your raw data into clear, actionable insights.
           </p>
-        </div>
-        <div style={{ overflow: 'hidden', position: 'relative' }}>
-          <div style={{ position:'absolute', left:0, top:0, bottom:0, width:'80px', background:'linear-gradient(to right, var(--bg), transparent)', zIndex:2, pointerEvents:'none' }} />
-          <div style={{ position:'absolute', right:0, top:0, bottom:0, width:'80px', background:'linear-gradient(to left, var(--bg), transparent)', zIndex:2, pointerEvents:'none' }} />
-          <div className="broker-scroll-track">
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '32px', flexWrap: 'wrap', marginBottom: '36px' }}>
             {[
-              { name: 'DAS Trader', color: '#0A1628' },
-              { name: 'ThinkOrSwim', color: '#0D3B0D' },
-              { name: 'Interactive Brokers', color: '#8B0000' },
-              { name: 'Webull', color: '#003366' },
-              { name: 'Tastytrade', color: '#8B4513' },
-              { name: 'TradeStation', color: '#1A1400' },
-              { name: 'DAS Trader', color: '#0A1628' },
-              { name: 'ThinkOrSwim', color: '#0D3B0D' },
-              { name: 'Interactive Brokers', color: '#8B0000' },
-              { name: 'Webull', color: '#003366' },
-              { name: 'Tastytrade', color: '#8B4513' },
-              { name: 'TradeStation', color: '#1A1400' },
-            ].map((b, i) => (
-              <div key={i} style={{ display:'flex', alignItems:'center', gap:'12px', padding:'14px 28px', margin:'0 8px', background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'12px', whiteSpace:'nowrap', flexShrink:0 }}>
-                <div style={{ width:'32px', height:'32px', borderRadius:'8px', background:b.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:800, color:'#fff' }}>
-                  {b.name.split(' ').map(w=>w[0]).join('').substring(0,2)}
+              { name: 'DAS Trader', logo: '/brokers/das.png', bg: '#0A1628' },
+              { name: 'ThinkOrSwim', logo: '/brokers/tos.png', bg: '#0D3B0D' },
+              { name: 'Interactive Brokers', logo: '/brokers/ibkr.png', bg: '#8B0000' },
+              { name: 'Webull', logo: '/brokers/webull.png', bg: '#003366' },
+              { name: 'Tastytrade', logo: '/brokers/tastytrade.png', bg: '#1A0E06' },
+              { name: 'TradeStation', logo: '/brokers/tradestation.png', bg: '#1A1400' },
+            ].map(b => (
+              <div key={b.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', opacity: 0.85 }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: b.bg, border: '1px solid rgba(255,255,255,.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  <img src={b.logo} alt={b.name} width={36} height={36} style={{ objectFit: 'contain' }} onError={(e: any) => { e.target.style.display='none' }} />
                 </div>
-                <span style={{ fontSize:'13px', fontWeight:600, color:'var(--txt)' }}>{b.name}</span>
+                <span style={{ fontSize: '11px', color: 'var(--txt3)', fontWeight: 600 }}>{b.name}</span>
               </div>
             ))}
           </div>
-        </div>
-        <div style={{ textAlign:'center', marginTop:'32px' }}>
-          <Link href="/import" style={{ fontSize:'13px', fontWeight:600, color:'#10B981', textDecoration:'none', border:'1px solid rgba(16,185,129,.3)', borderRadius:'8px', padding:'8px 20px', display:'inline-block' }}>
+          <Link href="/import" style={{ fontSize: '13px', fontWeight: 600, color: '#10B981', textDecoration: 'none', border: '1px solid rgba(16,185,129,.3)', borderRadius: '8px', padding: '8px 20px', display: 'inline-block' }}>
             View all supported brokers →
           </Link>
         </div>
