@@ -13,7 +13,7 @@ export async function POST(req: Request) {
 
     await resend.emails.send({
       from: 'Sleektrade Contact <noreply@sleektrade.app>',
-      to: 'support@sleektrade.app',
+      to: 'vermonski@gmail.com',
       replyTo: email,
       subject: `Contact: ${subject || 'New message from ' + name}`,
       html: `
