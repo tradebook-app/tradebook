@@ -19,6 +19,7 @@ import { Notebook } from '@/components/notebook/Notebook'
 import { PlanProvider, usePlan } from '@/components/PlanProvider'
 import { UpgradeWall, UpgradeBanner } from '@/components/UpgradeWall'
 import { Settings } from '@/components/Settings'
+import { Journal } from '@/components/Journal'
 
 type Props = {
   userId: string
@@ -66,6 +67,7 @@ function DashboardWithBanner({ trades, filter, onEdit, onDelete, userId, onReloa
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard':     'Dashboard',
   '/trades':        'Trade View',
+  '/journal':       'Journal',
   '/notebook':      'Notebook',
   '/reports':       'Reports',
   '/strategies':    'Strategies',
@@ -154,6 +156,7 @@ export function AppProvider({ userId, userEmail }: Props) {
 
     if (pathname === '/trades') return <TradeView trades={trades} filter={filter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} />
     if (pathname === '/dashboard') return <DashboardWithBanner trades={trades} filter={filter} onEdit={openEdit} onDelete={handleDelete} userId={userId} onReload={reloadTrades} />
+    if (pathname === '/journal') return <Journal trades={trades} onEdit={openEdit} />
     if (pathname === '/reports') return <GatedReports trades={trades} filter={filter} />
     if (pathname === '/position-size') return <PositionSize />
     if (pathname === '/strategies') return <GatedStrategies userId={userId} />
