@@ -7,6 +7,7 @@ import { TosImport } from './TosImport'
 import { IbkrImport } from './IbkrImport'
 import { WebullImport } from './WebullImport'
 import { TastytradeImport } from './TastytradeImport'
+import { TradeStationImport } from './TradeStationImport'
 
 type Props = {
   userId: string
@@ -29,7 +30,7 @@ const brokers: Broker[] = [
   { id: 'ibkr', name: 'Interactive Brokers', description: 'Import from IBKR Activity Statement', available: true, logo: '/brokers/ibkr.png', bg: '#1A0A0A' },
   { id: 'webull', name: 'Webull', description: 'Import from Webull order history CSV', available: true, logo: '/brokers/webull.png', bg: '#0A1A14' },
   { id: 'tastytrade', name: 'Tastytrade', description: 'Import from Tastytrade transaction CSV', available: true, logo: '/brokers/tastytrade.png', bg: '#1A0E06' },
-  { id: 'tradestation', name: 'TradeStation', description: 'Coming soon', available: false, logo: '/brokers/tradestation.png', bg: '#1A1400' },
+  { id: 'tradestation', name: 'TradeStation', description: 'Import from TradeStation activity CSV', available: true, logo: '/brokers/tradestation.png', bg: '#1A1400' },
 ]
 
 function BrokerIcon({ logo, bg, name }: { logo: string; bg: string; name: string }) {
@@ -61,11 +62,12 @@ export function BrokerImport({ userId, existingTrades, onImported }: Props) {
     </button>
   )
 
-  if (selected === 'das')         return <div>{backBtn}<DasImport userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
-  if (selected === 'tos')         return <div>{backBtn}<TosImport userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
-  if (selected === 'ibkr')        return <div>{backBtn}<IbkrImport userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
-  if (selected === 'webull')      return <div>{backBtn}<WebullImport userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
-  if (selected === 'tastytrade')  return <div>{backBtn}<TastytradeImport userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
+  if (selected === 'das')          return <div>{backBtn}<DasImport userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
+  if (selected === 'tos')          return <div>{backBtn}<TosImport userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
+  if (selected === 'ibkr')         return <div>{backBtn}<IbkrImport userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
+  if (selected === 'webull')       return <div>{backBtn}<WebullImport userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
+  if (selected === 'tastytrade')   return <div>{backBtn}<TastytradeImport userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
+  if (selected === 'tradestation') return <div>{backBtn}<TradeStationImport userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
 
   return (
     <div style={{ maxWidth: '700px', margin: '0 auto' }}>
