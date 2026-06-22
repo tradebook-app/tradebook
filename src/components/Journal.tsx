@@ -403,13 +403,10 @@ export function Journal({ trades, onEdit }: Props) {
         )}
       </div>
 
-      {/* Right panel: trade detail OR calendar */}
+      {/* Right panel: calendar always on top, trade detail below */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {selectedTrade && (
-          <TradeDetailPanel trade={selectedTrade} onClose={() => setSelectedTrade(null)} onEdit={onEdit} />
-        )}
 
-        {/* Calendar */}
+        {/* Calendar — always visible */}
         <div style={{ width: '220px', flexShrink: 0 }}>
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
@@ -443,6 +440,11 @@ export function Journal({ trades, onEdit }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Trade detail panel — below calendar */}
+        {selectedTrade && (
+          <TradeDetailPanel trade={selectedTrade} onClose={() => setSelectedTrade(null)} onEdit={onEdit} />
+        )}
       </div>
     </div>
   )
