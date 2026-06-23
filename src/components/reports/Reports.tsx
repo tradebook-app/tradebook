@@ -1,5 +1,4 @@
 'use client'
-
 import { useState } from 'react'
 import type { TradeRow, DateRangeFilter } from '@/lib/types'
 import { filterByDate } from '@/lib/analytics'
@@ -34,25 +33,35 @@ export function Reports({ trades, filter }: Props) {
 
   return (
     <div>
-      {/* Tab nav */}
+      {/* Tab nav — scrollable on mobile */}
       <div style={{
-        display: 'flex', gap: '0', marginBottom: '18px',
+        overflowX: 'auto',
+        marginBottom: '18px',
         borderBottom: '1px solid var(--brd)',
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none',
       }}>
-        {TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            style={{
-              padding: '10px 18px', fontSize: '12px', fontWeight: 600,
-              cursor: 'pointer', background: 'none', border: 'none',
-              borderBottom: `2px solid ${tab === key ? 'var(--ac)' : 'transparent'}`,
-              color: tab === key ? 'var(--ac2)' : 'var(--txt2)',
-              fontFamily: 'var(--sans)', transition: '.1s',
-              marginBottom: '-1px',
-            }}
-          >{label}</button>
-        ))}
+        <div style={{
+          display: 'flex',
+          gap: '0',
+          minWidth: 'max-content',
+        }}>
+          {TABS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              style={{
+                padding: '10px 18px', fontSize: '12px', fontWeight: 600,
+                cursor: 'pointer', background: 'none', border: 'none',
+                borderBottom: `2px solid ${tab === key ? 'var(--ac)' : 'transparent'}`,
+                color: tab === key ? 'var(--ac2)' : 'var(--txt2)',
+                fontFamily: 'var(--sans)', transition: '.1s',
+                marginBottom: '-1px',
+                whiteSpace: 'nowrap',
+              }}
+            >{label}</button>
+          ))}
+        </div>
       </div>
 
       {/* Tab content */}
