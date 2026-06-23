@@ -3,6 +3,14 @@ import { stripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 
+function detectPlan(priceId: string | undefined): 'elite' | 'pro' | 'free' {
+  if (!priceId) return 'free'
+  const eliteMonthly = process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID
+  const eliteYearly = process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID
+  if (priceId === eliteMonthly || priceId === eliteYearly) return 'elite'
+  return 'pro'
+}
+
 export async function POST(req: Request) {
   const body = await req.text()
   const sig = req.headers.get('stripe-signature')!
@@ -24,11 +32,9 @@ export async function POST(req: Request) {
       const userId = session.subscription_data?.metadata?.supabase_user_id
         || session.metadata?.supabase_user_id
       if (userId && session.subscription) {
-        // Detect plan from line items price ID
-        const elitePriceId = process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id)
         const priceId = lineItems.data[0]?.price?.id
-        const plan = priceId === elitePriceId ? 'elite' : 'pro'
+        const plan = detectPlan(priceId)
         await supabase.from('profiles').upsert({
           id: userId,
           stripe_subscription_id: session.subscription as string,
@@ -44,10 +50,8 @@ export async function POST(req: Request) {
       const userId = sub.metadata?.supabase_user_id
       if (userId) {
         const isActive = sub.status === 'active' || sub.status === 'trialing'
-        // Detect plan from price ID
-        const elitePriceId = process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID
         const priceId = sub.items?.data[0]?.price?.id
-        const plan = !isActive ? 'free' : priceId === elitePriceId ? 'elite' : 'pro'
+        const plan = !isActive ? 'free' : detectPlan(priceId)
         await supabase.from('profiles').upsert({
           id: userId,
           stripe_subscription_id: sub.id,
