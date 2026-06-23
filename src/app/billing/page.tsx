@@ -24,18 +24,44 @@ function BillingContent() {
 
   useEffect(() => {
     if (success) {
-      // Poll up to 8 times (every 1.5s = 12s total) waiting for webhook to update DB
-      let attempts = 0
-      const maxAttempts = 8
-      const interval = setInterval(async () => {
-        attempts++
-        const currentPlan = await loadPlan()
-        if (currentPlan !== 'free' || attempts >= maxAttempts) {
-          clearInterval(interval)
-          setLoading(false)
-        }
-      }, 1500)
-      return () => clearInterval(interval)
+      // On success: call sync endpoint directly to pull from Stripe, then poll if needed
+      async function syncAndLoad() {
+        // First try direct Stripe sync
+        try {
+          const syncRes = await fetch('/api/stripe/sync', { method: 'POST' })
+          const syncData = await syncRes.json()
+          if (syncData.plan && syncData.plan !== 'free') {
+            setPlan(syncData.plan)
+            setLoading(false)
+            return
+          }
+        } catch (e) {}
+
+        // Fallback: poll subscription endpoint up to 8 times
+        let attempts = 0
+        const maxAttempts = 8
+        const interval = setInterval(async () => {
+          attempts++
+          // Try sync again first
+          try {
+            const syncRes = await fetch('/api/stripe/sync', { method: 'POST' })
+            const syncData = await syncRes.json()
+            if (syncData.plan && syncData.plan !== 'free') {
+              setPlan(syncData.plan)
+              clearInterval(interval)
+              setLoading(false)
+              return
+            }
+          } catch (e) {}
+
+          const currentPlan = await loadPlan()
+          if (currentPlan !== 'free' || attempts >= maxAttempts) {
+            clearInterval(interval)
+            setLoading(false)
+          }
+        }, 1500)
+      }
+      syncAndLoad()
     } else {
       loadPlan().finally(() => setLoading(false))
     }
@@ -112,14 +138,12 @@ function BillingContent() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>
       <div style={{ width: '100%', maxWidth: '700px' }}>
 
-        {/* Header */}
         <div style={{ marginBottom: '32px' }}>
           <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', color: 'var(--txt3)', fontSize: '13px', cursor: 'pointer', marginBottom: '16px', padding: 0 }}>← Back to app</button>
           <div style={{ fontSize: '22px', fontWeight: 700 }}>Billing</div>
           <div style={{ fontSize: '13px', color: 'var(--txt3)', marginTop: '4px' }}>Manage your Sleektrade subscription</div>
         </div>
 
-        {/* Banners */}
         {success && (
           <div style={{ background: '#0d2e1e', border: '1px solid #1D9E75', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px' }}>
             🎉 You're now on {plan === 'elite' ? 'Elite' : 'Pro'}! All features unlocked.
@@ -141,7 +165,6 @@ function BillingContent() {
           <div style={{ textAlign: 'center', color: 'var(--txt3)', padding: '40px' }}>Loading...</div>
         ) : (
           <>
-            {/* Current Plan Summary */}
             <div style={{ background: 'var(--bg2)', border: `1px solid ${isPro ? '#1D9E75' : 'var(--brd)'}`, borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
@@ -180,7 +203,6 @@ function BillingContent() {
               )}
             </div>
 
-            {/* Billing Toggle */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '24px' }}>
               <span style={{ fontSize: '13px', color: !isYearly ? 'var(--txt)' : 'var(--txt3)', fontWeight: !isYearly ? 600 : 400 }}>Monthly</span>
               <div
@@ -194,10 +216,8 @@ function BillingContent() {
               </span>
             </div>
 
-            {/* Pricing cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
 
-              {/* Free */}
               <div style={cardStyle(plan === 'free')}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '8px' }}>Free</div>
@@ -212,7 +232,6 @@ function BillingContent() {
                 </div>
               </div>
 
-              {/* Pro */}
               <div style={{ ...cardStyle(plan === 'pro'), position: 'relative' }}>
                 <div style={{ position: 'absolute', top: '-11px', left: '50%', transform: 'translateX(-50%)', background: '#1D9E75', color: '#000', fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '10px' }}>POPULAR</div>
                 <div style={{ flex: 1 }}>
@@ -235,7 +254,6 @@ function BillingContent() {
                 </div>
               </div>
 
-              {/* Elite */}
               <div style={{ ...cardStyle(plan === 'elite'), background: 'linear-gradient(145deg, #0f1f1a, #0a1a14)' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '11px', fontWeight: 700, color: '#10B981', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '8px' }}>Elite</div>
