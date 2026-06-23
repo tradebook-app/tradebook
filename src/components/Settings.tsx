@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 
 type Tab = 'profile' | 'security' | 'subscription'
 
@@ -10,6 +11,7 @@ const TRADER_TYPES = ['Day trader', 'Swing trader', 'Futures trader', 'Options t
 
 export function Settings({ userEmail }: { userEmail?: string }) {
   const supabase = createClient()
+  const router = useRouter()
   const [tab, setTab] = useState<Tab>('profile')
 
   const [firstName, setFirstName] = useState('')
@@ -28,6 +30,7 @@ export function Settings({ userEmail }: { userEmail?: string }) {
   const [tradeCount, setTradeCount] = useState(0)
   const [subLoading, setSubLoading] = useState(true)
   const [portalLoading, setPortalLoading] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
   const initials = userEmail ? userEmail.substring(0, 2).toUpperCase() : 'AY'
   const displayEmail = userEmail || ''
@@ -81,6 +84,12 @@ export function Settings({ userEmail }: { userEmail?: string }) {
     else { alert('Could not open billing portal.'); setPortalLoading(false) }
   }
 
+  async function handleSignOut() {
+    setSigningOut(true)
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
   const lbl: React.CSSProperties = {
     display: 'block', fontSize: '10px', fontWeight: 700,
     color: 'var(--txt3)', textTransform: 'uppercase',
@@ -112,6 +121,9 @@ export function Settings({ userEmail }: { userEmail?: string }) {
           gap: 14px;
           margin-bottom: 14px;
         }
+        .settings-signout-mobile {
+          display: none;
+        }
         @media (max-width: 768px) {
           .settings-layout {
             grid-template-columns: 1fr;
@@ -137,6 +149,12 @@ export function Settings({ userEmail }: { userEmail?: string }) {
           }
           .settings-name-grid {
             grid-template-columns: 1fr;
+          }
+          .settings-signout-mobile {
+            display: block;
+            margin-top: 32px;
+            padding-top: 20px;
+            border-top: 1px solid var(--brd);
           }
         }
       `}</style>
@@ -213,6 +231,17 @@ export function Settings({ userEmail }: { userEmail?: string }) {
               <button onClick={saveProfile} disabled={profileSaving} className="btn btn-p" style={{ padding: '10px 24px' }}>
                 {profileSaving ? 'Saving...' : profileSaved ? '✓ Saved!' : 'Save changes'}
               </button>
+
+              {/* Sign out — mobile only */}
+              <div className="settings-signout-mobile">
+                <button
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  style={{ width: '100%', padding: '12px', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', color: 'var(--red)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}
+                >
+                  {signingOut ? 'Signing out...' : '← Sign out'}
+                </button>
+              </div>
             </div>
           )}
 
@@ -237,6 +266,17 @@ export function Settings({ userEmail }: { userEmail?: string }) {
                 )}
                 <button onClick={changePassword} disabled={pwLoading} className="btn btn-p" style={{ padding: '10px 20px' }}>
                   {pwLoading ? 'Updating...' : 'Update password'}
+                </button>
+              </div>
+
+              {/* Sign out — mobile only */}
+              <div className="settings-signout-mobile">
+                <button
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  style={{ width: '100%', padding: '12px', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', color: 'var(--red)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}
+                >
+                  {signingOut ? 'Signing out...' : '← Sign out'}
                 </button>
               </div>
             </div>
@@ -311,6 +351,17 @@ export function Settings({ userEmail }: { userEmail?: string }) {
                   ))}
                 </>
               )}
+
+              {/* Sign out — mobile only */}
+              <div className="settings-signout-mobile">
+                <button
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  style={{ width: '100%', padding: '12px', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', color: 'var(--red)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)', marginTop: '20px' }}
+                >
+                  {signingOut ? 'Signing out...' : '← Sign out'}
+                </button>
+              </div>
             </div>
           )}
         </div>
