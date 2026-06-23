@@ -20,7 +20,6 @@ import { PlanProvider, usePlan } from '@/components/PlanProvider'
 import { UpgradeWall, UpgradeBanner } from '@/components/UpgradeWall'
 import { Settings } from '@/components/Settings'
 import { Journal } from '@/components/Journal'
-import { WelcomeTour } from '@/components/WelcomeTour'
 
 type Props = {
   userId: string
@@ -186,7 +185,6 @@ export function AppProvider({ userId, userEmail }: Props) {
         editTrade={editTrade}
         strategies={strategies}
       />
-      <WelcomeTour />
     </PlanProvider>
   )
 }
