@@ -16,33 +16,14 @@ export function PricingSection() {
         <p style={{ fontSize: '16px', color: 'var(--txt2)' }}>Start free. Upgrade when you are ready.</p>
       </div>
 
-      {/* Toggle */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '40px' }}>
         <span style={{ fontSize: '13px', color: yearly ? 'var(--txt3)' : 'var(--txt)', fontWeight: 600 }}>Monthly</span>
-        <div
-          onClick={() => setYearly(!yearly)}
-          style={{
-            width: '48px', height: '26px', borderRadius: '13px', cursor: 'pointer',
-            background: yearly ? '#10B981' : 'var(--bg4)',
-            border: '1px solid var(--brd2)',
-            position: 'relative', transition: '.2s',
-          }}
-        >
-          <div style={{
-            position: 'absolute', top: '3px',
-            left: yearly ? '24px' : '3px',
-            width: '18px', height: '18px', borderRadius: '50%',
-            background: yearly ? '#000' : 'var(--txt3)',
-            transition: '.2s',
-          }} />
+        <div onClick={() => setYearly(!yearly)} style={{ width: '48px', height: '26px', borderRadius: '13px', cursor: 'pointer', background: yearly ? '#10B981' : 'var(--bg4)', border: '1px solid var(--brd2)', position: 'relative', transition: '.2s' }}>
+          <div style={{ position: 'absolute', top: '3px', left: yearly ? '24px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: yearly ? '#000' : 'var(--txt3)', transition: '.2s' }} />
         </div>
         <span style={{ fontSize: '13px', color: yearly ? 'var(--txt)' : 'var(--txt3)', fontWeight: 600 }}>
           Yearly
-          <span style={{
-            marginLeft: '6px', fontSize: '11px', fontWeight: 700, color: '#10B981',
-            background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.2)',
-            borderRadius: '10px', padding: '1px 8px',
-          }}>-20%</span>
+          <span style={{ marginLeft: '6px', fontSize: '11px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '10px', padding: '1px 8px' }}>-20%</span>
         </span>
       </div>
 
@@ -75,16 +56,13 @@ export function PricingSection() {
           </div>
           <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '24px' }}>{yearly ? 'per month, billed yearly' : 'per month'}</div>
           <div style={{ flex: 1 }}>
-            {['Unlimited trades', 'Unlimited trading accounts', 'All 7 report tabs', '25+ performance metrics', 'DAS Trader importer', 'Notebook & Strategies', 'Backup & restore'].map(f => (
+            {['Unlimited trades', '3 trading accounts', 'All 7 report tabs', '25+ performance metrics', 'DAS Trader importer', 'Notebook & Strategies', 'Backup & restore'].map(f => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: '13px', color: 'var(--txt2)' }}>
                 <span style={{ color: '#10B981', fontWeight: 700 }}>✓</span> {f}
               </div>
             ))}
           </div>
-          <Link
-            href={`/signup?plan=pro${yearly ? '&billing=yearly' : ''}`}
-            style={{ display: 'block', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '8px', padding: '12px', textDecoration: 'none' }}
-          >
+          <Link href={`/signup?plan=pro${yearly ? '&billing=yearly' : ''}`} style={{ display: 'block', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '8px', padding: '12px', textDecoration: 'none' }}>
             Get Started
           </Link>
         </div>
@@ -100,21 +78,18 @@ export function PricingSection() {
           <div style={{ flex: 1 }}>
             {[
               'Everything in Pro',
+              'Unlimited trading accounts',
               'Sleek AI trade analysis',
               'Priority support',
               'Early access to new features',
               'Broker integrations (coming soon)',
-              'Custom report exports',
             ].map(f => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: '13px', color: 'var(--txt2)' }}>
                 <span style={{ color: '#10B981', fontWeight: 700 }}>✓</span> {f}
               </div>
             ))}
           </div>
-          <Link
-            href={`/signup?plan=elite${yearly ? '&billing=yearly' : ''}`}
-            style={{ display: 'block', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '8px', padding: '12px', textDecoration: 'none' }}
-          >
+          <Link href={`/signup?plan=elite${yearly ? '&billing=yearly' : ''}`} style={{ display: 'block', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '8px', padding: '12px', textDecoration: 'none' }}>
             Get Started
           </Link>
         </div>

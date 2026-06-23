@@ -34,7 +34,6 @@ function BillingContent() {
             return
           }
         } catch (e) {}
-
         let attempts = 0
         const maxAttempts = 8
         const interval = setInterval(async () => {
@@ -49,7 +48,6 @@ function BillingContent() {
               return
             }
           } catch (e) {}
-
           const currentPlan = await loadPlan()
           if (currentPlan !== 'free' || attempts >= maxAttempts) {
             clearInterval(interval)
@@ -67,27 +65,13 @@ function BillingContent() {
     setCheckoutLoading(tier)
     const isYearly = billingCycle === 'yearly'
     let priceId: string | undefined
-
     if (tier === 'pro') {
-      priceId = isYearly
-        ? process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID
-        : process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID
+      priceId = isYearly ? process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID : process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID
     } else {
-      priceId = isYearly
-        ? process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID
-        : process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID
+      priceId = isYearly ? process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID : process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID
     }
-
-    if (!priceId) {
-      alert(`${tier} price ID not configured yet.`)
-      setCheckoutLoading(null)
-      return
-    }
-    const res = await fetch('/api/stripe/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ priceId }),
-    })
+    if (!priceId) { alert(`${tier} price ID not configured yet.`); setCheckoutLoading(null); return }
+    const res = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ priceId }) })
     const data = await res.json()
     if (data.url) window.location.href = data.url
     else { alert('Error starting checkout'); setCheckoutLoading(null) }
@@ -105,13 +89,12 @@ function BillingContent() {
   const isElite = plan === 'elite'
   const usagePercent = Math.min((tradeCount / 50) * 100, 100)
   const isYearly = billingCycle === 'yearly'
-
   const proPrice = isYearly ? '$190' : '$19'
   const elitePrice = isYearly ? '$290' : '$29'
   const period = isYearly ? 'per year' : 'per month'
 
   const cardStyle = (active: boolean) => ({
-    background: active ? 'var(--bg2)' : 'var(--bg2)',
+    background: 'var(--bg2)',
     border: `2px solid ${active ? '#1D9E75' : 'var(--brd)'}`,
     borderRadius: '12px',
     padding: '20px',
@@ -120,13 +103,8 @@ function BillingContent() {
   })
 
   const CurrentPlanBadge = () => (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: '6px',
-      background: '#0d2e1e', border: '1px solid #1D9E75',
-      borderRadius: '8px', padding: '6px 12px', marginTop: '16px',
-      fontSize: '12px', fontWeight: 700, color: '#1D9E75'
-    }}>
-      ✓ Current plan
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0d2e1e', border: '1px solid #1D9E75', borderRadius: '8px', padding: '6px 12px', marginTop: '16px', fontSize: '12px', fontWeight: 700, color: '#1D9E75' }}>
+      Current plan
     </div>
   )
 
@@ -153,7 +131,7 @@ function BillingContent() {
 
         {loading && success ? (
           <div style={{ textAlign: 'center', color: 'var(--txt3)', padding: '40px' }}>
-            <div style={{ fontSize: '24px', marginBottom: '12px' }}>⏳</div>
+            <div style={{ fontSize: '24px', marginBottom: '12px' }}>...</div>
             <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>Activating your plan...</div>
             <div style={{ fontSize: '12px', color: 'var(--txt3)' }}>This usually takes a few seconds.</div>
           </div>
@@ -179,19 +157,16 @@ function BillingContent() {
                   </div>
                 </div>
               </div>
-
               {!isPro && (
                 <div style={{ marginTop: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--txt3)', marginBottom: '6px' }}>
-                    <span>Trade usage</span>
-                    <span>{tradeCount}/50</span>
+                    <span>Trade usage</span><span>{tradeCount}/50</span>
                   </div>
                   <div style={{ background: 'var(--bg3)', borderRadius: '4px', height: '6px' }}>
                     <div style={{ width: `${usagePercent}%`, height: '100%', borderRadius: '4px', background: usagePercent >= 100 ? '#E24B4A' : '#1D9E75' }} />
                   </div>
                 </div>
               )}
-
               {isPro && (
                 <button onClick={handlePortal} disabled={portalLoading} style={{ marginTop: '16px', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', color: 'var(--txt)', fontSize: '13px', padding: '8px 16px', cursor: 'pointer' }}>
                   {portalLoading ? 'Opening...' : 'Manage billing & invoices'}
@@ -201,10 +176,7 @@ function BillingContent() {
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '24px' }}>
               <span style={{ fontSize: '13px', color: !isYearly ? 'var(--txt)' : 'var(--txt3)', fontWeight: !isYearly ? 600 : 400 }}>Monthly</span>
-              <div
-                onClick={() => setBillingCycle(b => b === 'monthly' ? 'yearly' : 'monthly')}
-                style={{ width: '44px', height: '24px', borderRadius: '12px', background: isYearly ? '#1D9E75' : 'var(--bg3)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}
-              >
+              <div onClick={() => setBillingCycle(b => b === 'monthly' ? 'yearly' : 'monthly')} style={{ width: '44px', height: '24px', borderRadius: '12px', background: isYearly ? '#1D9E75' : 'var(--bg3)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
                 <div style={{ position: 'absolute', top: '3px', left: isYearly ? '23px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: 'white', transition: 'left 0.2s' }} />
               </div>
               <span style={{ fontSize: '13px', color: isYearly ? 'var(--txt)' : 'var(--txt3)', fontWeight: isYearly ? 600 : 400 }}>
@@ -219,13 +191,11 @@ function BillingContent() {
                   <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '8px' }}>Free</div>
                   <div style={{ fontSize: '28px', fontWeight: 800, marginBottom: '2px' }}>$0</div>
                   <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: '16px' }}>forever free</div>
-                  {['50 trades/month', 'Dashboard & Trade View', 'Basic reports', 'Position size calc'].map(f => (
+                  {['50 trades/month', '1 account', 'Dashboard & Trade View', 'Position size calc'].map(f => (
                     <div key={f} style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '6px' }}>✓ {f}</div>
                   ))}
                 </div>
-                <div style={{ marginTop: '16px' }}>
-                  {plan === 'free' ? <CurrentPlanBadge /> : null}
-                </div>
+                <div style={{ marginTop: '16px' }}>{plan === 'free' ? <CurrentPlanBadge /> : null}</div>
               </div>
 
               <div style={{ ...cardStyle(plan === 'pro'), position: 'relative' }}>
@@ -235,14 +205,12 @@ function BillingContent() {
                   <div style={{ fontSize: '28px', fontWeight: 800, marginBottom: '2px' }}>{proPrice}</div>
                   <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: isYearly ? '2px' : '16px' }}>{period}</div>
                   {isYearly && <div style={{ fontSize: '11px', color: '#1D9E75', marginBottom: '16px' }}>Save $38 vs monthly</div>}
-                  {['Unlimited trades', 'All 7 report tabs', 'DAS Trader importer', 'Notebook & Strategies', 'Backup & Restore'].map(f => (
+                  {['Unlimited trades', '3 accounts', 'All 7 report tabs', 'DAS Trader importer', 'Notebook & Strategies'].map(f => (
                     <div key={f} style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '6px' }}>✓ {f}</div>
                   ))}
                 </div>
                 <div style={{ marginTop: '16px' }}>
-                  {plan === 'pro' ? (
-                    <CurrentPlanBadge />
-                  ) : plan === 'free' ? (
+                  {plan === 'pro' ? <CurrentPlanBadge /> : plan === 'free' ? (
                     <button onClick={() => handleCheckout('pro')} disabled={checkoutLoading !== null} style={{ width: '100%', background: '#1D9E75', color: '#000', border: 'none', borderRadius: '8px', padding: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
                       {checkoutLoading === 'pro' ? 'Loading...' : 'Get Started'}
                     </button>
@@ -256,20 +224,12 @@ function BillingContent() {
                   <div style={{ fontSize: '28px', fontWeight: 800, marginBottom: '2px' }}>{elitePrice}</div>
                   <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: isYearly ? '2px' : '16px' }}>{period}</div>
                   {isYearly && <div style={{ fontSize: '11px', color: '#1D9E75', marginBottom: '16px' }}>Save $58 vs monthly</div>}
-                  {[
-                    'Everything in Pro',
-                    'Sleek AI trade analysis',
-                    'Priority support',
-                    'Early access to features',
-                    'Broker integrations (soon)',
-                  ].map(f => (
+                  {['Everything in Pro', 'Unlimited accounts', 'Sleek AI trade analysis', 'Priority support', 'Early access'].map(f => (
                     <div key={f} style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '6px' }}>✓ {f}</div>
                   ))}
                 </div>
                 <div style={{ marginTop: '16px' }}>
-                  {plan === 'elite' ? (
-                    <CurrentPlanBadge />
-                  ) : (
+                  {plan === 'elite' ? <CurrentPlanBadge /> : (
                     <button onClick={() => handleCheckout('elite')} disabled={checkoutLoading !== null} style={{ width: '100%', background: '#1D9E75', color: '#000', border: 'none', borderRadius: '8px', padding: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
                       {checkoutLoading === 'elite' ? 'Loading...' : 'Get Started'}
                     </button>
