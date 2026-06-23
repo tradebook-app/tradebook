@@ -16,7 +16,6 @@ export function RiskReport({ trades }: Props) {
     )
   }
 
-  // Calculate R-multiples
   const rMultiples = closed.map(t => parseFloat((t.pnl / t.risk).toFixed(2)))
   const avgR  = rMultiples.reduce((s, r) => s + r, 0) / rMultiples.length
   const maxR  = Math.max(...rMultiples)
@@ -25,9 +24,7 @@ export function RiskReport({ trades }: Props) {
   const negR  = rMultiples.filter(r => r < 0)
   const avgWinR  = posR.length ? posR.reduce((s, r) => s + r, 0) / posR.length : 0
   const avgLossR = negR.length ? Math.abs(negR.reduce((s, r) => s + r, 0) / negR.length) : 0
-  const expectancy = avgR
 
-  // Bucket into ranges: <-3, -3 to -2, -2 to -1, -1 to 0, 0 to 1, 1 to 2, 2 to 3, >3
   const BUCKETS = [
     { label: '< -3R',   min: -Infinity, max: -3 },
     { label: '-3R',     min: -3,        max: -2 },
@@ -46,7 +43,6 @@ export function RiskReport({ trades }: Props) {
 
   const maxCount = Math.max(...bucketed.map(b => b.count), 1)
 
-  // R-Multiple performance by period (sum of R-multiples)
   const now = new Date()
   const weekStart = (() => {
     const d = new Date(now); const dow = d.getDay()
@@ -63,20 +59,22 @@ export function RiskReport({ trades }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-      {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
-        {[
-          { label: 'Expectancy', val: `${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R`, color: avgR >= 0 ? 'var(--ac)' : 'var(--red)' },
-          { label: 'Avg Win R',  val: `+${avgWinR.toFixed(2)}R`,  color: 'var(--ac)' },
-          { label: 'Avg Loss R', val: `-${avgLossR.toFixed(2)}R`, color: 'var(--red)' },
-          { label: 'Best Trade', val: `+${maxR.toFixed(2)}R`,     color: 'var(--ac)' },
-          { label: 'Worst Trade',val: `${minR.toFixed(2)}R`,      color: 'var(--red)' },
-        ].map((s, i) => (
-          <div key={i} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '12px 14px', textAlign: 'center' }}>
-            <div style={{ fontSize: '9px', color: 'var(--txt3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '.06em' }}>{s.label}</div>
-            <div style={{ fontSize: '16px', fontWeight: 800, fontFamily: 'var(--mono)', color: s.color }}>{s.val}</div>
-          </div>
-        ))}
+      {/* Summary cards — scrollable on mobile */}
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(120px, 1fr))', gap: '10px', minWidth: '500px' }}>
+          {[
+            { label: 'Expectancy', val: `${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R`, color: avgR >= 0 ? 'var(--ac)' : 'var(--red)' },
+            { label: 'Avg Win R',  val: `+${avgWinR.toFixed(2)}R`,  color: 'var(--ac)' },
+            { label: 'Avg Loss R', val: `-${avgLossR.toFixed(2)}R`, color: 'var(--red)' },
+            { label: 'Best Trade', val: `+${maxR.toFixed(2)}R`,     color: 'var(--ac)' },
+            { label: 'Worst Trade',val: `${minR.toFixed(2)}R`,      color: 'var(--red)' },
+          ].map((s, i) => (
+            <div key={i} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '12px 14px', textAlign: 'center' }}>
+              <div style={{ fontSize: '9px', color: 'var(--txt3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '.06em', whiteSpace: 'nowrap' }}>{s.label}</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, fontFamily: 'var(--mono)', color: s.color }}>{s.val}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* R-Multiple Performance by period */}
@@ -120,7 +118,7 @@ export function RiskReport({ trades }: Props) {
                   borderRadius: '3px 3px 0 0', minHeight: b.count ? '4px' : '0',
                   border: isPos ? '1px solid rgba(16,185,129,.6)' : '1px solid rgba(239,68,68,.6)',
                 }} />
-                <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--txt2, #b8b8c4)', marginTop: '6px', textAlign: 'center' }}>{b.label}</div>
+                <div style={{ fontSize: '9px', fontWeight: 600, color: 'var(--txt2, #b8b8c4)', marginTop: '6px', textAlign: 'center' }}>{b.label}</div>
               </div>
             )
           })}
@@ -132,28 +130,30 @@ export function RiskReport({ trades }: Props) {
         <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>
           Individual Trade R-Multiples
         </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              {['Symbol','P&L','Risk (1R)','R-Multiple'].map(h => (
-                <th key={h} style={{ fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', padding: '8px 14px', textAlign: 'left', borderBottom: '1px solid var(--brd)' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {closed.sort((a, b) => (b.pnl / b.risk) - (a.pnl / a.risk)).map((t, i) => {
-              const rm = t.pnl / t.risk
-              return (
-                <tr key={i}>
-                  <td style={{ padding: '8px 14px', fontWeight: 700, fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>{t.symbol}</td>
-                  <td style={{ padding: '8px 14px', fontFamily: 'var(--mono)', color: t.pnl >= 0 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)' }}>{t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}</td>
-                  <td style={{ padding: '8px 14px', fontFamily: 'var(--mono)', color: 'var(--txt2)', borderBottom: '1px solid var(--brd)' }}>${t.risk.toFixed(2)}</td>
-                  <td style={{ padding: '8px 14px', fontFamily: 'var(--mono)', fontWeight: 700, color: rm >= 0 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)' }}>{rm >= 0 ? '+' : ''}{rm.toFixed(2)}R</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '320px' }}>
+            <thead>
+              <tr>
+                {['Symbol','P&L','Risk (1R)','R-Multiple'].map(h => (
+                  <th key={h} style={{ fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', padding: '8px 14px', textAlign: 'left', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {closed.sort((a, b) => (b.pnl / b.risk) - (a.pnl / a.risk)).map((t, i) => {
+                const rm = t.pnl / t.risk
+                return (
+                  <tr key={i}>
+                    <td style={{ padding: '8px 14px', fontWeight: 700, fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>{t.symbol}</td>
+                    <td style={{ padding: '8px 14px', fontFamily: 'var(--mono)', color: t.pnl >= 0 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>{t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}</td>
+                    <td style={{ padding: '8px 14px', fontFamily: 'var(--mono)', color: 'var(--txt2)', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>${t.risk.toFixed(2)}</td>
+                    <td style={{ padding: '8px 14px', fontFamily: 'var(--mono)', fontWeight: 700, color: rm >= 0 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>{rm >= 0 ? '+' : ''}{rm.toFixed(2)}R</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
