@@ -82,19 +82,21 @@ export function RiskReport({ trades }: Props) {
         <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>
           R-Multiple Performance
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', padding: '16px 18px' }}>
-          {([
-            ['This Week',  rWeek],
-            ['This Month', rMonth],
-            ['This Year',  rYear],
-          ] as [string, number][]).map(([label, val]) => (
-            <div key={label} style={{ background: 'var(--bg4, #16161e)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
-              <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>{label}</div>
-              <div style={{ fontSize: '22px', fontWeight: 800, fontFamily: 'var(--mono)', color: val >= 0 ? 'var(--ac)' : 'var(--red)' }}>
-                {val >= 0 ? '+' : ''}{val.toFixed(2)}R
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', padding: '16px 18px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(130px, 1fr))', gap: '12px', minWidth: '420px' }}>
+            {([
+              ['This Week',  rWeek],
+              ['This Month', rMonth],
+              ['This Year',  rYear],
+            ] as [string, number][]).map(([label, val]) => (
+              <div key={label} style={{ background: 'var(--bg4, #16161e)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
+                <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>{label}</div>
+                <div style={{ fontSize: '22px', fontWeight: 800, fontFamily: 'var(--mono)', color: val >= 0 ? 'var(--ac)' : 'var(--red)' }}>
+                  {val >= 0 ? '+' : ''}{val.toFixed(2)}R
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
