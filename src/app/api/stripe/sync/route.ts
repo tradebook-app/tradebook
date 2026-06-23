@@ -16,7 +16,6 @@ export async function POST() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Get the profile to find the Stripe customer ID
     const { data: profile } = await supabase
       .from('profiles')
       .select('stripe_customer_id')
@@ -27,7 +26,6 @@ export async function POST() {
       return NextResponse.json({ plan: 'free', synced: false })
     }
 
-    // Fetch active subscriptions from Stripe directly
     const subscriptions = await stripe.subscriptions.list({
       customer: profile.stripe_customer_id,
       status: 'active',
@@ -35,29 +33,7 @@ export async function POST() {
     })
 
     if (subscriptions.data.length === 0) {
-      // No active subscription — check for trialing
-      const trialing = await stripe.subscriptions.list({
-        customer: profile.stripe_customer_id,
-        status: 'trialing',
-        limit: 1,
-      })
-
-      if (trialing.data.length === 0) {
-        return NextResponse.json({ plan: 'free', synced: false })
-      }
-
-      const sub = trialing.data[0]
-      const priceId = sub.items.data[0]?.price?.id
-      const plan = detectPlan(priceId)
-
-      await supabase.from('profiles').upsert({
-        id: user.id,
-        stripe_subscription_id: sub.id,
-        subscription_status: 'trialing',
-        plan,
-      })
-
-      return NextResponse.json({ plan, synced: true })
+      return NextResponse.json({ plan: 'free', synced: false })
     }
 
     const sub = subscriptions.data[0]
