@@ -214,39 +214,38 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Full trades table */}
+          {/* HERO TRADES TABLE — FIXED */}
           <div style={{ background: '#1a1a22', border: '1px solid #252530', borderRadius: '8px 8px 0 0', overflow: 'hidden' }}>
-            <div style={{ display:'grid', gridTemplateColumns:'90px 70px 60px 80px 80px 70px 80px 60px 80px', padding:'8px 14px', borderBottom:'1px solid #252530', background:'#16161e' }}>
-              {['Date','Symbol','Side','Status','Entry','Exit','Shares','P&L','Grade'].map(h => (
+            <div style={{ display:'grid', gridTemplateColumns:'90px 70px 60px 80px 80px 70px 80px 60px', padding:'8px 14px', borderBottom:'1px solid #252530', background:'#16161e' }}>
+              {['Date','Symbol','Side','Status','Entry','Exit','P&L','Grade'].map(h => (
                 <span key={h} style={{ fontSize:'9px', color:'#555', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em' }}>{h}</span>
               ))}
             </div>
             {[
-              { date:'Jun 22  9:32', sym:'NVDA', side:'LONG', entry:'132.40', exit:'134.85', shares:200, pnl:'+$490', grade:'A', setup:'Breakout' },
-              { date:'Jun 22 10:15', sym:'TSLA', side:'SHORT', entry:'248.10', exit:'244.30', shares:150, pnl:'+$570', grade:'A', setup:'Reversal' },
-              { date:'Jun 22 11:02', sym:'AAPL', side:'LONG', entry:'211.50', exit:'210.80', shares:100, pnl:'-$70', grade:'C', setup:'VWAP' },
-              { date:'Jun 21  9:45', sym:'SPY', side:'LONG', entry:'548.20', exit:'551.40', shares:300, pnl:'+$960', grade:'A', setup:'Breakout' },
-              { date:'Jun 21 14:30', sym:'QQQ', side:'SHORT', entry:'472.80', exit:'470.10', shares:200, pnl:'+$540', grade:'B', setup:'Reversal' },
-              { date:'Jun 20  9:38', sym:'META', side:'LONG', entry:'615.20', exit:'619.80', shares:50, pnl:'+$230', grade:'B', setup:'VWAP' },
-              { date:'Jun 20 11:20', sym:'AMZN', side:'LONG', entry:'198.40', exit:'196.90', shares:200, pnl:'-$300', grade:'D', setup:'Breakout' },
-              { date:'Jun 19  9:55', sym:'MSFT', side:'LONG', entry:'442.10', exit:'445.60', shares:100, pnl:'+$350', grade:'A', setup:'Breakout' },
-              { date:'Jun 19 13:40', sym:'NVDA', side:'SHORT', entry:'135.20', exit:'133.40', shares:300, pnl:'+$540', grade:'A', setup:'Reversal' },
-              { date:'Jun 18  9:31', sym:'SPY', side:'LONG', entry:'545.80', exit:'548.20', shares:400, pnl:'+$960', grade:'A', setup:'Breakout' },
-              { date:'Jun 18 11:15', sym:'TSLA', side:'LONG', entry:'243.60', exit:'248.10', shares:100, pnl:'+$450', grade:'B', setup:'VWAP' },
-              { date:'Jun 17  9:35', sym:'QQQ', side:'LONG', entry:'468.40', exit:'472.80', shares:150, pnl:'+$660', grade:'A', setup:'Breakout' },
+              { date:'Jun 22  9:32', sym:'NVDA', side:'LONG', win:true,  entry:'132.40', exit:'134.85', pnl:'+$490', grade:'A' },
+              { date:'Jun 22 10:15', sym:'TSLA', side:'SHORT', win:true,  entry:'248.10', exit:'244.30', pnl:'+$570', grade:'A' },
+              { date:'Jun 22 11:02', sym:'AAPL', side:'LONG', win:false, entry:'211.50', exit:'210.80', pnl:'-$70',  grade:'C' },
+              { date:'Jun 21  9:45', sym:'SPY',  side:'LONG', win:true,  entry:'548.20', exit:'551.40', pnl:'+$960', grade:'A' },
+              { date:'Jun 21 14:30', sym:'QQQ',  side:'SHORT', win:true,  entry:'472.80', exit:'470.10', pnl:'+$540', grade:'B' },
+              { date:'Jun 20  9:38', sym:'META', side:'LONG', win:true,  entry:'615.20', exit:'619.80', pnl:'+$230', grade:'B' },
+              { date:'Jun 20 11:20', sym:'AMZN', side:'LONG', win:false, entry:'198.40', exit:'196.90', pnl:'-$300', grade:'D' },
+              { date:'Jun 19  9:55', sym:'MSFT', side:'LONG', win:true,  entry:'442.10', exit:'445.60', pnl:'+$350', grade:'A' },
+              { date:'Jun 19 13:40', sym:'NVDA', side:'SHORT', win:true,  entry:'135.20', exit:'133.40', pnl:'+$540', grade:'A' },
+              { date:'Jun 18  9:31', sym:'SPY',  side:'LONG', win:true,  entry:'545.80', exit:'548.20', pnl:'+$960', grade:'A' },
+              { date:'Jun 18 11:15', sym:'TSLA', side:'LONG', win:true,  entry:'243.60', exit:'248.10', pnl:'+$450', grade:'B' },
+              { date:'Jun 17  9:35', sym:'QQQ',  side:'LONG', win:true,  entry:'468.40', exit:'472.80', pnl:'+$660', grade:'A' },
             ].map((t, i) => (
-              <div key={i} style={{ display:'grid', gridTemplateColumns:'90px 70px 60px 80px 80px 70px 80px 60px 80px', padding:'7px 14px', borderBottom:'1px solid #1e1e26', alignItems:'center', background: i%2===0?'transparent':'rgba(255,255,255,.01)' }}>
+              <div key={i} style={{ display:'grid', gridTemplateColumns:'90px 70px 60px 80px 80px 70px 80px 60px', padding:'7px 14px', borderBottom:'1px solid #1e1e26', alignItems:'center', background: i%2===0?'transparent':'rgba(255,255,255,.01)' }}>
                 <span style={{ fontSize:'10px', color:'#555', fontFamily:'monospace' }}>{t.date}</span>
                 <span style={{ fontSize:'12px', fontWeight:700 }}>{t.sym}</span>
                 <span style={{ fontSize:'10px', fontWeight:700, color:t.side==='LONG'?'#10B981':'#EF4444' }}>{t.side}</span>
+                <span><span style={{ fontSize:'9px', fontWeight:700, padding:'2px 6px', borderRadius:'4px', background:t.win?'rgba(16,185,129,.15)':'rgba(239,68,68,.15)', color:t.win?'#10B981':'#EF4444' }}>{t.win?'Win':'Loss'}</span></span>
                 <span style={{ fontSize:'10px', fontFamily:'monospace', color:'#aaa' }}>${t.entry}</span>
                 <span style={{ fontSize:'10px', fontFamily:'monospace', color:'#aaa' }}>${t.exit}</span>
-                <span style={{ fontSize:'10px', color:'#666' }}>{t.shares}</span>
                 <span style={{ fontSize:'12px', fontWeight:700, color:t.pnl.startsWith('+')?'#10B981':'#EF4444', fontFamily:'monospace' }}>{t.pnl}</span>
-                <span style={{ fontSize:'11px', fontWeight:700, color:t.grade==='A'?'#10B981':t.grade==='B'?'#60a5fa':t.grade==='C'?'#f59e0b':'#EF4444' }}>
-                  <span style={{ background:t.grade==='A'?'rgba(16,185,129,.15)':t.grade==='B'?'rgba(96,165,250,.15)':t.grade==='C'?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)', padding:'2px 6px', borderRadius:'4px' }}>{t.grade}</span>
+                <span style={{ fontSize:'11px', fontWeight:700 }}>
+                  <span style={{ background:t.grade==='A'?'rgba(16,185,129,.15)':t.grade==='B'?'rgba(96,165,250,.15)':t.grade==='C'?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)', color:t.grade==='A'?'#10B981':t.grade==='B'?'#60a5fa':t.grade==='C'?'#f59e0b':'#EF4444', padding:'2px 6px', borderRadius:'4px' }}>{t.grade}</span>
                 </span>
-                <span style={{ fontSize:'10px', color:'#555' }}>{t.setup}</span>
               </div>
             ))}
           </div>
@@ -360,13 +359,11 @@ export default async function HomePage() {
             </p>
           </div>
           <div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
-            {/* Tabs */}
             <div style={{ display:'flex', gap:'6px', marginBottom:'16px' }}>
               {['Performance','Overview','Day & Time','Symbols','Risk/R','Win/Loss','Setups'].map((t,i) => (
                 <div key={t} style={{ fontSize:'11px', fontWeight:600, padding:'6px 14px', borderRadius:'7px', background:i===0?'#10B981':'#1e1e26', color:i===0?'#000':'#666', border:'1px solid #2a2a35', cursor:'pointer' }}>{t}</div>
               ))}
             </div>
-            {/* Top 6 stats */}
             <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'8px', marginBottom:'14px' }}>
               {[
                 { l:'Net P&L', v:'+$8,421', c:'#10B981' },
@@ -382,9 +379,7 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
-            {/* Row 2: cumulative P&L chart + win/loss pie + hold time */}
             <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:'12px', marginBottom:'14px' }}>
-              {/* Cumulative P&L */}
               <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
                 <div style={{ fontSize:'10px', color:'#555', marginBottom:'10px' }}>Cumulative P&L — June 2026</div>
                 <svg viewBox="0 0 400 80" width="100%" height="80">
@@ -398,7 +393,6 @@ export default async function HomePage() {
                   <path d="M0,75 L30,68 L60,58 L90,52 L120,56 L150,44 L180,34 L210,26 L240,18 L270,12 L300,8 L330,10 L360,4 L400,1 L400,80 L0,80Z" fill="url(#rg)"/>
                 </svg>
               </div>
-              {/* Win vs Loss */}
               <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
                 <div style={{ fontSize:'10px', color:'#555', marginBottom:'10px' }}>Win vs Loss</div>
                 <div style={{ display:'flex', gap:'8px', alignItems:'center', marginBottom:'10px' }}>
@@ -417,7 +411,6 @@ export default async function HomePage() {
                   <div style={{ height:'100%', width:'71.8%', background:'#10B981', borderRadius:'4px' }} />
                 </div>
               </div>
-              {/* Hold time distribution */}
               <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
                 <div style={{ fontSize:'10px', color:'#555', marginBottom:'10px' }}>Avg Hold Time</div>
                 <div style={{ fontSize:'28px', fontWeight:800, fontFamily:'monospace', color:'#fff', marginBottom:'6px' }}>18 min</div>
@@ -434,9 +427,7 @@ export default async function HomePage() {
                 </div>
               </div>
             </div>
-            {/* Row 3: P&L by day + best time + top symbols */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px', marginBottom:'14px' }}>
-              {/* P&L by day of week */}
               <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
                 <div style={{ fontSize:'10px', color:'#555', marginBottom:'12px' }}>P&L by Day of Week</div>
                 <div style={{ display:'flex', gap:'8px', alignItems:'flex-end', height:'80px' }}>
@@ -455,7 +446,6 @@ export default async function HomePage() {
                   ))}
                 </div>
               </div>
-              {/* Best time of day */}
               <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
                 <div style={{ fontSize:'10px', color:'#555', marginBottom:'12px' }}>P&L by Time of Day</div>
                 <div style={{ display:'flex', gap:'5px', alignItems:'flex-end', height:'80px' }}>
@@ -476,7 +466,6 @@ export default async function HomePage() {
                   ))}
                 </div>
               </div>
-              {/* Top symbols */}
               <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
                 <div style={{ fontSize:'10px', color:'#555', marginBottom:'12px' }}>Top Symbols by P&L</div>
                 {[
@@ -498,7 +487,6 @@ export default async function HomePage() {
                 ))}
               </div>
             </div>
-            {/* Row 4: 8 metric cards */}
             <div style={{ display:'grid', gridTemplateColumns:'repeat(8,1fr)', gap:'8px' }}>
               {[
                 { l:'Avg Hold', v:'18 min' },
@@ -528,10 +516,8 @@ export default async function HomePage() {
               Switch between dark and light mode with one click. Sleektrade looks great either way — built for traders who work at any hour.
             </p>
           </div>
-          {/* Split dark/light mock */}
           <div style={{ borderRadius:'16px 16px 0 0', overflow:'hidden', boxShadow:'0 24px 80px rgba(0,0,0,.5)', border:'1px solid #252530' }}>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr' }}>
-              {/* LEFT — Dark side */}
               <div style={{ background:'#0d0d11', padding:'24px', borderRight:'2px solid #10B981' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
@@ -596,7 +582,6 @@ export default async function HomePage() {
                 <div style={{ textAlign:'center', padding:'8px 0', fontSize:'11px', color:'#555', fontWeight:600 }}>🌙 Dark Mode</div>
               </div>
 
-              {/* RIGHT — Light side */}
               <div style={{ background:'#f8f9fa', padding:'24px' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
@@ -674,7 +659,6 @@ export default async function HomePage() {
             </p>
           </div>
           <div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
-            {/* Header: Journal + Day/Week toggle */}
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
               <span style={{ fontSize:'14px', fontWeight:700 }}>Journal</span>
               <div style={{ display:'flex', gap:'4px' }}>
@@ -683,8 +667,6 @@ export default async function HomePage() {
                 ))}
               </div>
             </div>
-
-            {/* Week header: Jun 14 – Jun 20 */}
             <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'12px 16px', marginBottom:'14px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <div>
                 <div style={{ fontSize:'16px', fontWeight:800 }}>Jun 14 – Jun 20, 2026</div>
@@ -696,8 +678,6 @@ export default async function HomePage() {
                 <span style={{ fontSize:'11px', padding:'5px 12px', borderRadius:'6px', background:'#1e1e26', color:'#666', border:'1px solid #2a2a35', cursor:'pointer' }}>Next →</span>
               </div>
             </div>
-
-            {/* Day columns: Sun–Sat */}
             <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'6px', marginBottom:'14px' }}>
               {[
                 { day:'SUN', date:'14', pnl:null, trades:null, color:'#1a1a22' },
@@ -716,8 +696,6 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
-
-            {/* P&L chart */}
             <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'12px', marginBottom:'14px' }}>
               <svg viewBox="0 0 900 80" width="100%" height="80">
                 <defs>
@@ -730,8 +708,6 @@ export default async function HomePage() {
                 <path d="M0,40 L100,40 L200,50 L280,48 L350,45 L450,42 L550,42 L650,40 L700,38 L750,15 L800,5 L900,2 L900,80 L0,80Z" fill="url(#jg)"/>
               </svg>
             </div>
-
-            {/* Stats row */}
             <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'8px', marginBottom:'14px' }}>
               {[
                 { l:'Total Trades', v:'27' },
@@ -747,8 +723,6 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
-
-            {/* Trades table — with STATUS (Win/Loss) not Side */}
             <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px 8px 0 0', overflow:'hidden' }}>
               <div style={{ display:'grid', gridTemplateColumns:'110px 90px 80px 70px 90px 90px 70px 90px 70px 1fr', padding:'8px 14px', borderBottom:'1px solid #252530', background:'#16161e' }}>
                 {['Day','Time','Symbol','Status','Entry','Exit','Shares','P&L','Grade','Setup'].map(h => (
@@ -786,6 +760,7 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
+
         {/* Feature 4 — Position Size */}
         <div style={{ marginBottom: '120px' }}>
           <div style={{ marginBottom: '32px' }}>
@@ -798,7 +773,6 @@ export default async function HomePage() {
           <div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
             <div style={{ fontSize:'14px', fontWeight:700, marginBottom:'16px' }}>Position Size Calculator</div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' }}>
-              {/* Left: inputs + result */}
               <div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', marginBottom:'12px' }}>
                   {[
@@ -814,7 +788,6 @@ export default async function HomePage() {
                     </div>
                   ))}
                 </div>
-                {/* Result */}
                 <div style={{ background:'rgba(16,185,129,.08)', border:'1px solid rgba(16,185,129,.3)', borderRadius:'12px', padding:'20px', textAlign:'center', marginBottom:'12px' }}>
                   <div style={{ fontSize:'11px', color:'#10B981', fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', marginBottom:'8px' }}>Shares to Buy</div>
                   <div style={{ fontSize:'52px', fontWeight:800, color:'#10B981', fontFamily:'monospace', lineHeight:1 }}>263</div>
@@ -829,7 +802,6 @@ export default async function HomePage() {
                   ))}
                 </div>
               </div>
-              {/* Right: R-multiple targets + recent calcs */}
               <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
                 <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
                   <div style={{ fontSize:'10px', color:'#555', marginBottom:'12px', fontWeight:600 }}>R-Multiple Targets</div>
