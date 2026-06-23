@@ -14,12 +14,32 @@ function BillingContent() {
   const success = searchParams.get('success')
   const canceled = searchParams.get('canceled')
 
+  async function loadPlan() {
+    const r = await fetch('/api/subscription')
+    const d = await r.json()
+    setPlan(d.plan || 'free')
+    setTradeCount(d.tradeCount || 0)
+    return d.plan || 'free'
+  }
+
   useEffect(() => {
-    fetch('/api/subscription')
-      .then(r => r.json())
-      .then(d => { setPlan(d.plan || 'free'); setTradeCount(d.tradeCount || 0) })
-      .finally(() => setLoading(false))
-  }, [])
+    if (success) {
+      // Poll up to 8 times (every 1.5s = 12s total) waiting for webhook to update DB
+      let attempts = 0
+      const maxAttempts = 8
+      const interval = setInterval(async () => {
+        attempts++
+        const currentPlan = await loadPlan()
+        if (currentPlan !== 'free' || attempts >= maxAttempts) {
+          clearInterval(interval)
+          setLoading(false)
+        }
+      }, 1500)
+      return () => clearInterval(interval)
+    } else {
+      loadPlan().finally(() => setLoading(false))
+    }
+  }, [success])
 
   async function handleCheckout(tier: 'pro' | 'elite') {
     setCheckoutLoading(tier)
@@ -111,7 +131,13 @@ function BillingContent() {
           </div>
         )}
 
-        {loading ? (
+        {loading && success ? (
+          <div style={{ textAlign: 'center', color: 'var(--txt3)', padding: '40px' }}>
+            <div style={{ fontSize: '24px', marginBottom: '12px' }}>⏳</div>
+            <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>Activating your plan...</div>
+            <div style={{ fontSize: '12px', color: 'var(--txt3)' }}>This usually takes a few seconds.</div>
+          </div>
+        ) : loading ? (
           <div style={{ textAlign: 'center', color: 'var(--txt3)', padding: '40px' }}>Loading...</div>
         ) : (
           <>
@@ -149,7 +175,7 @@ function BillingContent() {
 
               {isPro && (
                 <button onClick={handlePortal} disabled={portalLoading} style={{ marginTop: '16px', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '8px', color: 'var(--txt)', fontSize: '13px', padding: '8px 16px', cursor: 'pointer' }}>
-                  {portalLoading ? 'Opening...' : 'Manage subscription →'}
+                  {portalLoading ? 'Opening...' : 'Manage billing & invoices'}
                 </button>
               )}
             </div>
