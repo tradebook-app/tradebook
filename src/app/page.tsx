@@ -105,6 +105,14 @@ export default async function HomePage() {
           .footer-social { justify-content: center !important; }
           .cta-h2 { font-size: 28px !important; }
           .feature-h3 { font-size: 24px !important; }
+          .report-tabs { flex-wrap: wrap !important; }
+          .darklight-split { grid-template-columns: 1fr !important; }
+          .darklight-right { display: none !important; }
+          .possize-grid { grid-template-columns: 1fr !important; }
+          .report-stats-6 { grid-template-columns: repeat(3,1fr) !important; }
+          .report-row2 { grid-template-columns: 1fr !important; }
+          .report-row3 { grid-template-columns: 1fr !important; }
+          .report-row4 { grid-template-columns: repeat(4,1fr) !important; }
         }
         .footer-social-icon {
           display: flex; align-items: center; justify-content: center;
@@ -359,9 +367,9 @@ export default async function HomePage() {
             </p>
           </div>
           <div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
-            <div style={{ display:'flex', gap:'6px', marginBottom:'16px' }}>
+            <div className="report-tabs" style={{ display:'flex', gap:'6px', marginBottom:'16px', flexWrap:'wrap' }}>
               {['Performance','Overview','Day & Time','Symbols','Risk/R','Win/Loss','Setups'].map((t,i) => (
-                <div key={t} style={{ fontSize:'11px', fontWeight:600, padding:'6px 14px', borderRadius:'7px', background:i===0?'#10B981':'#1e1e26', color:i===0?'#000':'#666', border:'1px solid #2a2a35', cursor:'pointer' }}>{t}</div>
+                <div key={t} style={{ fontSize:'11px', fontWeight:600, padding:'6px 14px', borderRadius:'7px', background:i===0?'#10B981':'#1e1e26', color:i===0?'#000':'#666', border:'1px solid #2a2a35', cursor:'pointer', whiteSpace:'nowrap' }}>{t}</div>
               ))}
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'8px', marginBottom:'14px' }}>
@@ -379,7 +387,7 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:'12px', marginBottom:'14px' }}>
+            <div className="report-row2" style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:'12px', marginBottom:'14px' }}>
               <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
                 <div style={{ fontSize:'10px', color:'#555', marginBottom:'10px' }}>Cumulative P&L — June 2026</div>
                 <svg viewBox="0 0 400 80" width="100%" height="80">
@@ -427,7 +435,7 @@ export default async function HomePage() {
                 </div>
               </div>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px', marginBottom:'14px' }}>
+            <div className="report-row3" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px', marginBottom:'14px' }}>
               <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'14px' }}>
                 <div style={{ fontSize:'10px', color:'#555', marginBottom:'12px' }}>P&L by Day of Week</div>
                 <div style={{ display:'flex', gap:'8px', alignItems:'flex-end', height:'80px' }}>
@@ -487,7 +495,7 @@ export default async function HomePage() {
                 ))}
               </div>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(8,1fr)', gap:'8px' }}>
+            <div className="report-row4" style={{ display:'grid', gridTemplateColumns:'repeat(8,1fr)', gap:'8px' }}>
               {[
                 { l:'Avg Hold', v:'18 min' },
                 { l:'Largest Win', v:'+$960' },
@@ -517,7 +525,7 @@ export default async function HomePage() {
             </p>
           </div>
           <div style={{ borderRadius:'16px 16px 0 0', overflow:'hidden', boxShadow:'0 24px 80px rgba(0,0,0,.5)', border:'1px solid #252530' }}>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr' }}>
+            <div className="darklight-split" style={{ display:'grid', gridTemplateColumns:'1fr 1fr' }}>
               <div style={{ background:'#0d0d11', padding:'24px', borderRight:'2px solid #10B981' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
@@ -582,7 +590,7 @@ export default async function HomePage() {
                 <div style={{ textAlign:'center', padding:'8px 0', fontSize:'11px', color:'#555', fontWeight:600 }}>🌙 Dark Mode</div>
               </div>
 
-              <div style={{ background:'#f8f9fa', padding:'24px' }}>
+              <div className="darklight-right" style={{ background:'#f8f9fa', padding:'24px' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
                     <div style={{ width:'28px', height:'28px', borderRadius:'7px', background:'#062e21', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -772,7 +780,7 @@ export default async function HomePage() {
           </div>
           <div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
             <div style={{ fontSize:'14px', fontWeight:700, marginBottom:'16px' }}>Position Size Calculator</div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' }}>
+            <div className="possize-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' }}>
               <div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', marginBottom:'12px' }}>
                   {[
