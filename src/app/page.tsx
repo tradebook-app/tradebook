@@ -91,7 +91,7 @@ export default async function HomePage() {
         .broker-scroll-track:hover { animation-play-state: paused; }
         @media (max-width: 640px) {
           .desktop-nav-links { display: none !important; }
-          .desktop-login { display: none !important; }
+          
           .hero-grid { grid-template-columns: 1fr !important; gap: 32px !important; padding: 40px 20px 32px !important; }
           .hero-mock { display: none !important; }
           .hero-h1 { font-size: 36px !important; }
