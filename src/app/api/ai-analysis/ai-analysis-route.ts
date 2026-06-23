@@ -98,7 +98,7 @@ Rules:
 - Always end with one follow-up question to keep the conversation going`
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-haiku-4-5',
       max_tokens: 1024,
       system: systemPrompt,
       messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
