@@ -85,7 +85,6 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
   const pnlColor = trade.pnl > 0 ? 'var(--ac)' : trade.pnl < 0 ? 'var(--red)' : 'var(--txt3)'
   const currentIndex = trades.findIndex(t => t.id === trade.id)
 
-  // Keyboard navigation
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'ArrowUp') { e.preventDefault(); if (currentIndex > 0) onNavigate(trades[currentIndex - 1]) }
@@ -95,6 +94,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [currentIndex, trades, onNavigate, onClose])
+
   const rows = [
     { l: 'Symbol', v: trade.symbol },
     { l: 'Side', v: trade.type },
@@ -107,6 +107,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
     { l: 'Grade', v: trade.grade || '—' },
     { l: 'Tags', v: trade.tags?.join(', ') || '—' },
   ]
+
   return (
     <div style={{ width: '260px', flexShrink: 0, background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header */}
@@ -245,7 +246,7 @@ export function Journal({ trades, onEdit }: Props) {
             {showDay && <th>Day</th>}
             <th>Time</th>
             <th>Symbol</th>
-            <th>Side</th>
+            <th>Status</th>
             <th>Entry</th>
             <th>Exit</th>
             <th>Shares</th>
@@ -266,7 +267,18 @@ export function Journal({ trades, onEdit }: Props) {
                 {showDay && <td style={{ color: 'var(--txt3)' }}>{new Date(t.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</td>}
                 <td style={{ color: 'var(--txt3)' }}>{new Date(t.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
                 <td style={{ fontWeight: 700 }}>{t.symbol}</td>
-                <td><span className={t.type === 'Long' ? 'badge badge-long' : 'badge badge-short'}>{t.type}</span></td>
+                <td>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    background: t.pnl > 0 ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.15)',
+                    color: t.pnl > 0 ? 'var(--ac)' : 'var(--red)',
+                  }}>
+                    {t.pnl > 0 ? 'Win' : 'Loss'}
+                  </span>
+                </td>
                 <td style={{ fontFamily: 'var(--mono)' }}>${t.entry.toFixed(2)}</td>
                 <td style={{ fontFamily: 'var(--mono)' }}>{t.exit ? '$' + t.exit.toFixed(2) : '—'}</td>
                 <td style={{ fontFamily: 'var(--mono)' }}>{t.shares}</td>
