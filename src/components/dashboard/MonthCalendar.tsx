@@ -78,6 +78,36 @@ export function MonthCalendar({ days, trades }: Props) {
 
   return (
     <div>
+      <style>{`
+        .cal-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 120px;
+          gap: 10px;
+          align-items: start;
+        }
+        .cal-weeks {
+          display: flex;
+          flex-direction: column;
+        }
+        .cal-week-item {
+          margin-bottom: 5px;
+        }
+        @media (max-width: 768px) {
+          .cal-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .cal-weeks {
+            display: grid !important;
+            grid-template-columns: repeat(5, 1fr) !important;
+            gap: 6px !important;
+            margin-top: 8px;
+          }
+          .cal-week-item {
+            margin-bottom: 0 !important;
+          }
+        }
+      `}</style>
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <button onClick={prev} style={navBtn}>‹</button>
@@ -89,7 +119,7 @@ export function MonthCalendar({ days, trades }: Props) {
       </div>
 
       {/* Grid + weekly sidebar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 120px', gap: '10px', alignItems: 'start' }}>
+      <div className="cal-grid">
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px', marginBottom: '3px' }}>
             {DOW.map(d => (
@@ -136,14 +166,14 @@ export function MonthCalendar({ days, trades }: Props) {
         </div>
 
         {/* Weekly sidebar */}
-        <div>
+        <div className="cal-weeks">
           {weeks.map(w => {
             const has = w.days > 0
             return (
-              <div key={w.wk} style={{
+              <div key={w.wk} className="cal-week-item" style={{
                 background: 'var(--bg4, #16161e)',
                 border: `1px solid ${has ? (w.pnl >= 0 ? 'rgba(16,185,129,.25)' : 'rgba(239,68,68,.2)') : 'var(--brd)'}`,
-                borderRadius: 'var(--r, 7px)', padding: '8px 10px', marginBottom: '5px',
+                borderRadius: 'var(--r, 7px)', padding: '8px 10px',
               }}>
                 <div style={{ fontSize: '9px', color: 'var(--txt3)', fontWeight: 600 }}>Week {w.wk}</div>
                 <div style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'var(--mono)', color: has ? (w.pnl >= 0 ? 'var(--ac)' : 'var(--red)') : 'var(--txt3)' }}>
