@@ -24,9 +24,7 @@ function BillingContent() {
 
   useEffect(() => {
     if (success) {
-      // On success: call sync endpoint directly to pull from Stripe, then poll if needed
       async function syncAndLoad() {
-        // First try direct Stripe sync
         try {
           const syncRes = await fetch('/api/stripe/sync', { method: 'POST' })
           const syncData = await syncRes.json()
@@ -37,12 +35,10 @@ function BillingContent() {
           }
         } catch (e) {}
 
-        // Fallback: poll subscription endpoint up to 8 times
         let attempts = 0
         const maxAttempts = 8
         const interval = setInterval(async () => {
           attempts++
-          // Try sync again first
           try {
             const syncRes = await fetch('/api/stripe/sync', { method: 'POST' })
             const syncData = await syncRes.json()
@@ -139,19 +135,19 @@ function BillingContent() {
       <div style={{ width: '100%', maxWidth: '700px' }}>
 
         <div style={{ marginBottom: '32px' }}>
-          <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', color: 'var(--txt3)', fontSize: '13px', cursor: 'pointer', marginBottom: '16px', padding: 0 }}>← Back to app</button>
+          <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', color: 'var(--txt3)', fontSize: '13px', cursor: 'pointer', marginBottom: '16px', padding: 0 }}>Back to app</button>
           <div style={{ fontSize: '22px', fontWeight: 700 }}>Billing</div>
           <div style={{ fontSize: '13px', color: 'var(--txt3)', marginTop: '4px' }}>Manage your Sleektrade subscription</div>
         </div>
 
         {success && (
           <div style={{ background: '#0d2e1e', border: '1px solid #1D9E75', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px' }}>
-            🎉 You're now on {plan === 'elite' ? 'Elite' : 'Pro'}! All features unlocked.
+            You are now on {plan === 'elite' ? 'Elite' : 'Pro'}! All features unlocked.
           </div>
         )}
         {canceled && (
           <div style={{ background: '#2a1a1a', border: '1px solid #E24B4A', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px' }}>
-            Checkout canceled – you're still on the {isPro ? 'Pro' : 'Free'} plan.
+            Checkout canceled - you are still on the {isPro ? 'Pro' : 'Free'} plan.
           </div>
         )}
 
@@ -260,7 +256,13 @@ function BillingContent() {
                   <div style={{ fontSize: '28px', fontWeight: 800, marginBottom: '2px' }}>{elitePrice}</div>
                   <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: isYearly ? '2px' : '16px' }}>{period}</div>
                   {isYearly && <div style={{ fontSize: '11px', color: '#1D9E75', marginBottom: '16px' }}>Save $58 vs monthly</div>}
-                  {['Everything in Pro', 'Priority support', 'Early access to features', 'Broker integrations (soon)'].map(f => (
+                  {[
+                    'Everything in Pro',
+                    'Sleek AI trade analysis',
+                    'Priority support',
+                    'Early access to features',
+                    'Broker integrations (soon)',
+                  ].map(f => (
                     <div key={f} style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '6px' }}>✓ {f}</div>
                   ))}
                 </div>

@@ -13,7 +13,7 @@ export function PricingSection() {
     <section id="pricing" style={{ maxWidth: '1000px', margin: '0 auto', padding: '80px 48px' }}>
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <h2 style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '12px' }}>Simple, honest pricing</h2>
-        <p style={{ fontSize: '16px', color: 'var(--txt2)' }}>Start free. Upgrade when you're ready.</p>
+        <p style={{ fontSize: '16px', color: 'var(--txt2)' }}>Start free. Upgrade when you are ready.</p>
       </div>
 
       {/* Toggle */}
@@ -98,7 +98,14 @@ export function PricingSection() {
           </div>
           <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '24px' }}>{yearly ? 'per month, billed yearly' : 'per month'}</div>
           <div style={{ flex: 1 }}>
-            {['Everything in Pro', 'Unlimited trading accounts', 'Priority support', 'Early access to new features', 'Broker integrations (coming soon)', 'AI trade insights (coming soon)', 'Custom report exports'].map(f => (
+            {[
+              'Everything in Pro',
+              'Sleek AI trade analysis',
+              'Priority support',
+              'Early access to new features',
+              'Broker integrations (coming soon)',
+              'Custom report exports',
+            ].map(f => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: '13px', color: 'var(--txt2)' }}>
                 <span style={{ color: '#10B981', fontWeight: 700 }}>✓</span> {f}
               </div>
