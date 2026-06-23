@@ -58,7 +58,7 @@ function GatedImport({ userId, existingTrades, onImported }: { userId: string, e
 function GatedAIAnalysis({ trades }: { trades: any[] }) {
   const { plan, loading } = usePlan()
   if (loading) return null
-  if (plan !== 'elite') return <UpgradeWall feature="Sleek AI — Elite Feature" description="Upgrade to Elite to unlock AI-powered trade analysis. Get personalized insights, pattern detection, and coaching from your own trading data." />
+  if (!isPro) return <UpgradeWall feature="Sleek AI — Elite Feature" description="Upgrade to Elite to unlock AI-powered trade analysis. Get personalized insights, pattern detection, and coaching from your own trading data." /> trade analysis. Get personalized insights, pattern detection, and coaching from your own trading data." />
   return <AIAnalysis trades={trades} />
 }
 
