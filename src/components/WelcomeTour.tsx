@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 const TOUR_KEY = 'sleek_tour_done'
+const TOUR_STEP_KEY = 'sleek_tour_step'
 
 type Step = {
   title: string
@@ -82,21 +83,33 @@ export function WelcomeTour() {
 
   useEffect(() => {
     const done = localStorage.getItem(TOUR_KEY)
-    if (!done) setTimeout(() => setVisible(true), 800)
+    if (!done) {
+      const savedStep = parseInt(localStorage.getItem(TOUR_STEP_KEY) || '0', 10)
+      setStep(savedStep || 0)
+      setTimeout(() => setVisible(true), 800)
+    }
   }, [])
 
   useEffect(() => {
     if (!visible) return
+    // Save current step
+    localStorage.setItem(TOUR_STEP_KEY, String(step))
+
     const current = STEPS[step]
     if (current.selector) {
-      const el = document.querySelector(current.selector)
-      if (el) {
-        const rect = el.getBoundingClientRect()
-        setHighlight(rect)
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      } else {
-        setHighlight(null)
+      const tryFind = (attempts = 0) => {
+        const el = document.querySelector(current.selector!)
+        if (el) {
+          const rect = el.getBoundingClientRect()
+          setHighlight(rect)
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        } else if (attempts < 5) {
+          setTimeout(() => tryFind(attempts + 1), 300)
+        } else {
+          setHighlight(null)
+        }
       }
+      tryFind()
     } else {
       setHighlight(null)
     }
@@ -104,18 +117,28 @@ export function WelcomeTour() {
 
   function next() {
     const current = STEPS[step]
-    if (current.href) router.push(current.href)
-    if (step < STEPS.length - 1) setStep(s => s + 1)
-    else dismiss()
+    const nextStep = step + 1
+    if (nextStep < STEPS.length) {
+      setStep(nextStep)
+      localStorage.setItem(TOUR_STEP_KEY, String(nextStep))
+      if (current.href) router.push(current.href)
+    } else {
+      dismiss()
+    }
   }
 
   function prev() {
-    if (step > 0) setStep(s => s - 1)
+    if (step > 0) {
+      const prevStep = step - 1
+      setStep(prevStep)
+      localStorage.setItem(TOUR_STEP_KEY, String(prevStep))
+    }
   }
 
   function dismiss() {
     setVisible(false)
     localStorage.setItem(TOUR_KEY, '1')
+    localStorage.removeItem(TOUR_STEP_KEY)
   }
 
   if (!visible) return null
@@ -125,8 +148,6 @@ export function WelcomeTour() {
   const isLast = step === STEPS.length - 1
   const progress = ((step + 1) / STEPS.length) * 100
 
-  // Position the card: if highlight exists, place it to the right of the highlight
-  // Otherwise center it
   let cardStyle: React.CSSProperties = {
     position: 'fixed',
     bottom: '32px',
@@ -145,7 +166,6 @@ export function WelcomeTour() {
     const spaceLeft = highlight.left - margin
 
     if (spaceRight >= cardW + margin) {
-      // Place to the right
       cardStyle = {
         position: 'fixed',
         top: Math.min(Math.max(highlight.top, 16), window.innerHeight - 300),
@@ -165,7 +185,6 @@ export function WelcomeTour() {
         zIndex: 10001,
       }
     } else if (spaceLeft >= cardW + margin) {
-      // Place to the left
       cardStyle = {
         position: 'fixed',
         top: Math.min(Math.max(highlight.top, 16), window.innerHeight - 300),
@@ -185,7 +204,6 @@ export function WelcomeTour() {
         zIndex: 10001,
       }
     } else {
-      // Place below
       cardStyle = {
         position: 'fixed',
         top: Math.min(highlight.bottom + margin, window.innerHeight - 280),
@@ -209,47 +227,37 @@ export function WelcomeTour() {
 
   return (
     <>
-      {/* Light overlay — not too dark */}
       <div
-        style={{
-          position: 'fixed', inset: 0, zIndex: 9998,
-          background: 'rgba(0,0,0,0.45)',
-        }}
+        style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.45)' }}
         onClick={dismiss}
       />
 
-      {/* Spotlight highlight */}
       {highlight && (
-        <div
-          style={{
-            position: 'fixed',
-            top: highlight.top - 4,
-            left: highlight.left - 4,
-            width: highlight.width + 8,
-            height: highlight.height + 8,
-            borderRadius: '10px',
-            boxShadow: '0 0 0 3px #10B981, 0 0 0 6px rgba(16,185,129,0.25), 0 0 30px rgba(16,185,129,0.15)',
-            zIndex: 9999,
-            pointerEvents: 'none',
-            background: 'rgba(16,185,129,0.05)',
-            transition: 'all 0.35s cubic-bezier(.4,0,.2,1)',
-          }}
-        />
+        <div style={{
+          position: 'fixed',
+          top: highlight.top - 4,
+          left: highlight.left - 4,
+          width: highlight.width + 8,
+          height: highlight.height + 8,
+          borderRadius: '10px',
+          boxShadow: '0 0 0 3px #10B981, 0 0 0 6px rgba(16,185,129,0.25)',
+          zIndex: 9999,
+          pointerEvents: 'none',
+          background: 'rgba(16,185,129,0.05)',
+          transition: 'all 0.35s cubic-bezier(.4,0,.2,1)',
+        }} />
       )}
 
-      {/* Arrow */}
       {arrowStyle && <div style={arrowStyle} />}
 
-      {/* Tour card */}
       <div style={{ ...cardStyle, transition: 'all 0.35s cubic-bezier(.4,0,.2,1)' }} onClick={e => e.stopPropagation()}>
         <div style={{
           background: '#0f1117',
           border: '1px solid rgba(16,185,129,0.4)',
           borderRadius: '14px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(16,185,129,0.1)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
           overflow: 'hidden',
         }}>
-          {/* Progress bar */}
           <div style={{ height: '3px', background: '#1a1a24' }}>
             <div style={{ height: '100%', width: `${progress}%`, background: '#10B981', transition: 'width 0.4s ease' }} />
           </div>
@@ -273,7 +281,6 @@ export function WelcomeTour() {
               </div>
             </div>
 
-            {/* Dot indicators */}
             <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
               {STEPS.map((_, i) => (
                 <div key={i} style={{
