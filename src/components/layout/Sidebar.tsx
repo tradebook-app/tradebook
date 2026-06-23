@@ -32,9 +32,42 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const initials = userEmail
-    ? userEmail.substring(0, 2).toUpperCase()
-    : 'AY'
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [traderTypes, setTraderTypes] = useState<string[]>([])
+
+  const displayName = firstName
+    ? `${firstName} ${lastName}`.trim()
+    : userEmail?.split('@')[0] || 'Trader'
+
+  const initials = firstName && lastName
+    ? `${firstName[0]}${lastName[0]}`.toUpperCase()
+    : userEmail ? userEmail.substring(0, 2).toUpperCase() : 'AY'
+
+  const traderLabel = traderTypes.length > 0
+    ? traderTypes.slice(0, 2).join(' + ')
+    : 'Trader'
+
+  // Load profile from Supabase
+  useEffect(() => {
+    async function loadProfile() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, avatar_url, trader_types')
+        .eq('id', user.id)
+        .single()
+      if (data) {
+        if (data.first_name) setFirstName(data.first_name)
+        if (data.last_name) setLastName(data.last_name)
+        if (data.avatar_url) setAvatarUrl(data.avatar_url)
+        if (data.trader_types) setTraderTypes(data.trader_types)
+      }
+    }
+    loadProfile()
+  }, [pathname]) // reload whenever route changes (catches profile save + refresh)
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -166,12 +199,20 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
 
       <div style={{ marginTop: 'auto', padding: '10px 12px', borderTop: '1px solid var(--brd)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
-          <div style={{ width: '26px', height: '26px', background: 'var(--ac)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: '#000', flexShrink: 0 }}>
-            {initials}
-          </div>
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--txt)' }}>{userEmail?.split('@')[0] || 'Ahmad Yassine'}</div>
-            <div style={{ fontSize: '8px', color: 'var(--txt3)' }}>Swing + Day Trader</div>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt="avatar"
+              style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+            />
+          ) : (
+            <div style={{ width: '26px', height: '26px', background: 'var(--ac)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: '#000', flexShrink: 0 }}>
+              {initials}
+            </div>
+          )}
+          <div style={{ overflow: 'hidden' }}>
+            <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--txt)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
+            <div style={{ fontSize: '8px', color: 'var(--txt3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{traderLabel}</div>
           </div>
         </div>
         <button

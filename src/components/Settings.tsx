@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -13,13 +13,17 @@ export function Settings({ userEmail }: { userEmail?: string }) {
   const supabase = createClient()
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('profile')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [bio, setBio] = useState('')
   const [traderTypes, setTraderTypes] = useState<string[]>([])
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileSaved, setProfileSaved] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
 
   const [newPw, setNewPw] = useState('')
   const [confirmPw, setConfirmPw] = useState('')
@@ -32,8 +36,31 @@ export function Settings({ userEmail }: { userEmail?: string }) {
   const [portalLoading, setPortalLoading] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
 
-  const initials = userEmail ? userEmail.substring(0, 2).toUpperCase() : 'AY'
   const displayEmail = userEmail || ''
+  const initials = (firstName && lastName)
+    ? `${firstName[0]}${lastName[0]}`.toUpperCase()
+    : displayEmail ? displayEmail.substring(0, 2).toUpperCase() : 'AY'
+
+  // Load profile from Supabase on mount
+  useEffect(() => {
+    async function loadProfile() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, bio, avatar_url, trader_types')
+        .eq('id', user.id)
+        .single()
+      if (data) {
+        if (data.first_name) setFirstName(data.first_name)
+        if (data.last_name) setLastName(data.last_name)
+        if (data.bio) setBio(data.bio)
+        if (data.avatar_url) setAvatarUrl(data.avatar_url)
+        if (data.trader_types) setTraderTypes(data.trader_types)
+      }
+    }
+    loadProfile()
+  }, [])
 
   useEffect(() => {
     fetch('/api/subscription')
@@ -42,24 +69,71 @@ export function Settings({ userEmail }: { userEmail?: string }) {
       .finally(() => setSubLoading(false))
   }, [])
 
-  async function saveProfile() {
-    setProfileSaving(true)
-    localStorage.setItem('st_profile', JSON.stringify({ firstName, lastName, bio, traderTypes }))
-    await new Promise(r => setTimeout(r, 600))
-    setProfileSaving(false)
-    setProfileSaved(true)
-    setTimeout(() => setProfileSaved(false), 2500)
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB'); return }
+
+    setAvatarUploading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const ext = file.name.split('.').pop()
+    const path = `${user.id}/avatar.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { upsert: true })
+
+    if (uploadError) {
+      alert('Upload failed: ' + uploadError.message)
+      setAvatarUploading(false)
+      return
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(path)
+
+    const urlWithBust = `${publicUrl}?t=${Date.now()}`
+    setAvatarUrl(urlWithBust)
+
+    await supabase
+      .from('profiles')
+      .update({ avatar_url: publicUrl })
+      .eq('id', user.id)
+
+    setAvatarUploading(false)
   }
 
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('st_profile') || '{}')
-      if (saved.firstName) setFirstName(saved.firstName)
-      if (saved.lastName) setLastName(saved.lastName)
-      if (saved.bio) setBio(saved.bio)
-      if (saved.traderTypes) setTraderTypes(saved.traderTypes)
-    } catch {}
-  }, [])
+  async function saveProfile() {
+    setProfileSaving(true)
+    setProfileError(null)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setProfileSaving(false); return }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        first_name: firstName,
+        last_name: lastName,
+        bio,
+        trader_types: traderTypes,
+      })
+      .eq('id', user.id)
+
+    if (error) {
+      setProfileError(error.message)
+    } else {
+      setProfileSaved(true)
+      setTimeout(() => setProfileSaved(false), 2500)
+      // Also keep localStorage in sync for sidebar display
+      localStorage.setItem('st_profile', JSON.stringify({ firstName, lastName, bio, traderTypes, avatarUrl }))
+      // Refresh page so sidebar updates
+      router.refresh()
+    }
+    setProfileSaving(false)
+  }
 
   async function changePassword() {
     if (newPw !== confirmPw) { setPwMsg({ type: 'error', text: 'Passwords do not match.' }); return }
@@ -124,6 +198,26 @@ export function Settings({ userEmail }: { userEmail?: string }) {
         .settings-signout-mobile {
           display: none;
         }
+        .avatar-upload-btn {
+          position: absolute;
+          bottom: 0;
+          right: 0;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: #10B981;
+          border: 2px solid var(--bg);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 11px;
+          color: #000;
+          font-weight: 700;
+        }
+        .avatar-upload-btn:hover {
+          background: #0ea572;
+        }
         @media (max-width: 768px) {
           .settings-layout {
             grid-template-columns: 1fr;
@@ -187,13 +281,51 @@ export function Settings({ userEmail }: { userEmail?: string }) {
             <div>
               <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>Profile</div>
               <div style={{ fontSize: '13px', color: 'var(--txt3)', marginBottom: '28px' }}>Your personal details and trading identity.</div>
+
+              {/* Avatar */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '28px' }}>
-                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--ac)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 700, color: '#000', flexShrink: 0 }}>{initials}</div>
+                <div style={{ position: 'relative', width: '64px', height: '64px', flexShrink: 0 }}>
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt="Avatar"
+                      style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--ac)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 700, color: '#000' }}>
+                      {initials}
+                    </div>
+                  )}
+                  <div
+                    className="avatar-upload-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Change photo"
+                  >
+                    {avatarUploading ? '…' : '✎'}
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handleAvatarUpload}
+                  />
+                </div>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '2px' }}>{firstName || displayEmail.split('@')[0]}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--txt3)' }}>{displayEmail}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '2px' }}>
+                    {firstName ? `${firstName} ${lastName}`.trim() : displayEmail.split('@')[0]}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '6px' }}>{displayEmail}</div>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={avatarUploading}
+                    style={{ fontSize: '11px', fontWeight: 600, color: 'var(--ac2)', background: 'var(--ac-d)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'var(--sans)' }}
+                  >
+                    {avatarUploading ? 'Uploading...' : 'Change photo'}
+                  </button>
                 </div>
               </div>
+
               <div className="settings-name-grid">
                 <div>
                   <label style={lbl}>First name</label>
@@ -228,6 +360,13 @@ export function Settings({ userEmail }: { userEmail?: string }) {
                   })}
                 </div>
               </div>
+
+              {profileError && (
+                <div style={{ background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '8px 12px', fontSize: '12px', color: 'var(--red)', marginBottom: '14px' }}>
+                  {profileError}
+                </div>
+              )}
+
               <button onClick={saveProfile} disabled={profileSaving} className="btn btn-p" style={{ padding: '10px 24px' }}>
                 {profileSaving ? 'Saving...' : profileSaved ? '✓ Saved!' : 'Save changes'}
               </button>
