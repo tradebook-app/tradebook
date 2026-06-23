@@ -28,13 +28,13 @@ const STEPS: Step[] = [
   },
   {
     title: 'Add a Trade',
-    description: 'Click "+ Add Trade" to log a trade manually, or import directly from your broker (DAS, TOS, IBKR & more).',
+    description: 'Click here to log a trade manually, or import from your broker (DAS, TOS, IBKR & more).',
     icon: '✚',
     selector: 'button',
   },
   {
     title: 'Trade View',
-    description: 'See every trade in a clean table. Filter by Long/Short, Winners/Losers, grade, and more. Click any trade to see details.',
+    description: 'See every trade in a clean table. Filter by Long/Short, Winners/Losers, grade, and more.',
     icon: '⫐',
     href: '/trades',
     selector: 'a[href="/trades"]',
@@ -48,28 +48,28 @@ const STEPS: Step[] = [
   },
   {
     title: 'Notebook',
-    description: 'Write your trading rules, ideas, and notes. Keep everything in one place so you never forget your edge.',
+    description: 'Write your trading rules, ideas, and notes. Keep everything in one place.',
     icon: '☰',
     href: '/notebook',
     selector: 'a[href="/notebook"]',
   },
   {
     title: 'Reports',
-    description: '7 report tabs with 25+ metrics. Analyze your performance by day, time, symbol, setup, R-multiple, and more.',
+    description: '7 report tabs with 25+ metrics. Analyze performance by day, time, symbol, setup, R-multiple, and more.',
     icon: '◩',
     href: '/reports',
     selector: 'a[href="/reports"]',
   },
   {
     title: 'Position Size Calculator',
-    description: 'Enter your account size, risk %, entry and stop — Sleektrade tells you exactly how many shares to buy.',
+    description: 'Enter your account size, risk %, entry and stop — get the exact number of shares to buy.',
     icon: '⊞',
     href: '/position-size',
     selector: 'a[href="/position-size"]',
   },
   {
     title: "You're all set! 🚀",
-    description: 'Start by adding your first trade or importing from your broker. Your edge is waiting to be discovered.',
+    description: 'Start by adding your first trade or importing from your broker. Your edge is waiting.',
     icon: '✓',
   },
 ]
@@ -82,9 +82,7 @@ export function WelcomeTour() {
 
   useEffect(() => {
     const done = localStorage.getItem(TOUR_KEY)
-    if (!done) {
-      setTimeout(() => setVisible(true), 800)
-    }
+    if (!done) setTimeout(() => setVisible(true), 800)
   }, [])
 
   useEffect(() => {
@@ -107,11 +105,8 @@ export function WelcomeTour() {
   function next() {
     const current = STEPS[step]
     if (current.href) router.push(current.href)
-    if (step < STEPS.length - 1) {
-      setStep(s => s + 1)
-    } else {
-      dismiss()
-    }
+    if (step < STEPS.length - 1) setStep(s => s + 1)
+    else dismiss()
   }
 
   function prev() {
@@ -130,15 +125,95 @@ export function WelcomeTour() {
   const isLast = step === STEPS.length - 1
   const progress = ((step + 1) / STEPS.length) * 100
 
+  // Position the card: if highlight exists, place it to the right of the highlight
+  // Otherwise center it
+  let cardStyle: React.CSSProperties = {
+    position: 'fixed',
+    bottom: '32px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: '380px',
+    zIndex: 10000,
+  }
+
+  let arrowStyle: React.CSSProperties | null = null
+
+  if (highlight) {
+    const cardW = 380
+    const margin = 16
+    const spaceRight = window.innerWidth - highlight.right - margin
+    const spaceLeft = highlight.left - margin
+
+    if (spaceRight >= cardW + margin) {
+      // Place to the right
+      cardStyle = {
+        position: 'fixed',
+        top: Math.min(Math.max(highlight.top, 16), window.innerHeight - 300),
+        left: highlight.right + margin,
+        width: `${cardW}px`,
+        zIndex: 10000,
+        transform: 'none',
+      }
+      arrowStyle = {
+        position: 'fixed',
+        top: highlight.top + highlight.height / 2 - 8,
+        left: highlight.right + margin - 10,
+        width: 0, height: 0,
+        borderTop: '8px solid transparent',
+        borderBottom: '8px solid transparent',
+        borderRight: '10px solid #10B981',
+        zIndex: 10001,
+      }
+    } else if (spaceLeft >= cardW + margin) {
+      // Place to the left
+      cardStyle = {
+        position: 'fixed',
+        top: Math.min(Math.max(highlight.top, 16), window.innerHeight - 300),
+        left: highlight.left - cardW - margin,
+        width: `${cardW}px`,
+        zIndex: 10000,
+        transform: 'none',
+      }
+      arrowStyle = {
+        position: 'fixed',
+        top: highlight.top + highlight.height / 2 - 8,
+        left: highlight.left - margin + 2,
+        width: 0, height: 0,
+        borderTop: '8px solid transparent',
+        borderBottom: '8px solid transparent',
+        borderLeft: '10px solid #10B981',
+        zIndex: 10001,
+      }
+    } else {
+      // Place below
+      cardStyle = {
+        position: 'fixed',
+        top: Math.min(highlight.bottom + margin, window.innerHeight - 280),
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: `${cardW}px`,
+        zIndex: 10000,
+      }
+      arrowStyle = {
+        position: 'fixed',
+        top: highlight.bottom + margin - 10,
+        left: highlight.left + highlight.width / 2 - 8,
+        width: 0, height: 0,
+        borderLeft: '8px solid transparent',
+        borderRight: '8px solid transparent',
+        borderBottom: '10px solid #10B981',
+        zIndex: 10001,
+      }
+    }
+  }
+
   return (
     <>
-      {/* Dark overlay */}
+      {/* Light overlay — not too dark */}
       <div
         style={{
           position: 'fixed', inset: 0, zIndex: 9998,
-          background: 'rgba(0,0,0,0.75)',
-          backdropFilter: 'blur(2px)',
-          transition: 'opacity 0.3s',
+          background: 'rgba(0,0,0,0.45)',
         }}
         onClick={dismiss}
       />
@@ -148,129 +223,102 @@ export function WelcomeTour() {
         <div
           style={{
             position: 'fixed',
-            top: highlight.top - 6,
-            left: highlight.left - 6,
-            width: highlight.width + 12,
-            height: highlight.height + 12,
+            top: highlight.top - 4,
+            left: highlight.left - 4,
+            width: highlight.width + 8,
+            height: highlight.height + 8,
             borderRadius: '10px',
-            boxShadow: '0 0 0 4px #10B981, 0 0 0 8px rgba(16,185,129,0.3)',
+            boxShadow: '0 0 0 3px #10B981, 0 0 0 6px rgba(16,185,129,0.25), 0 0 30px rgba(16,185,129,0.15)',
             zIndex: 9999,
             pointerEvents: 'none',
-            transition: 'all 0.4s cubic-bezier(.4,0,.2,1)',
-            background: 'rgba(16,185,129,0.08)',
+            background: 'rgba(16,185,129,0.05)',
+            transition: 'all 0.35s cubic-bezier(.4,0,.2,1)',
           }}
         />
       )}
 
+      {/* Arrow */}
+      {arrowStyle && <div style={arrowStyle} />}
+
       {/* Tour card */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: '32px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '100%',
-          maxWidth: '420px',
-          zIndex: 10000,
-          background: 'var(--bg2, #16161e)',
-          border: '1px solid rgba(16,185,129,0.3)',
-          borderRadius: '16px',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(16,185,129,0.1)',
-          overflow: 'hidden',
-          margin: '0 16px',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Progress bar */}
-        <div style={{ height: '3px', background: 'var(--bg4, #1a1a24)' }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: '#10B981', transition: 'width 0.4s ease', borderRadius: '2px' }} />
-        </div>
-
-        {/* Content */}
-        <div style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '16px' }}>
-            <div style={{
-              width: '44px', height: '44px', borderRadius: '12px',
-              background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '20px', flexShrink: 0,
-            }}>
-              {current.icon}
-            </div>
-            <div>
-              <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--txt, #f1f1f3)', marginBottom: '6px', lineHeight: 1.2 }}>
-                {current.title}
-              </div>
-              <div style={{ fontSize: '13px', color: 'var(--txt2, #a8a8b8)', lineHeight: 1.6 }}>
-                {current.description}
-              </div>
-            </div>
-          </div>
-
-          {/* Step indicator */}
-          <div style={{ display: 'flex', gap: '5px', marginBottom: '18px' }}>
-            {STEPS.map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  height: '3px', flex: 1, borderRadius: '2px',
-                  background: i <= step ? '#10B981' : 'var(--bg4, #252530)',
-                  transition: 'background 0.3s',
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-            <button
-              onClick={dismiss}
-              style={{
-                fontSize: '11px', fontWeight: 600, color: 'var(--txt3, #666)',
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontFamily: 'var(--sans)', padding: '6px 0', textDecoration: 'underline',
-              }}
-            >
-              Don't show again
-            </button>
-
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {!isFirst && (
-                <button
-                  onClick={prev}
-                  style={{
-                    fontSize: '12px', fontWeight: 600, padding: '8px 16px',
-                    background: 'var(--bg4, #1a1a24)', border: '1px solid var(--brd, #252530)',
-                    borderRadius: '8px', color: 'var(--txt2)', cursor: 'pointer',
-                    fontFamily: 'var(--sans)',
-                  }}
-                >
-                  ← Back
-                </button>
-              )}
-              <button
-                onClick={next}
-                style={{
-                  fontSize: '12px', fontWeight: 700, padding: '8px 20px',
-                  background: '#10B981', border: 'none',
-                  borderRadius: '8px', color: '#000', cursor: 'pointer',
-                  fontFamily: 'var(--sans)',
-                }}
-              >
-                {isLast ? 'Get started →' : 'Next →'}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Step counter */}
+      <div style={{ ...cardStyle, transition: 'all 0.35s cubic-bezier(.4,0,.2,1)' }} onClick={e => e.stopPropagation()}>
         <div style={{
-          padding: '8px 24px', borderTop: '1px solid var(--brd, #252530)',
-          fontSize: '10px', color: 'var(--txt3)', fontWeight: 600,
-          display: 'flex', justifyContent: 'space-between',
+          background: '#0f1117',
+          border: '1px solid rgba(16,185,129,0.4)',
+          borderRadius: '14px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(16,185,129,0.1)',
+          overflow: 'hidden',
         }}>
-          <span>Step {step + 1} of {STEPS.length}</span>
-          <span style={{ color: '#10B981' }}>Sleektrade Tour</span>
+          {/* Progress bar */}
+          <div style={{ height: '3px', background: '#1a1a24' }}>
+            <div style={{ height: '100%', width: `${progress}%`, background: '#10B981', transition: 'width 0.4s ease' }} />
+          </div>
+
+          <div style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '14px' }}>
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0,
+                background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px',
+              }}>
+                {current.icon}
+              </div>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f1f3', marginBottom: '5px' }}>
+                  {current.title}
+                </div>
+                <div style={{ fontSize: '12px', color: '#a8a8b8', lineHeight: 1.6 }}>
+                  {current.description}
+                </div>
+              </div>
+            </div>
+
+            {/* Dot indicators */}
+            <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
+              {STEPS.map((_, i) => (
+                <div key={i} style={{
+                  height: '3px', flex: 1, borderRadius: '2px',
+                  background: i <= step ? '#10B981' : '#252530',
+                  transition: 'background 0.3s',
+                }} />
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <button onClick={dismiss} style={{
+                fontSize: '11px', fontWeight: 600, color: '#555',
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: 'var(--sans)', textDecoration: 'underline', padding: 0,
+              }}>
+                Don't show again
+              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {!isFirst && (
+                  <button onClick={prev} style={{
+                    fontSize: '12px', fontWeight: 600, padding: '7px 14px',
+                    background: '#1a1a24', border: '1px solid #252530',
+                    borderRadius: '7px', color: '#a8a8b8', cursor: 'pointer', fontFamily: 'var(--sans)',
+                  }}>← Back</button>
+                )}
+                <button onClick={next} style={{
+                  fontSize: '12px', fontWeight: 700, padding: '7px 18px',
+                  background: '#10B981', border: 'none',
+                  borderRadius: '7px', color: '#000', cursor: 'pointer', fontFamily: 'var(--sans)',
+                }}>
+                  {isLast ? 'Get started →' : 'Next →'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            padding: '7px 20px', borderTop: '1px solid #1e1e26',
+            display: 'flex', justifyContent: 'space-between',
+            fontSize: '10px', color: '#555', fontWeight: 600,
+          }}>
+            <span>Step {step + 1} of {STEPS.length}</span>
+            <span style={{ color: '#10B981' }}>Sleektrade Tour</span>
+          </div>
         </div>
       </div>
     </>
