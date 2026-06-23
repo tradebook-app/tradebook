@@ -52,7 +52,7 @@ export default async function HomePage() {
   if (user) redirect('/dashboard')
 
   return (
-    <div style={{ background: 'var(--bg)', color: 'var(--txt)', fontFamily: 'var(--sans)', minHeight: '100vh' }}>
+   <div style={{ background: 'var(--bg)', color: 'var(--txt)', fontFamily: 'var(--sans)', minHeight: '100vh', overflowX: 'hidden' }}>
 
       {/* NAV */}
       <nav style={{
