@@ -29,14 +29,29 @@ export async function POST(req: Request) {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.CheckoutSession
-      const userId = session.subscription_data?.metadata?.supabase_user_id
-        || session.metadata?.supabase_user_id
+
+      // userId lives on the subscription metadata, not session.subscription_data
+      let userId = session.metadata?.supabase_user_id
+
+      if (!userId && session.subscription) {
+        // Fetch the subscription to get metadata set via subscription_data.metadata
+        const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
+        userId = subscription.metadata?.supabase_user_id
+      }
+
+      if (!userId && session.customer) {
+        // Fallback: look up via customer metadata
+        const customer = await stripe.customers.retrieve(session.customer as string) as Stripe.Customer
+        userId = customer.metadata?.supabase_user_id
+      }
+
       if (userId && session.subscription) {
-        const lineItems = await stripe.checkout.sessions.listLineItems(session.id)
-        const priceId = lineItems.data[0]?.price?.id
+        const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
+        const priceId = subscription.items?.data[0]?.price?.id
         const plan = detectPlan(priceId)
         await supabase.from('profiles').upsert({
           id: userId,
+          stripe_customer_id: session.customer as string,
           stripe_subscription_id: session.subscription as string,
           subscription_status: 'active',
           plan,
