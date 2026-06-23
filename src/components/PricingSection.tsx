@@ -56,7 +56,7 @@ export function PricingSection() {
           </div>
           <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '24px' }}>{yearly ? 'per month, billed yearly' : 'per month'}</div>
           <div style={{ flex: 1 }}>
-            {['Unlimited trades', '3 trading accounts', 'All 7 report tabs', '25+ performance metrics', 'DAS Trader importer', 'Notebook & Strategies', 'Backup & restore'].map(f => (
+            {['Unlimited trades', '3 trading accounts', 'All 7 report tabs', '25+ performance metrics', 'DAS Trader importer', 'Notebook & Strategies'].map(f => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: '13px', color: 'var(--txt2)' }}>
                 <span style={{ color: '#10B981', fontWeight: 700 }}>✓</span> {f}
               </div>
