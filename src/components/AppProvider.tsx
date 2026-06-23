@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { AppShell } from '@/components/layout/AppShell'
 import { AddTradeModal, type TradeFormPayload } from '@/components/trades/AddTradeModal'
 import { TradeView } from '@/components/trades/TradeView'
@@ -20,6 +20,7 @@ import { PlanProvider, usePlan } from '@/components/PlanProvider'
 import { UpgradeWall, UpgradeBanner } from '@/components/UpgradeWall'
 import { Settings } from '@/components/Settings'
 import { Journal } from '@/components/Journal'
+import { AIAnalysis } from '@/components/AIAnalysis'
 
 type Props = {
   userId: string
@@ -54,6 +55,13 @@ function GatedImport({ userId, existingTrades, onImported }: { userId: string, e
   return <BrokerImport userId={userId} existingTrades={existingTrades} onImported={onImported} />
 }
 
+function GatedAIAnalysis({ trades }: { trades: any[] }) {
+  const { plan, loading } = usePlan()
+  if (loading) return null
+  if (plan !== 'elite') return <UpgradeWall feature="Sleek AI — Elite Feature" description="Upgrade to Elite to unlock AI-powered trade analysis. Get personalized insights, pattern detection, and coaching from your own trading data." />
+  return <AIAnalysis trades={trades} />
+}
+
 function DashboardWithBanner({ trades, filter, onEdit, onDelete, userId, onReload }: any) {
   const { tradeCount, isPro } = usePlan()
   return (
@@ -72,6 +80,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/reports':       'Reports',
   '/strategies':    'Strategies',
   '/position-size': 'Position Size',
+  '/ai-analysis':   'Sleek AI',
   '/import':        'Import Trades',
   '/settings':      'Settings',
 }
@@ -112,9 +121,7 @@ export function AppProvider({ userId, userEmail }: Props) {
   async function handleSave(payload: TradeFormPayload, screenshotFile: File | null) {
     let screenshotUrl: string | null = editTrade?.screenshot_url || null
     if (screenshotFile) screenshotUrl = await uploadScreenshot(screenshotFile, userId)
-
     const tradeData = { ...payload, screenshot_url: screenshotUrl }
-
     if (editTrade) {
       const updated = await updateTrade(editTrade.id, tradeData)
       if (updated) setTrades(prev => prev.map(t => t.id === editTrade.id ? updated : t))
@@ -163,6 +170,7 @@ export function AppProvider({ userId, userEmail }: Props) {
     if (pathname === '/notebook') return <GatedNotebook userId={userId} />
     if (pathname === '/import') return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
     if (pathname === '/settings') return <Settings userEmail={userEmail} />
+    if (pathname === '/ai-analysis') return <GatedAIAnalysis trades={trades} />
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: '12px' }}>

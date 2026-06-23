@@ -16,7 +16,8 @@ const NAV = [
 
 const TOOLS = [
   { href: '/position-size', icon: '⊞', label: 'Position Size' },
-  { href: '/settings', icon: '⚙', label: 'Settings' },
+  { href: '/ai-analysis',   icon: '🤖', label: 'Sleek AI' },
+  { href: '/settings',      icon: '⚙', label: 'Settings' },
 ]
 
 type Props = {
@@ -49,7 +50,6 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
     ? traderTypes.slice(0, 2).join(' + ')
     : 'Trader'
 
-  // Load profile from Supabase
   useEffect(() => {
     async function loadProfile() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -67,7 +67,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
       }
     }
     loadProfile()
-  }, [pathname]) // reload whenever route changes (catches profile save + refresh)
+  }, [pathname])
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -188,10 +188,23 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
       <div style={{ padding: '4px 0' }}>
         {TOOLS.map(({ href, icon, label }) => {
           const active = pathname === href
+          const isAI = href === '/ai-analysis'
           return (
-            <Link key={href} href={href} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', cursor: 'pointer', color: active ? 'var(--ac2)' : 'var(--txt2)', fontSize: '12px', fontWeight: 500, transition: '.1s', borderLeft: `2px solid ${active ? 'var(--ac)' : 'transparent'}`, background: active ? 'var(--ac-d)' : 'transparent', textDecoration: 'none' }}>
+            <Link key={href} href={href} style={{
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px',
+              cursor: 'pointer', fontSize: '12px', fontWeight: 500, transition: '.1s',
+              borderLeft: `2px solid ${active ? 'var(--ac)' : 'transparent'}`,
+              background: active ? 'var(--ac-d)' : 'transparent',
+              textDecoration: 'none',
+              color: active ? 'var(--ac2)' : isAI ? '#10B981' : 'var(--txt2)',
+            }}>
               <span style={{ fontSize: '13px', width: '16px', textAlign: 'center' }}>{icon}</span>
               {label}
+              {isAI && !active && (
+                <span style={{ marginLeft: 'auto', fontSize: '8px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '4px', padding: '1px 5px' }}>
+                  ELITE
+                </span>
+              )}
             </Link>
           )
         })}
@@ -200,11 +213,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
       <div style={{ marginTop: 'auto', padding: '10px 12px', borderTop: '1px solid var(--brd)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
           {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt="avatar"
-              style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-            />
+            <img src={avatarUrl} alt="avatar" style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
           ) : (
             <div style={{ width: '26px', height: '26px', background: 'var(--ac)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: '#000', flexShrink: 0 }}>
               {initials}
