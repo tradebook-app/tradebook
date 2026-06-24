@@ -1,39 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useState } from 'react'
 
 export function PricingSection() {
   const [yearly, setYearly] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   const proPrice = yearly ? 15 : 19
   const elitePrice = yearly ? 23 : 29
 
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
-      setIsLoggedIn(!!data.user)
-    })
-  }, [])
-
   function handlePlanClick(plan: 'free' | 'pro' | 'elite') {
     if (plan === 'free') {
-      window.location.href = isLoggedIn ? '/dashboard' : '/signup'
+      window.location.href = '/signup'
       return
     }
-
-    if (isLoggedIn) {
-      // Already logged in — go straight to billing and trigger checkout
-      localStorage.setItem('signup_plan', plan)
-      localStorage.setItem('signup_billing', yearly ? 'yearly' : 'monthly')
-      window.location.href = '/billing?setup=true'
-    } else {
-      // Not logged in — go to signup with plan intent
-      localStorage.setItem('signup_plan', plan)
-      localStorage.setItem('signup_billing', yearly ? 'yearly' : 'monthly')
-      window.location.href = `/signup?plan=${plan}${yearly ? '&billing=yearly' : ''}`
-    }
+    // Save plan intent, then go to billing.
+    // If not logged in, billing page redirects to login, which redirects back to billing after auth.
+    localStorage.setItem('signup_plan', plan)
+    localStorage.setItem('signup_billing', yearly ? 'yearly' : 'monthly')
+    window.location.href = '/billing?setup=true'
   }
 
   return (
