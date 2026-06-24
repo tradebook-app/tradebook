@@ -110,12 +110,23 @@ export default async function HomePage() {
           .footer-social { justify-content: center !important; }
           .cta-h2 { font-size: 28px !important; }
           .feature-h3 { font-size: 24px !important; }
+          .darklight-split { grid-template-columns: 1fr !important; }
+          .darklight-right { display: none !important; }
+          .possize-grid { grid-template-columns: 1fr !important; }
+          .report-stats-6 { grid-template-columns: repeat(3,1fr) !important; }
+          .report-row2 { grid-template-columns: 1fr !important; }
+          .report-row3 { grid-template-columns: 1fr !important; }
+          .report-row4 { grid-template-columns: repeat(4,1fr) !important; }
           .ai-section-grid { grid-template-columns: 1fr !important; }
           .ai-mock { display: none !important; }
           .broker-section { padding: 48px 16px !important; }
           .broker-flex { gap: 20px !important; }
-          /* Hide ALL feature mocks on mobile - show text only like Tradezella */
-          .feature-mock { display: none !important; }
+          /* Clip mocks at screen edge - visible but contained, no overflow */
+          .mock-clip {
+            overflow: hidden !important;
+            border-radius: 12px !important;
+            margin-top: 24px !important;
+          }
         }
         .footer-social-icon {
           display: flex; align-items: center; justify-content: center;
@@ -305,7 +316,7 @@ export default async function HomePage() {
               Log, filter, edit, and review every trade. Add grades, screenshots, notes, and setups to build a complete picture of your edge.
             </p>
           </div>
-          <div className="feature-mock" style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
+          <div className="mock-clip"><div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px' }}>
               <span style={{ fontSize:'14px', fontWeight:700 }}>Trade View</span>
               <div style={{ display:'flex', gap:'6px' }}>
@@ -354,6 +365,7 @@ export default async function HomePage() {
           </div>
         </div>
 
+          </div>{/* /mock-clip */}
         {/* Feature 2 — Reports */}
         <div style={{ marginBottom: '120px' }}>
           <div style={{ marginBottom: '32px' }}>
@@ -363,7 +375,7 @@ export default async function HomePage() {
               Understand your performance at every level — by day, by time of day, by symbol, by setup. Stop guessing, start knowing.
             </p>
           </div>
-          <div className="feature-mock" style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
+          <div className="mock-clip"><div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
             <div className="report-tabs" style={{ display:'flex', gap:'6px', marginBottom:'16px', flexWrap:'wrap' }}>
               {['Performance','Overview','Day & Time','Symbols','Risk/R','Win/Loss','Setups'].map((t,i) => (
                 <div key={t} style={{ fontSize:'11px', fontWeight:600, padding:'6px 14px', borderRadius:'7px', background:i===0?'#10B981':'#1e1e26', color:i===0?'#000':'#666', border:'1px solid #2a2a35', cursor:'pointer', whiteSpace:'nowrap' }}>{t}</div>
@@ -512,6 +524,7 @@ export default async function HomePage() {
           </div>
         </div>
 
+          </div>{/* /mock-clip */}
         {/* Dark/Light Mode Split */}
         <div style={{ marginBottom: '120px' }}>
           <div style={{ marginBottom: '32px' }}>
@@ -521,7 +534,7 @@ export default async function HomePage() {
               Switch between dark and light mode with one click. Sleektrade looks great either way — built for traders who work at any hour.
             </p>
           </div>
-          <div className="feature-mock" style={{ borderRadius:'16px 16px 0 0', overflow:'hidden', boxShadow:'0 24px 80px rgba(0,0,0,.5)', border:'1px solid #252530' }}>
+          <div className="mock-clip"><div style={{ borderRadius:'16px 16px 0 0', overflow:'hidden', boxShadow:'0 24px 80px rgba(0,0,0,.5)', border:'1px solid #252530' }}>
             <div className="darklight-split" style={{ display:'grid', gridTemplateColumns:'1fr 1fr' }}>
               <div style={{ background:'#0d0d11', padding:'24px', borderRight:'2px solid #10B981' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
@@ -654,6 +667,7 @@ export default async function HomePage() {
           </div>
         </div>
 
+          </div>{/* /mock-clip */}
         {/* Feature 3 — Journal */}
         <div style={{ marginBottom: '120px' }}>
           <div style={{ marginBottom: '32px' }}>
@@ -663,7 +677,7 @@ export default async function HomePage() {
               Review every trading day in detail. See your P&L chart, stats, and every trade — by day or by week. Switch views with one click.
             </p>
           </div>
-          <div className="feature-mock" style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
+          <div className="mock-clip"><div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
               <span style={{ fontSize:'14px', fontWeight:700 }}>Journal</span>
               <div style={{ display:'flex', gap:'4px' }}>
@@ -766,6 +780,7 @@ export default async function HomePage() {
           </div>
         </div>
 
+          </div>{/* /mock-clip */}
         {/* Feature 4 — Position Size */}
         <div style={{ marginBottom: '120px' }}>
           <div style={{ marginBottom: '32px' }}>
@@ -775,7 +790,7 @@ export default async function HomePage() {
               Enter your account size, risk percentage, entry, and stop — Sleektrade instantly tells you exactly how many shares to buy. No more guessing.
             </p>
           </div>
-          <div className="feature-mock" style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
+          <div className="mock-clip"><div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
             <div style={{ fontSize:'14px', fontWeight:700, marginBottom:'16px' }}>Position Size Calculator</div>
             <div className="possize-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' }}>
               <div>
