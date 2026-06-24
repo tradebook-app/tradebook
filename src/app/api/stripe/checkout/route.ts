@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
@@ -13,42 +13,8 @@ const PRICE_IDS: Record<string, string | undefined> = {
 
 export async function POST(req: Request) {
   try {
-    // Get user from Bearer token (works from client pages outside app shell)
-    const authHeader = req.headers.get('Authorization')
-    const token = authHeader?.replace('Bearer ', '')
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: { getAll: () => [], setAll: () => {} } }
-    )
-
-    let user: any = null
-
-    if (token) {
-      const { data } = await supabase.auth.getUser(token)
-      user = data.user
-    }
-
-    // Fallback to cookie-based auth
-    if (!user) {
-      const { cookies } = await import('next/headers')
-      const cookieStore = cookies()
-      const { createServerClient: createWithCookies } = await import('@supabase/ssr')
-      const supabaseWithCookies = createWithCookies(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            getAll: () => cookieStore.getAll(),
-            setAll: () => {},
-          },
-        }
-      )
-      const { data } = await supabaseWithCookies.auth.getUser()
-      user = data.user
-    }
-
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
@@ -63,7 +29,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Price not configured. Contact support.' }, { status: 400 })
     }
 
-    // Get or create Stripe customer
     const { data: profile } = await supabase
       .from('profiles')
       .select('stripe_customer_id')
