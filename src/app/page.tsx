@@ -52,7 +52,7 @@ export default async function HomePage() {
   if (user) redirect('/dashboard')
 
   return (
-   <div style={{ background: 'var(--bg)', color: 'var(--txt)', fontFamily: 'var(--sans)', minHeight: '100vh', overflowX: 'hidden' }}>
+   <div style={{ background: 'var(--bg)', color: 'var(--txt)', fontFamily: 'var(--sans)', minHeight: '100vh', overflowX: 'hidden', maxWidth: '100vw' }}>
 
       {/* NAV */}
       <nav style={{
@@ -98,13 +98,13 @@ export default async function HomePage() {
         .ai-dot:nth-child(3) { animation-delay: 0.4s; }
         @media (max-width: 640px) {
           .desktop-nav-links { display: none !important; }
-          .hero-grid { grid-template-columns: 1fr !important; gap: 32px !important; padding: 40px 20px 32px !important; }
+          .hero-grid { grid-template-columns: 1fr !important; gap: 16px !important; padding: 32px 16px 24px !important; max-width: 100vw !important; }
           .hero-mock { display: none !important; }
-          .hero-h1 { font-size: 36px !important; }
+          .hero-h1 { font-size: 32px !important; }
           .feature-grid { grid-template-columns: 1fr !important; gap: 40px !important; margin-bottom: 60px !important; }
           .feature-mock-order { order: -1 !important; }
           .who-grid { grid-template-columns: 1fr !important; }
-          .section-pad { padding: 48px 20px !important; }
+          .section-pad { padding: 48px 16px !important; }
           .section-h2 { font-size: 26px !important; }
           .footer-flex { flex-direction: column !important; gap: 20px !important; text-align: center !important; }
           .footer-links { justify-content: center !important; flex-wrap: wrap !important; }
@@ -121,6 +121,8 @@ export default async function HomePage() {
           .report-row4 { grid-template-columns: repeat(4,1fr) !important; }
           .ai-section-grid { grid-template-columns: 1fr !important; }
           .ai-mock { display: none !important; }
+          .broker-section { padding: 48px 16px !important; }
+          .broker-flex { gap: 28px !important; }
         }
         .footer-social-icon {
           display: flex; align-items: center; justify-content: center;
@@ -132,7 +134,7 @@ export default async function HomePage() {
       `}</style>
 
       {/* HERO */}
-      <section style={{ padding: '72px 48px 0', maxWidth: '1400px', margin: '0 auto', display: 'grid', gridTemplateColumns: '400px 1fr', gap: '48px', alignItems: 'flex-start' }}>
+      <section className="hero-grid" style={{ padding: '72px 48px 0', maxWidth: '1400px', margin: '0 auto', display: 'grid', gridTemplateColumns: '400px 1fr', gap: '48px', alignItems: 'flex-start' }}>
         <div style={{ paddingTop: '40px' }}>
           <div style={{ display: 'inline-block', fontSize: '11px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '20px', padding: '4px 14px', marginBottom: '24px', letterSpacing: '.05em', textTransform: 'uppercase' }}>
             Built for traders & investors
@@ -263,7 +265,7 @@ export default async function HomePage() {
       </section>
 
       {/* BROKERS STRIP */}
-      <section style={{ borderTop: '1px solid var(--brd)', borderBottom: '1px solid var(--brd)', background: 'var(--bg2)', padding: '80px 48px', marginTop: '80px' }}>
+      <section className="broker-section" style={{ borderTop: '1px solid var(--brd)', borderBottom: '1px solid var(--brd)', background: 'var(--bg2)', padding: '80px 48px', marginTop: '80px' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
           <h2 style={{ fontSize: '40px', fontWeight: 800, letterSpacing: '-.02em', marginBottom: '14px' }}>
             Import your trades in seconds
@@ -271,7 +273,7 @@ export default async function HomePage() {
           <p style={{ fontSize: '17px', color: 'var(--txt2)', marginBottom: '56px', maxWidth: '560px', margin: '0 auto 56px' }}>
             Connect your broker and Sleektrade turns your raw data into clear, actionable insights.
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '48px', flexWrap: 'wrap', marginBottom: '48px' }}>
+          <div className="broker-flex" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '48px', flexWrap: 'wrap', marginBottom: '48px' }}>
             {[
               { name: 'DAS Trader', logo: '/brokers/das.png', bg: '#0A1628' },
               { name: 'ThinkOrSwim', logo: '/brokers/tos.png', bg: '#0D3B0D' },
