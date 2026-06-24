@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 export function Billing() {
   const [plan, setPlan] = useState<'free' | 'pro' | 'elite'>('free')
@@ -12,20 +11,24 @@ export function Billing() {
   const [successMsg, setSuccessMsg] = useState(false)
   const [cancelMsg, setCancelMsg] = useState(false)
 
-  async function getToken() {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    return session?.access_token
-  }
-
   async function loadPlan() {
-    const token = await getToken()
-    const headers: any = token ? { 'Authorization': `Bearer ${token}` } : {}
-    const r = await fetch('/api/subscription', { headers })
+    const r = await fetch('/api/subscription')
     const d = await r.json()
     setPlan(d.plan || 'free')
     setTradeCount(d.tradeCount || 0)
     return d.plan || 'free'
+  }
+
+  async function handleCheckout(tier: 'pro' | 'elite', cycle?: 'monthly' | 'yearly') {
+    setCheckoutLoading(tier)
+    const res = await fetch('/api/stripe/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier, cycle: cycle || billingCycle })
+    })
+    const data = await res.json()
+    if (data.url) window.location.href = data.url
+    else { alert(data.error || 'Error starting checkout'); setCheckoutLoading(null) }
   }
 
   useEffect(() => {
@@ -33,15 +36,14 @@ export function Billing() {
     const success = params.get('success')
     const canceled = params.get('canceled')
     const setup = params.get('setup')
+
     if (success) setSuccessMsg(true)
     if (canceled) setCancelMsg(true)
 
     if (success) {
       async function syncAndLoad() {
-        const token = await getToken()
-        const headers: any = token ? { 'Authorization': `Bearer ${token}` } : {}
         try {
-          const syncRes = await fetch('/api/stripe/sync', { method: 'POST', headers })
+          const syncRes = await fetch('/api/stripe/sync', { method: 'POST' })
           const syncData = await syncRes.json()
           if (syncData.plan && syncData.plan !== 'free') {
             setPlan(syncData.plan)
@@ -69,7 +71,7 @@ export function Billing() {
         setBillingCycle(savedBilling)
         loadPlan().then(currentPlan => {
           setLoading(false)
-          if (currentPlan === 'free') handleCheckoutWithCycle(savedPlan, savedBilling)
+          if (currentPlan === 'free') handleCheckout(savedPlan, savedBilling)
         })
       } else {
         loadPlan().finally(() => setLoading(false))
@@ -79,31 +81,10 @@ export function Billing() {
     }
   }, [])
 
-  async function handleCheckoutWithCycle(tier: 'pro' | 'elite', cycle: 'monthly' | 'yearly') {
-    setCheckoutLoading(tier)
-    const token = await getToken()
-    const headers: any = { 'Content-Type': 'application/json' }
-    if (token) headers['Authorization'] = `Bearer ${token}`
-    const res = await fetch('/api/stripe/checkout', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ tier, cycle })
-    })
-    const data = await res.json()
-    if (data.url) window.location.href = data.url
-    else { alert(data.error || 'Error starting checkout'); setCheckoutLoading(null) }
-  }
-
-  async function handleCheckout(tier: 'pro' | 'elite') {
-    await handleCheckoutWithCycle(tier, billingCycle)
-  }
-
   async function handlePortal() {
     setPortalLoading(true)
-    const token = await getToken()
-    const headers: any = token ? { 'Authorization': `Bearer ${token}` } : {}
     const win = window.open('', '_blank')
-    const res = await fetch('/api/stripe/portal', { method: 'POST', headers })
+    const res = await fetch('/api/stripe/portal', { method: 'POST' })
     const data = await res.json()
     if (data.url) {
       if (win) win.location.href = data.url
@@ -142,9 +123,7 @@ export function Billing() {
     return (
       <div style={{ textAlign: 'center', padding: '80px 40px' }}>
         <div style={{ fontSize: '28px', marginBottom: '16px' }}>⚡</div>
-        <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px', color: 'var(--txt)' }}>
-          Taking you to checkout...
-        </div>
+        <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px', color: 'var(--txt)' }}>Taking you to checkout...</div>
         <div style={{ fontSize: '12px', color: 'var(--txt3)' }}>Setting up your {checkoutLoading === 'elite' ? 'Elite' : 'Pro'} plan</div>
       </div>
     )
@@ -152,7 +131,6 @@ export function Billing() {
 
   return (
     <div style={{ maxWidth: '700px', margin: '0 auto', padding: '8px 0 40px' }}>
-
       {successMsg && (
         <div style={{ background: '#0d2e1e', border: '1px solid #1D9E75', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px' }}>
           You are now on {plan === 'elite' ? 'Elite' : 'Pro'}! All features unlocked.
@@ -220,7 +198,6 @@ export function Billing() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-
             <div style={cardStyle(plan === 'free')}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '8px' }}>Free</div>
@@ -271,7 +248,6 @@ export function Billing() {
                 )}
               </div>
             </div>
-
           </div>
         </>
       )}
