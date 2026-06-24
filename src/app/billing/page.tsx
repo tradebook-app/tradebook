@@ -15,7 +15,7 @@ function BillingContent() {
   const canceled = searchParams.get('canceled')
 
   async function loadPlan() {
-    const r = await fetch('/api/subscription')
+    const r = await fetch('/api/subscription', { credentials: 'include' })
     const d = await r.json()
     setPlan(d.plan || 'free')
     setTradeCount(d.tradeCount || 0)
@@ -26,7 +26,7 @@ function BillingContent() {
     if (success) {
       async function syncAndLoad() {
         try {
-          const syncRes = await fetch('/api/stripe/sync', { method: 'POST' })
+          const syncRes = await fetch('/api/stripe/sync', { method: 'POST', credentials: 'include' })
           const syncData = await syncRes.json()
           if (syncData.plan && syncData.plan !== 'free') {
             setPlan(syncData.plan)
@@ -39,7 +39,7 @@ function BillingContent() {
         const interval = setInterval(async () => {
           attempts++
           try {
-            const syncRes = await fetch('/api/stripe/sync', { method: 'POST' })
+            const syncRes = await fetch('/api/stripe/sync', { method: 'POST', credentials: 'include' })
             const syncData = await syncRes.json()
             if (syncData.plan && syncData.plan !== 'free') {
               setPlan(syncData.plan)
@@ -65,6 +65,7 @@ function BillingContent() {
     setCheckoutLoading(tier)
     const res = await fetch('/api/stripe/checkout', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tier, cycle: billingCycle })
     })
@@ -79,7 +80,7 @@ function BillingContent() {
 
   async function handlePortal() {
     setPortalLoading(true)
-    const res = await fetch('/api/stripe/portal', { method: 'POST' })
+    const res = await fetch('/api/stripe/portal', { method: 'POST', credentials: 'include' })
     const data = await res.json()
     if (data.url) window.location.href = data.url
     else { alert('Error opening billing portal'); setPortalLoading(false) }
