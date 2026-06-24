@@ -39,11 +39,17 @@ function SignupForm() {
       localStorage.setItem('signup_billing', billing || 'monthly')
     }
 
+    // After email confirmation, redirect to /billing?setup=true so Billing.tsx
+    // can auto-trigger checkout using the plan saved in localStorage
+    const redirectTo = plan
+      ? `${window.location.origin}/auth/callback?next=/billing?setup=true`
+      : `${window.location.origin}/auth/callback`
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: redirectTo,
       },
     })
 

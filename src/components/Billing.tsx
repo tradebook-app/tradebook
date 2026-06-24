@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
 
 export function Billing() {
   const [plan, setPlan] = useState<'free' | 'pro' | 'elite'>('free')
@@ -20,10 +19,28 @@ export function Billing() {
     return d.plan || 'free'
   }
 
+  async function handleCheckout(tier: 'pro' | 'elite', cycle: 'monthly' | 'yearly' = billingCycle) {
+    setCheckoutLoading(tier)
+    const res = await fetch('/api/stripe/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier, cycle })
+    })
+    const data = await res.json()
+    if (data.url) {
+      window.location.href = data.url
+    } else {
+      alert(data.error || 'Error starting checkout')
+      setCheckoutLoading(null)
+    }
+  }
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const success = params.get('success')
     const canceled = params.get('canceled')
+    const setup = params.get('setup') // comes from signup flow
+
     if (success) setSuccessMsg(true)
     if (canceled) setCancelMsg(true)
 
@@ -49,26 +66,31 @@ export function Billing() {
         }, 1500)
       }
       syncAndLoad()
+    } else if (setup) {
+      // New user came from signup with a plan intent — auto-trigger checkout
+      const savedPlan = localStorage.getItem('signup_plan') as 'pro' | 'elite' | null
+      const savedBilling = (localStorage.getItem('signup_billing') || 'monthly') as 'monthly' | 'yearly'
+
+      // Clean up localStorage
+      localStorage.removeItem('signup_plan')
+      localStorage.removeItem('signup_billing')
+
+      if (savedPlan === 'pro' || savedPlan === 'elite') {
+        setBillingCycle(savedBilling)
+        // Load plan first, then trigger checkout if still on free
+        loadPlan().then(currentPlan => {
+          setLoading(false)
+          if (currentPlan === 'free') {
+            handleCheckout(savedPlan, savedBilling)
+          }
+        })
+      } else {
+        loadPlan().finally(() => setLoading(false))
+      }
     } else {
       loadPlan().finally(() => setLoading(false))
     }
   }, [])
-
-  async function handleCheckout(tier: 'pro' | 'elite') {
-    setCheckoutLoading(tier)
-    const res = await fetch('/api/stripe/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tier, cycle: billingCycle })
-    })
-    const data = await res.json()
-    if (data.url) {
-      window.location.href = data.url
-    } else {
-      alert(data.error || 'Error starting checkout')
-      setCheckoutLoading(null)
-    }
-  }
 
   async function handlePortal() {
     setPortalLoading(true)
@@ -107,6 +129,19 @@ export function Billing() {
       Current plan
     </div>
   )
+
+  // Show a redirecting screen while auto-triggering checkout from signup
+  if (checkoutLoading && !successMsg && !cancelMsg) {
+    return (
+      <div style={{ textAlign: 'center', color: 'var(--txt3)', padding: '80px 40px' }}>
+        <div style={{ fontSize: '28px', marginBottom: '16px' }}>⚡</div>
+        <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px', color: 'var(--txt)' }}>
+          Taking you to checkout...
+        </div>
+        <div style={{ fontSize: '12px' }}>Setting up your {checkoutLoading === 'elite' ? 'Elite' : 'Pro'} plan</div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ maxWidth: '700px', margin: '0 auto', padding: '8px 0 40px' }}>
