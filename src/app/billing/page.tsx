@@ -63,18 +63,18 @@ function BillingContent() {
 
   async function handleCheckout(tier: 'pro' | 'elite') {
     setCheckoutLoading(tier)
-    const isYearly = billingCycle === 'yearly'
-    let priceId: string | undefined
-    if (tier === 'pro') {
-      priceId = isYearly ? process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID : process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID
-    } else {
-      priceId = isYearly ? process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID : process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID
-    }
-    if (!priceId) { alert(`${tier} price ID not configured yet.`); setCheckoutLoading(null); return }
-    const res = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ priceId }) })
+    const res = await fetch('/api/stripe/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier, cycle: billingCycle })
+    })
     const data = await res.json()
-    if (data.url) window.location.href = data.url
-    else { alert('Error starting checkout'); setCheckoutLoading(null) }
+    if (data.url) {
+      window.location.href = data.url
+    } else {
+      alert(data.error || 'Error starting checkout')
+      setCheckoutLoading(null)
+    }
   }
 
   async function handlePortal() {
