@@ -21,6 +21,7 @@ import { UpgradeWall, UpgradeBanner } from '@/components/UpgradeWall'
 import { Settings } from '@/components/Settings'
 import { Journal } from '@/components/Journal'
 import { AIAnalysis } from '@/components/AIAnalysis'
+import { Billing } from '@/components/Billing'
 
 
 type Props = {
@@ -82,6 +83,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/strategies':    'Strategies',
   '/position-size': 'Position Size',
   '/ai-analysis':   'Sleek AI',
+  '/billing':       'Billing',
 
   '/import':        'Import Trades',
   '/settings':      'Settings',
@@ -173,6 +175,7 @@ export function AppProvider({ userId, userEmail }: Props) {
     if (pathname === '/import') return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
     if (pathname === '/settings') return <Settings userEmail={userEmail} />
     if (pathname === '/ai-analysis') return <GatedAIAnalysis trades={trades} />
+    if (pathname === '/billing') return <Billing />
     
 
     return (
