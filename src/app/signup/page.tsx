@@ -8,8 +8,8 @@ import { createClient } from '@/lib/supabase/client'
 function SignupForm() {
   const supabase = createClient()
   const searchParams = useSearchParams()
-  const plan = searchParams.get('plan') // 'pro' | 'elite' | null
-  const billing = searchParams.get('billing') // 'yearly' | null
+  const plan = searchParams.get('plan')
+  const billing = searchParams.get('billing')
 
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -17,56 +17,47 @@ function SignupForm() {
   const [error, setError]       = useState('')
   const [success, setSuccess]   = useState(false)
   const [loading, setLoading]   = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  async function handleGoogleSignup() {
+    setGoogleLoading(true)
+    if (plan === 'pro' || plan === 'elite') {
+      localStorage.setItem('signup_plan', plan)
+      localStorage.setItem('signup_billing', billing || 'monthly')
+    }
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: plan
+          ? `${window.location.origin}/auth/callback?next=/billing?setup=true`
+          : `${window.location.origin}/auth/callback`,
+      },
+    })
+  }
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setError('')
 
-    if (password !== confirm) {
-      setError('Passwords do not match.')
-      return
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.')
-      return
-    }
+    if (password !== confirm) { setError('Passwords do not match.'); return }
+    if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
 
     setLoading(true)
 
-    // Save plan intent to localStorage before signup
     if (plan === 'pro' || plan === 'elite') {
       localStorage.setItem('signup_plan', plan)
       localStorage.setItem('signup_billing', billing || 'monthly')
     }
 
-    // After email confirmation, redirect to /billing?setup=true so Billing.tsx
-    // can auto-trigger checkout using the plan saved in localStorage
     const redirectTo = plan
       ? `${window.location.origin}/auth/callback?next=/billing?setup=true`
       : `${window.location.origin}/auth/callback`
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectTo,
-      },
-    })
+    const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } })
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
-    }
+    if (error) { setError(error.message); setLoading(false); return }
 
-    // Send welcome email — fire and forget, don't block the UI
-    fetch('/api/welcome', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    }).catch(() => {
-      // Silently fail — welcome email is non-critical
-    })
+    fetch('/api/welcome', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) }).catch(() => {})
 
     setSuccess(true)
     setLoading(false)
@@ -74,49 +65,24 @@ function SignupForm() {
 
   if (success) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'var(--bg)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center', maxWidth: '360px', padding: '0 16px' }}>
           <div style={{ fontSize: '32px', marginBottom: '12px' }}>✉️</div>
-          <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
-            Check your email
-          </div>
+          <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>Check your email</div>
           <div style={{ fontSize: '12px', color: 'var(--txt2)', lineHeight: 1.6 }}>
             We sent a confirmation link to <strong>{email}</strong>.
             Click it to activate your account{plan ? ` and complete your ${plan.charAt(0).toUpperCase() + plan.slice(1)} plan setup` : ''}.
           </div>
-          <Link
-            href="/login"
-            style={{
-              display: 'inline-block',
-              marginTop: '20px',
-              color: 'var(--ac2)',
-              fontSize: '11px',
-              fontWeight: 600,
-              textDecoration: 'none',
-            }}
-          >
-            ← Back to login
-          </Link>
+          <Link href="/login" style={{ display: 'inline-block', marginTop: '20px', color: 'var(--ac2)', fontSize: '11px', fontWeight: 600, textDecoration: 'none' }}>← Back to login</Link>
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: '100%', maxWidth: '400px', padding: '0 16px' }}>
+
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '6px' }}>
@@ -135,114 +101,62 @@ function SignupForm() {
               Sleek<span style={{ color: '#1D9E75' }}>trade</span>
             </div>
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--txt3)' }}>
-            Your trading journal
-          </div>
+          <div style={{ fontSize: '12px', color: 'var(--txt3)' }}>Your trading journal</div>
         </div>
 
-        {/* Plan badge */}
         {plan && (
-          <div style={{
-            textAlign: 'center', marginBottom: '16px',
-            fontSize: '12px', color: '#10B981',
-            background: 'rgba(16,185,129,.08)',
-            border: '1px solid rgba(16,185,129,.2)',
-            borderRadius: '8px', padding: '8px 16px',
-          }}>
+          <div style={{ textAlign: 'center', marginBottom: '16px', fontSize: '12px', color: '#10B981', background: 'rgba(16,185,129,.08)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '8px', padding: '8px 16px' }}>
             🎯 You're signing up for the <strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong> plan
             {billing === 'yearly' ? ' (billed yearly)' : ''}
           </div>
         )}
 
-        {/* Card */}
-        <div style={{
-          background: 'var(--bg2)',
-          border: '1px solid var(--brd)',
-          borderRadius: 'var(--r2)',
-          padding: '28px',
-        }}>
-          <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>
-            Create account
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '28px' }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>Create account</div>
+
+          {/* Google Button */}
+          <button
+            onClick={handleGoogleSignup}
+            disabled={googleLoading}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '8px', padding: '10px', fontSize: '13px', fontWeight: 600, color: 'var(--txt)', cursor: 'pointer', marginBottom: '16px' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            {googleLoading ? 'Redirecting...' : 'Continue with Google'}
+          </button>
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ flex: 1, height: '1px', background: 'var(--brd)' }} />
+            <span style={{ fontSize: '11px', color: 'var(--txt3)' }}>or</span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--brd)' }} />
           </div>
 
           <form onSubmit={handleSignup}>
             <div style={{ marginBottom: '14px' }}>
-              <label style={{
-                display: 'block', fontSize: '9px', fontWeight: 600,
-                color: 'var(--txt3)', textTransform: 'uppercase',
-                letterSpacing: '.06em', marginBottom: '5px',
-              }}>
-                Email
-              </label>
-              <input
-                className="fi"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
-              />
+              <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '5px' }}>Email</label>
+              <input className="fi" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" />
             </div>
-
             <div style={{ marginBottom: '14px' }}>
-              <label style={{
-                display: 'block', fontSize: '9px', fontWeight: 600,
-                color: 'var(--txt3)', textTransform: 'uppercase',
-                letterSpacing: '.06em', marginBottom: '5px',
-              }}>
-                Password
-              </label>
-              <input
-                className="fi"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Min. 6 characters"
-                required
-                autoComplete="new-password"
-              />
+              <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '5px' }}>Password</label>
+              <input className="fi" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 characters" required autoComplete="new-password" />
             </div>
-
             <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block', fontSize: '9px', fontWeight: 600,
-                color: 'var(--txt3)', textTransform: 'uppercase',
-                letterSpacing: '.06em', marginBottom: '5px',
-              }}>
-                Confirm Password
-              </label>
-              <input
-                className="fi"
-                type="password"
-                value={confirm}
-                onChange={e => setConfirm(e.target.value)}
-                placeholder="Repeat password"
-                required
-                autoComplete="new-password"
-              />
+              <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '5px' }}>Confirm Password</label>
+              <input className="fi" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" required autoComplete="new-password" />
             </div>
 
             {error && (
-              <div style={{
-                background: 'var(--red-d)',
-                border: '1px solid rgba(239,68,68,.2)',
-                borderRadius: 'var(--r)',
-                padding: '8px 12px',
-                fontSize: '11px',
-                color: 'var(--red)',
-                marginBottom: '14px',
-              }}>
+              <div style={{ background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '8px 12px', fontSize: '11px', color: 'var(--red)', marginBottom: '14px' }}>
                 {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              className="btn btn-p"
-              disabled={loading}
-              style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
-            >
+            <button type="submit" className="btn btn-p" disabled={loading} style={{ width: '100%', justifyContent: 'center', padding: '10px' }}>
               {loading ? 'Creating account...' : 'Create account'}
             </button>
           </form>
@@ -250,9 +164,7 @@ function SignupForm() {
 
         <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '11px', color: 'var(--txt3)' }}>
           Already have an account?{' '}
-          <Link href="/login" style={{ color: 'var(--ac2)', textDecoration: 'none', fontWeight: 600 }}>
-            Sign in
-          </Link>
+          <Link href="/login" style={{ color: 'var(--ac2)', textDecoration: 'none', fontWeight: 600 }}>Sign in</Link>
         </div>
       </div>
     </div>

@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -27,7 +28,6 @@ export default function LoginPage() {
       return
     }
 
-    // Check if user came from pricing page with a plan intent
     const savedPlan = localStorage.getItem('signup_plan')
     if (savedPlan === 'pro' || savedPlan === 'elite') {
       router.push('/billing?setup=true')
@@ -37,19 +37,23 @@ export default function LoginPage() {
     router.refresh()
   }
 
+  async function handleGoogleLogin() {
+    setGoogleLoading(true)
+    const savedPlan = localStorage.getItem('signup_plan')
+    const redirectTo = savedPlan
+      ? `${window.location.origin}/auth/callback?next=/billing?setup=true`
+      : `${window.location.origin}/auth/callback`
+
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo },
+    })
+  }
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '400px',
-        padding: '0 16px',
-      }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '100%', maxWidth: '400px', padding: '0 16px' }}>
+
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '6px' }}>
@@ -68,92 +72,56 @@ export default function LoginPage() {
               Sleek<span style={{ color: '#1D9E75' }}>trade</span>
             </div>
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--txt3)' }}>
-            Your trading journal
-          </div>
+          <div style={{ fontSize: '12px', color: 'var(--txt3)' }}>Your trading journal</div>
         </div>
 
         {/* Card */}
-        <div style={{
-          background: 'var(--bg2)',
-          border: '1px solid var(--brd)',
-          borderRadius: 'var(--r2)',
-          padding: '28px',
-        }}>
-          <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>
-            Sign in
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '28px' }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>Sign in</div>
+
+          {/* Google Button */}
+          <button
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '8px', padding: '10px', fontSize: '13px', fontWeight: 600, color: 'var(--txt)', cursor: 'pointer', marginBottom: '16px' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            {googleLoading ? 'Redirecting...' : 'Continue with Google'}
+          </button>
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ flex: 1, height: '1px', background: 'var(--brd)' }} />
+            <span style={{ fontSize: '11px', color: 'var(--txt3)' }}>or</span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--brd)' }} />
           </div>
 
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: '14px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '9px',
-                fontWeight: 600,
-                color: 'var(--txt3)',
-                textTransform: 'uppercase',
-                letterSpacing: '.06em',
-                marginBottom: '5px',
-              }}>
-                Email
-              </label>
-              <input
-                className="fi"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
-              />
+              <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '5px' }}>Email</label>
+              <input className="fi" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" />
             </div>
 
             <div style={{ marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                <label style={{
-                  fontSize: '9px',
-                  fontWeight: 600,
-                  color: 'var(--txt3)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '.06em',
-                }}>
-                  Password
-                </label>
-                <Link href="/reset-password" style={{ fontSize: '10px', color: 'var(--ac2)', textDecoration: 'none', fontWeight: 500 }}>
-                  Forgot password?
-                </Link>
+                <label style={{ fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Password</label>
+                <Link href="/reset-password" style={{ fontSize: '10px', color: 'var(--ac2)', textDecoration: 'none', fontWeight: 500 }}>Forgot password?</Link>
               </div>
-              <input
-                className="fi"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                autoComplete="current-password"
-              />
+              <input className="fi" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required autoComplete="current-password" />
             </div>
 
             {error && (
-              <div style={{
-                background: 'var(--red-d)',
-                border: '1px solid rgba(239,68,68,.2)',
-                borderRadius: 'var(--r)',
-                padding: '8px 12px',
-                fontSize: '11px',
-                color: 'var(--red)',
-                marginBottom: '14px',
-              }}>
+              <div style={{ background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '8px 12px', fontSize: '11px', color: 'var(--red)', marginBottom: '14px' }}>
                 {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              className="btn btn-p"
-              disabled={loading}
-              style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
-            >
+            <button type="submit" className="btn btn-p" disabled={loading} style={{ width: '100%', justifyContent: 'center', padding: '10px' }}>
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
@@ -161,9 +129,7 @@ export default function LoginPage() {
 
         <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '11px', color: 'var(--txt3)' }}>
           No account?{' '}
-          <Link href="/signup" style={{ color: 'var(--ac2)', textDecoration: 'none', fontWeight: 600 }}>
-            Create one
-          </Link>
+          <Link href="/signup" style={{ color: 'var(--ac2)', textDecoration: 'none', fontWeight: 600 }}>Create one</Link>
         </div>
       </div>
     </div>
