@@ -98,12 +98,13 @@ export default async function HomePage() {
         .ai-dot:nth-child(3) { animation-delay: 0.4s; }
         @media (max-width: 640px) {
           .desktop-nav-links { display: none !important; }
-          .hero-grid { grid-template-columns: 1fr !important; gap: 16px !important; padding: 32px 16px 24px !important; max-width: 100vw !important; }
+          .desktop-login { display: none !important; }
+          .hero-grid { grid-template-columns: 1fr !important; gap: 16px !important; padding: 32px 16px 24px !important; max-width: 100% !important; }
           .hero-mock { display: none !important; }
           .hero-h1 { font-size: 32px !important; }
           .feature-grid { grid-template-columns: 1fr !important; gap: 40px !important; margin-bottom: 60px !important; }
           .feature-mock-order { order: -1 !important; }
-          .who-grid { grid-template-columns: 1fr !important; }
+          .who-grid { grid-template-columns: 1fr 1fr !important; }
           .section-pad { padding: 48px 16px !important; }
           .section-h2 { font-size: 26px !important; }
           .footer-flex { flex-direction: column !important; gap: 20px !important; text-align: center !important; }
@@ -111,18 +112,17 @@ export default async function HomePage() {
           .footer-social { justify-content: center !important; }
           .cta-h2 { font-size: 28px !important; }
           .feature-h3 { font-size: 24px !important; }
-          .report-tabs { flex-wrap: wrap !important; }
           .darklight-split { grid-template-columns: 1fr !important; }
           .darklight-right { display: none !important; }
-          .possize-grid { grid-template-columns: 1fr !important; }
-          .report-stats-6 { grid-template-columns: repeat(3,1fr) !important; }
-          .report-row2 { grid-template-columns: 1fr !important; }
-          .report-row3 { grid-template-columns: 1fr !important; }
-          .report-row4 { grid-template-columns: repeat(4,1fr) !important; }
           .ai-section-grid { grid-template-columns: 1fr !important; }
           .ai-mock { display: none !important; }
           .broker-section { padding: 48px 16px !important; }
-          .broker-flex { gap: 28px !important; }
+          .broker-flex { gap: 24px !important; justify-content: center !important; }
+          /* Hide all desktop feature mocks that overflow on mobile */
+          .feature-mock { display: none !important; }
+          /* Feature blocks - reduce gap when mocks are hidden */
+          .feature-block { margin-bottom: 40px !important; }
+          .feature-h3 { font-size: 26px !important; }
         }
         .footer-social-icon {
           display: flex; align-items: center; justify-content: center;
@@ -304,7 +304,7 @@ export default async function HomePage() {
         </div>
 
         {/* Feature 1 — Trade View */}
-        <div style={{ marginBottom: '120px' }}>
+        <div className="feature-block" style={{ marginBottom: '120px' }}>
           <div style={{ marginBottom: '32px' }}>
             <div style={{ display:'inline-block', fontSize:'11px', fontWeight:700, color:'#10B981', background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:'20px', padding:'3px 12px', marginBottom:'16px' }}>Trade View</div>
             <h3 style={{ fontSize:'36px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'12px', lineHeight:1.2 }}>Every trade. Crystal clear.</h3>
@@ -312,7 +312,7 @@ export default async function HomePage() {
               Log, filter, edit, and review every trade. Add grades, screenshots, notes, and setups to build a complete picture of your edge.
             </p>
           </div>
-          <div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
+          <div className="feature-mock" style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px' }}>
               <span style={{ fontSize:'14px', fontWeight:700 }}>Trade View</span>
               <div style={{ display:'flex', gap:'6px' }}>
@@ -362,7 +362,7 @@ export default async function HomePage() {
         </div>
 
         {/* Feature 2 — Reports */}
-        <div style={{ marginBottom: '120px' }}>
+        <div className="feature-block" style={{ marginBottom: '120px' }}>
           <div style={{ marginBottom: '32px' }}>
             <div style={{ display:'inline-block', fontSize:'11px', fontWeight:700, color:'#10B981', background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:'20px', padding:'3px 12px', marginBottom:'16px' }}>Reports</div>
             <h3 style={{ fontSize:'36px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'12px', lineHeight:1.2 }}>7 report tabs. 25+ metrics.</h3>
@@ -370,7 +370,7 @@ export default async function HomePage() {
               Understand your performance at every level — by day, by time of day, by symbol, by setup. Stop guessing, start knowing.
             </p>
           </div>
-          <div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
+          <div className="feature-mock" style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
             <div className="report-tabs" style={{ display:'flex', gap:'6px', marginBottom:'16px', flexWrap:'wrap' }}>
               {['Performance','Overview','Day & Time','Symbols','Risk/R','Win/Loss','Setups'].map((t,i) => (
                 <div key={t} style={{ fontSize:'11px', fontWeight:600, padding:'6px 14px', borderRadius:'7px', background:i===0?'#10B981':'#1e1e26', color:i===0?'#000':'#666', border:'1px solid #2a2a35', cursor:'pointer', whiteSpace:'nowrap' }}>{t}</div>
@@ -528,7 +528,7 @@ export default async function HomePage() {
               Switch between dark and light mode with one click. Sleektrade looks great either way — built for traders who work at any hour.
             </p>
           </div>
-          <div style={{ borderRadius:'16px 16px 0 0', overflow:'hidden', boxShadow:'0 24px 80px rgba(0,0,0,.5)', border:'1px solid #252530' }}>
+          <div className="feature-mock" style={{ borderRadius:'16px 16px 0 0', overflow:'hidden', boxShadow:'0 24px 80px rgba(0,0,0,.5)', border:'1px solid #252530' }}>
             <div className="darklight-split" style={{ display:'grid', gridTemplateColumns:'1fr 1fr' }}>
               <div style={{ background:'#0d0d11', padding:'24px', borderRight:'2px solid #10B981' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
@@ -662,7 +662,7 @@ export default async function HomePage() {
         </div>
 
         {/* Feature 3 — Journal */}
-        <div style={{ marginBottom: '120px' }}>
+        <div className="feature-block" style={{ marginBottom: '120px' }}>
           <div style={{ marginBottom: '32px' }}>
             <div style={{ display:'inline-block', fontSize:'11px', fontWeight:700, color:'#10B981', background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:'20px', padding:'3px 12px', marginBottom:'16px' }}>Journal</div>
             <h3 style={{ fontSize:'36px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'12px', lineHeight:1.2 }}>Your trading mind. On paper.</h3>
@@ -774,7 +774,7 @@ export default async function HomePage() {
         </div>
 
         {/* Feature 4 — Position Size */}
-        <div style={{ marginBottom: '120px' }}>
+        <div className="feature-block" style={{ marginBottom: '120px' }}>
           <div style={{ marginBottom: '32px' }}>
             <div style={{ display:'inline-block', fontSize:'11px', fontWeight:700, color:'#10B981', background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:'20px', padding:'3px 12px', marginBottom:'16px' }}>Position Size</div>
             <h3 style={{ fontSize:'36px', fontWeight:800, letterSpacing:'-.02em', marginBottom:'12px', lineHeight:1.2 }}>Risk the right amount. Every time.</h3>
@@ -782,7 +782,7 @@ export default async function HomePage() {
               Enter your account size, risk percentage, entry, and stop — Sleektrade instantly tells you exactly how many shares to buy. No more guessing.
             </p>
           </div>
-          <div style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
+          <div className="feature-mock" style={{ background:'#131318', border:'1px solid #252530', borderRadius:'16px 16px 0 0', padding:'20px 20px 0', boxShadow:'0 24px 80px rgba(0,0,0,.5)' }}>
             <div style={{ fontSize:'14px', fontWeight:700, marginBottom:'16px' }}>Position Size Calculator</div>
             <div className="possize-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' }}>
               <div>
