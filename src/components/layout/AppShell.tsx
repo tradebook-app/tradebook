@@ -78,18 +78,32 @@ export function AppShell({
       </div>
 
       {/* Mobile bottom nav — shown only on mobile via CSS */}
-      <nav className="mobile-bottom-nav">
+      <nav className="mobile-bottom-nav" style={{ minHeight: '60px' }}>
         {BOTTOM_NAV.map(({ href, icon, label }) => (
           <Link
             key={href}
             href={href}
             className={pathname === href ? 'active' : ''}
+            style={{
+              WebkitTapHighlightColor: 'transparent',
+              touchAction: 'manipulation',
+              minHeight: '56px',
+              padding: '6px 4px 10px',
+            }}
           >
             <span className="nav-icon">{icon}</span>
             {label}
           </Link>
         ))}
-        <button onClick={onAddTrade}>
+        <button
+          onClick={onAddTrade}
+          style={{
+            WebkitTapHighlightColor: 'transparent',
+            touchAction: 'manipulation',
+            minHeight: '56px',
+            padding: '6px 4px 10px',
+          }}
+        >
           <span className="nav-icon" style={{ fontSize: '22px', fontWeight: 300 }}>＋</span>
           Add
         </button>

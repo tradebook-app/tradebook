@@ -149,10 +149,23 @@ export function Settings({ userEmail }: { userEmail?: string }) {
 
   async function openPortal() {
     setPortalLoading(true)
-    const res = await fetch('/api/stripe/portal', { method: 'POST' })
-    const data = await res.json()
-    if (data.url) window.location.href = data.url
-    else { alert('Could not open billing portal.'); setPortalLoading(false) }
+    // Open a blank window immediately (before async) so Safari doesn't block it as a popup
+    const win = window.open('', '_blank')
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST' })
+      const data = await res.json()
+      if (data.url) {
+        if (win) win.location.href = data.url
+        else window.location.href = data.url
+      } else {
+        if (win) win.close()
+        alert('Could not open billing portal. Please try again.')
+      }
+    } catch {
+      if (win) win.close()
+      alert('Could not open billing portal. Please try again.')
+    }
+    setPortalLoading(false)
   }
 
   async function handleSignOut() {

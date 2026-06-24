@@ -276,7 +276,7 @@ export default async function HomePage() {
               { name: 'DAS Trader', logo: '/brokers/das.png', bg: '#0A1628' },
               { name: 'ThinkOrSwim', logo: '/brokers/tos.png', bg: '#0D3B0D' },
               { name: 'Interactive Brokers', logo: '/brokers/ibkr.png', bg: '#8B0000' },
-              { name: 'Webull', logo: '/brokers/webull.png', bg: '#003366' },
+              { name: 'Webull', logo: '/brokers/webull.png', bg: '#1B4F8A' },
               { name: 'Tastytrade', logo: '/brokers/tastytrade.png', bg: '#1A0E06' },
               { name: 'TradeStation', logo: '/brokers/tradestation.png', bg: '#1A1400' },
             ].map(b => (

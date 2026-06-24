@@ -33,13 +33,21 @@ export function Reports({ trades, filter }: Props) {
 
   return (
     <div>
-      {/* Tab nav — scrollable on mobile */}
+      {/* Tab nav — sticky on mobile, scrollable */}
       <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        background: 'var(--bg)',
         overflowX: 'auto',
         marginBottom: '18px',
         borderBottom: '1px solid var(--brd)',
         WebkitOverflowScrolling: 'touch',
         scrollbarWidth: 'none',
+        marginLeft: '-18px',
+        marginRight: '-18px',
+        paddingLeft: '18px',
+        paddingRight: '18px',
       }}>
         <div style={{
           display: 'flex',
