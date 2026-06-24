@@ -113,7 +113,25 @@ function BillingContent() {
       <div style={{ width: '100%', maxWidth: '700px' }}>
 
         <div style={{ marginBottom: '32px' }}>
-          <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', color: 'var(--txt3)', fontSize: '13px', cursor: 'pointer', marginBottom: '16px', padding: 0 }}>Back to app</button>
+          <button
+            onClick={() => router.push('/dashboard')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'var(--bg2)',
+              border: '1px solid var(--brd)',
+              borderRadius: '8px',
+              color: 'var(--txt)',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              marginBottom: '20px',
+              padding: '7px 14px',
+            }}
+          >
+            ← Back to app
+          </button>
           <div style={{ fontSize: '22px', fontWeight: 700 }}>Billing</div>
           <div style={{ fontSize: '13px', color: 'var(--txt3)', marginTop: '4px' }}>Manage your Sleektrade subscription</div>
         </div>
