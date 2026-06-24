@@ -1,35 +1,27 @@
 'use client'
-
 import { useEffect, useRef } from 'react'
 import {
   Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale,
   Filler, Tooltip, Legend, type ChartConfiguration,
 } from 'chart.js'
-
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip, Legend)
-
 type Props = {
   labels: string[]
   data: number[]
   unit?: '$' | '%'
+  color?: string
+  colorFade?: string
 }
-
-export function CumulativeChart({ labels, data, unit = '$' }: Props) {
+export function CumulativeChart({ labels, data, unit = '$', color = '#10B981', colorFade = 'rgba(16,185,129,.08)' }: Props) {
   const ref = useRef<HTMLCanvasElement>(null)
   const chartRef = useRef<Chart | null>(null)
-
   const fmt = (v: number) =>
     unit === '%'
       ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
       : `${v >= 0 ? '+' : ''}$${v.toFixed(2)}`
-
   useEffect(() => {
     if (!ref.current) return
     chartRef.current?.destroy()
-
-    const color = '#10B981'
-    const colorFade = 'rgba(16,185,129,.08)'
-
     const config: ChartConfiguration = {
       type: 'line',
       data: {
@@ -76,11 +68,9 @@ export function CumulativeChart({ labels, data, unit = '$' }: Props) {
         },
       },
     }
-
     chartRef.current = new Chart(ref.current, config)
     return () => chartRef.current?.destroy()
-  }, [labels, data, unit])
-
+  }, [labels, data, unit, color, colorFade])
   if (data.length === 0) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'var(--txt3)', fontSize: '11px' }}>
@@ -88,6 +78,5 @@ export function CumulativeChart({ labels, data, unit = '$' }: Props) {
       </div>
     )
   }
-
   return <canvas ref={ref} style={{ width: '100%', height: '200px' }} />
 }

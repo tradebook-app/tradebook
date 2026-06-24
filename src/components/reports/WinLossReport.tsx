@@ -125,7 +125,7 @@ export function WinLossReport({ trades }: Props) {
         </div>
         <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
           <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Cumulative P&amp;L (Losses)</div>
-          <div style={{ padding: '14px 16px' }}><CumulativeChart labels={lLabels} data={lCum} /></div>
+          <div style={{ padding: '14px 16px' }}><CumulativeChart labels={lLabels} data={lCum} color="#EF4444" colorFade="rgba(239,68,68,.08)" /></div>
         </div>
       </div>
     </div>
