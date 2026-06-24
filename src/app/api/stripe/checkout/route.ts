@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createClientBrowser } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
@@ -13,8 +14,27 @@ const PRICE_IDS: Record<string, string | undefined> = {
 
 export async function POST(req: Request) {
   try {
+    let user: any = null
+
+    // Try cookie-based auth first (app shell)
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user: cookieUser } } = await supabase.auth.getUser()
+    user = cookieUser
+
+    // Fall back to Bearer token auth (standalone billing page)
+    if (!user) {
+      const authHeader = req.headers.get('Authorization')
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.replace('Bearer ', '')
+        const adminClient = createClientBrowser(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+        const { data: { user: tokenUser } } = await adminClient.auth.getUser(token)
+        user = tokenUser
+      }
+    }
+
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()

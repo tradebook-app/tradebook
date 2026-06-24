@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 function BillingContent() {
   const [plan, setPlan] = useState<'free' | 'pro' | 'elite'>('free')
@@ -13,10 +14,22 @@ function BillingContent() {
   const searchParams = useSearchParams()
   const success = searchParams.get('success')
   const canceled = searchParams.get('canceled')
-  const setup = searchParams.get('setup') // from pricing page click
+  const setup = searchParams.get('setup')
+
+  async function getAuthHeader() {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      router.push('/login')
+      return null
+    }
+    return { 'Authorization': `Bearer ${session.access_token}` }
+  }
 
   async function loadPlan() {
-    const r = await fetch('/api/subscription', { credentials: 'include' })
+    const authHeader = await getAuthHeader()
+    if (!authHeader) return 'free'
+    const r = await fetch('/api/subscription', { headers: authHeader })
     const d = await r.json()
     setPlan(d.plan || 'free')
     setTradeCount(d.tradeCount || 0)
@@ -26,8 +39,10 @@ function BillingContent() {
   useEffect(() => {
     if (success) {
       async function syncAndLoad() {
+        const authHeader = await getAuthHeader()
+        if (!authHeader) return
         try {
-          const syncRes = await fetch('/api/stripe/sync', { method: 'POST', credentials: 'include' })
+          const syncRes = await fetch('/api/stripe/sync', { method: 'POST', headers: authHeader })
           const syncData = await syncRes.json()
           if (syncData.plan && syncData.plan !== 'free') {
             setPlan(syncData.plan)
@@ -36,11 +51,12 @@ function BillingContent() {
           }
         } catch (e) {}
         let attempts = 0
-        const maxAttempts = 8
         const interval = setInterval(async () => {
           attempts++
           try {
-            const syncRes = await fetch('/api/stripe/sync', { method: 'POST', credentials: 'include' })
+            const h = await getAuthHeader()
+            if (!h) { clearInterval(interval); return }
+            const syncRes = await fetch('/api/stripe/sync', { method: 'POST', headers: h })
             const syncData = await syncRes.json()
             if (syncData.plan && syncData.plan !== 'free') {
               setPlan(syncData.plan)
@@ -50,7 +66,7 @@ function BillingContent() {
             }
           } catch (e) {}
           const currentPlan = await loadPlan()
-          if (currentPlan !== 'free' || attempts >= maxAttempts) {
+          if (currentPlan !== 'free' || attempts >= 8) {
             clearInterval(interval)
             setLoading(false)
           }
@@ -58,19 +74,15 @@ function BillingContent() {
       }
       syncAndLoad()
     } else if (setup) {
-      // Coming from pricing page — check localStorage for plan intent
       const savedPlan = localStorage.getItem('signup_plan') as 'pro' | 'elite' | null
       const savedBilling = (localStorage.getItem('signup_billing') || 'monthly') as 'monthly' | 'yearly'
       localStorage.removeItem('signup_plan')
       localStorage.removeItem('signup_billing')
-
       if (savedPlan === 'pro' || savedPlan === 'elite') {
         setBillingCycle(savedBilling)
         loadPlan().then(currentPlan => {
           setLoading(false)
-          if (currentPlan === 'free') {
-            handleCheckoutDirect(savedPlan, savedBilling)
-          }
+          if (currentPlan === 'free') handleCheckoutDirect(savedPlan, savedBilling)
         })
       } else {
         loadPlan().finally(() => setLoading(false))
@@ -78,10 +90,12 @@ function BillingContent() {
     } else {
       loadPlan().finally(() => setLoading(false))
     }
-  }, [success, setup])
+  }, [])
 
   async function handleCheckoutDirect(tier: 'pro' | 'elite', cycle: 'monthly' | 'yearly') {
     setCheckoutLoading(tier)
+    const authHeader = await getAuthHeader()
+    if (!authHeader) return
     const isYearly = cycle === 'yearly'
     let priceId: string | undefined
     if (tier === 'pro') {
@@ -89,11 +103,15 @@ function BillingContent() {
     } else {
       priceId = isYearly ? process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID : process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID
     }
-    if (!priceId) { alert(`${tier} price ID not configured yet.`); setCheckoutLoading(null); return }
-    const res = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ priceId }), credentials: 'include' })
+    if (!priceId) { alert(`${tier} price ID not configured.`); setCheckoutLoading(null); return }
+    const res = await fetch('/api/stripe/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader },
+      body: JSON.stringify({ priceId })
+    })
     const data = await res.json()
     if (data.url) window.location.href = data.url
-    else { alert('Error starting checkout'); setCheckoutLoading(null) }
+    else { alert(data.error || 'Error starting checkout'); setCheckoutLoading(null) }
   }
 
   async function handleCheckout(tier: 'pro' | 'elite') {
@@ -102,7 +120,9 @@ function BillingContent() {
 
   async function handlePortal() {
     setPortalLoading(true)
-    const res = await fetch('/api/stripe/portal', { method: 'POST', credentials: 'include' })
+    const authHeader = await getAuthHeader()
+    if (!authHeader) return
+    const res = await fetch('/api/stripe/portal', { method: 'POST', headers: authHeader })
     const data = await res.json()
     if (data.url) window.location.href = data.url
     else { alert('Error opening billing portal'); setPortalLoading(false) }
@@ -131,7 +151,6 @@ function BillingContent() {
     </div>
   )
 
-  // Show redirecting screen while auto-triggering checkout
   if (checkoutLoading && !success && !canceled) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
