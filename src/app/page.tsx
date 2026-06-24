@@ -89,9 +89,15 @@ export default async function HomePage() {
           width: max-content;
         }
         .broker-scroll-track:hover { animation-play-state: paused; }
+        @keyframes aiTyping {
+          0%, 60%, 100% { opacity: 0.3; }
+          30% { opacity: 1; }
+        }
+        .ai-dot { animation: aiTyping 1.4s infinite; }
+        .ai-dot:nth-child(2) { animation-delay: 0.2s; }
+        .ai-dot:nth-child(3) { animation-delay: 0.4s; }
         @media (max-width: 640px) {
           .desktop-nav-links { display: none !important; }
-          
           .hero-grid { grid-template-columns: 1fr !important; gap: 32px !important; padding: 40px 20px 32px !important; }
           .hero-mock { display: none !important; }
           .hero-h1 { font-size: 36px !important; }
@@ -113,6 +119,8 @@ export default async function HomePage() {
           .report-row2 { grid-template-columns: 1fr !important; }
           .report-row3 { grid-template-columns: 1fr !important; }
           .report-row4 { grid-template-columns: repeat(4,1fr) !important; }
+          .ai-section-grid { grid-template-columns: 1fr !important; }
+          .ai-mock { display: none !important; }
         }
         .footer-social-icon {
           display: flex; align-items: center; justify-content: center;
@@ -125,7 +133,6 @@ export default async function HomePage() {
 
       {/* HERO */}
       <section style={{ padding: '72px 48px 0', maxWidth: '1400px', margin: '0 auto', display: 'grid', gridTemplateColumns: '400px 1fr', gap: '48px', alignItems: 'flex-start' }}>
-        {/* Text block — left column */}
         <div style={{ paddingTop: '40px' }}>
           <div style={{ display: 'inline-block', fontSize: '11px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '20px', padding: '4px 14px', marginBottom: '24px', letterSpacing: '.05em', textTransform: 'uppercase' }}>
             Built for traders & investors
@@ -143,14 +150,12 @@ export default async function HomePage() {
           <p style={{ fontSize: '12px', color: 'var(--txt3)', marginTop: '14px' }}>No credit card required · Free plan available</p>
         </div>
 
-        {/* FULL WIDTH DASHBOARD MOCK */}
         <div className="hero-mock" style={{
           background: '#131318', border: '1px solid #252530',
           borderRadius: '16px 16px 0 0', padding: '20px 20px 0',
           boxShadow: '0 -8px 60px rgba(16,185,129,.08), 0 0 0 1px rgba(255,255,255,.04)',
           width: '100%',
         }}>
-          {/* Mock top bar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '14px', fontWeight: 700 }}>Dashboard</span>
@@ -163,7 +168,6 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Stats row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: '8px', marginBottom: '14px' }}>
             {[
               { l: 'Net P&L', v: '+$8,421', c: '#10B981' },
@@ -180,7 +184,6 @@ export default async function HomePage() {
             ))}
           </div>
 
-          {/* Chart + sidebar */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '10px', marginBottom: '14px' }}>
             <div style={{ background: '#1a1a22', border: '1px solid #252530', borderRadius: '8px', padding: '14px' }}>
               <div style={{ fontSize: '10px', color: '#555', marginBottom: '10px' }}>Cumulative P&L — June 2026</div>
@@ -222,7 +225,6 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* HERO TRADES TABLE — FIXED */}
           <div style={{ background: '#1a1a22', border: '1px solid #252530', borderRadius: '8px 8px 0 0', overflow: 'hidden' }}>
             <div style={{ display:'grid', gridTemplateColumns:'90px 70px 60px 80px 80px 70px 80px 60px', padding:'8px 14px', borderBottom:'1px solid #252530', background:'#16161e' }}>
               {['Date','Symbol','Side','Status','Entry','Exit','P&L','Grade'].map(h => (
@@ -862,6 +864,148 @@ export default async function HomePage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/* SLEEK AI SECTION */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      <section style={{ background: 'linear-gradient(180deg, #08120e 0%, #0a0a0f 100%)', borderTop: '1px solid rgba(16,185,129,.15)', borderBottom: '1px solid rgba(16,185,129,.15)', padding: '100px 48px' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div className="ai-section-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }}>
+
+            {/* LEFT — Text */}
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.25)', borderRadius: '20px', padding: '5px 14px', marginBottom: '28px', letterSpacing: '.05em', textTransform: 'uppercase' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Sleek AI · Elite Feature
+              </div>
+              <h2 style={{ fontSize: '42px', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-.03em', marginBottom: '20px' }}>
+                Ask anything.<br />
+                <span style={{ color: '#10B981' }}>It already knows your trades.</span>
+              </h2>
+              <p style={{ fontSize: '16px', color: 'var(--txt2)', lineHeight: 1.75, marginBottom: '32px', maxWidth: '480px' }}>
+                Sleek AI has every trade you've logged, every setup you've tagged, every grade you've given. No copy-pasting, no screenshots, no re-explaining. Ask about your Friday losses — the answer comes from <em>your</em> data, not the internet's.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '36px' }}>
+                {[
+                  { icon: '📊', text: 'Analyzes your win rate by setup, time, and symbol' },
+                  { icon: '🧠', text: 'Identifies patterns in your best and worst trades' },
+                  { icon: '⚡', text: 'Answers in seconds using your real trading history' },
+                  { icon: '🔒', text: 'Your data stays private — never used to train AI models' },
+                ].map((item, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <span style={{ fontSize: '16px', marginTop: '1px' }}>{item.icon}</span>
+                    <span style={{ fontSize: '14px', color: 'var(--txt2)', lineHeight: 1.5 }}>{item.text}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <Link href="/signup" style={{ fontSize: '14px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '10px', padding: '12px 24px', textDecoration: 'none', display: 'inline-block' }}>
+                  Try Sleek AI free →
+                </Link>
+                <Link href="/billing" style={{ fontSize: '14px', fontWeight: 600, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '10px', padding: '12px 20px', textDecoration: 'none', display: 'inline-block' }}>
+                  View Elite plan
+                </Link>
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--txt3)', marginTop: '12px' }}>Included in Elite plan · $29/mo</p>
+            </div>
+
+            {/* RIGHT — AI Chat Mock */}
+            <div className="ai-mock">
+              <div style={{
+                background: '#0e0e14',
+                border: '1px solid #1e2a20',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                boxShadow: '0 0 0 1px rgba(16,185,129,.08), 0 32px 80px rgba(0,0,0,.6), 0 0 60px rgba(16,185,129,.06)',
+              }}>
+                {/* Terminal bar */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#0a0a10', borderBottom: '1px solid #1a2218' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EF4444', opacity: 0.7 }} />
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F59E0B', opacity: 0.7 }} />
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981', opacity: 0.7 }} />
+                    </div>
+                    <span style={{ fontSize: '11px', color: '#555', fontFamily: 'monospace', marginLeft: '6px' }}>SLEEK_AI.SH</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }} />
+                    <span style={{ fontSize: '10px', color: '#10B981', fontWeight: 700, letterSpacing: '.06em' }}>LIVE</span>
+                  </div>
+                </div>
+
+                {/* Chat body */}
+                <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                  {/* Intro line */}
+                  <div style={{ fontSize: '12px', color: '#555', textAlign: 'center', padding: '4px 0' }}>Ask me anything about your trading.</div>
+
+                  {/* Suggested question pills */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {[
+                      'Why do I keep losing on Fridays?',
+                      'What\'s my best-performing setup?',
+                      'When did I break my risk rules last month?',
+                      'What\'s my win rate after a 9 AM loss?',
+                    ].map((q, i) => (
+                      <div key={i} style={{ background: '#131320', border: '1px solid #1e2030', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#9999AA', cursor: 'pointer' }}>
+                        {q}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* User message */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ background: 'rgba(16,185,129,.12)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '12px 12px 2px 12px', padding: '10px 14px', fontSize: '13px', color: '#D1FAE5', maxWidth: '85%' }}>
+                      Why do I keep losing on Fridays?
+                    </div>
+                  </div>
+
+                  {/* AI response */}
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#062e21', border: '1px solid rgba(16,185,129,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    </div>
+                    <div style={{ background: '#131320', border: '1px solid #1e2030', borderRadius: '2px 12px 12px 12px', padding: '12px 14px', fontSize: '13px', color: '#C8C8D8', lineHeight: 1.65, flex: 1 }}>
+                      <p style={{ margin: '0 0 10px' }}>Based on your last <span style={{ color: '#10B981', fontWeight: 700 }}>142 trades</span>, Fridays are your weakest day — <span style={{ color: '#EF4444', fontWeight: 700 }}>-$1,240 avg P&L</span> vs +$890 on Tuesdays.</p>
+                      <p style={{ margin: '0 0 10px' }}>The pattern: you take <span style={{ color: '#F59E0B', fontWeight: 600 }}>2.3× more trades</span> on Fridays but your win rate drops to <span style={{ color: '#EF4444', fontWeight: 700 }}>38%</span> vs your normal 71%. Most losses happen after <span style={{ color: '#F59E0B', fontWeight: 600 }}>2 PM ET</span>.</p>
+                      <div style={{ background: 'rgba(16,185,129,.06)', border: '1px solid rgba(16,185,129,.15)', borderRadius: '8px', padding: '10px 12px', marginTop: '10px' }}>
+                        <div style={{ fontSize: '10px', color: '#10B981', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '.05em' }}>💡 Suggestion</div>
+                        <div style={{ fontSize: '12px', color: '#9999AA', lineHeight: 1.55 }}>Stop trading Fridays after 2 PM ET. That single rule would have saved you <span style={{ color: '#10B981', fontWeight: 700 }}>+$3,840</span> over the last 3 months.</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Input bar */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                    <div style={{ flex: 1, background: '#0a0a10', border: '1px solid #1e2030', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: '#555' }}>
+                      Ask Sleek AI anything about your trades...
+                    </div>
+                    <div style={{ width: '34px', height: '34px', background: '#10B981', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating stat cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '16px' }}>
+                {[
+                  { l: 'Trades analyzed', v: '142', c: '#fff' },
+                  { l: 'Best day', v: 'Tuesday', c: '#10B981' },
+                  { l: 'Friday P&L', v: '-$1,240', c: '#EF4444' },
+                ].map(m => (
+                  <div key={m.l} style={{ background: '#0e0e14', border: '1px solid #1e2028', borderRadius: '10px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '9px', color: '#555', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.06em' }}>{m.l}</div>
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: m.c, fontFamily: 'monospace' }}>{m.v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
