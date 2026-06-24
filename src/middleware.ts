@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session — this is critical for server components and API routes
+  // Just refresh the session — do NOT redirect anyone
   await supabase.auth.getUser()
 
   return supabaseResponse
@@ -32,6 +32,18 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Only run on API routes and app pages — skip static files
+    '/api/:path*',
+    '/dashboard/:path*',
+    '/trades/:path*',
+    '/reports/:path*',
+    '/settings/:path*',
+    '/billing/:path*',
+    '/notebook/:path*',
+    '/journal/:path*',
+    '/import/:path*',
+    '/position-size/:path*',
+    '/ai-analysis/:path*',
+    '/strategies/:path*',
   ],
 }
