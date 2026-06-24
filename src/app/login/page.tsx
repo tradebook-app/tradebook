@@ -27,7 +27,13 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/dashboard')
+    // Check if user came from pricing page with a plan intent
+    const savedPlan = localStorage.getItem('signup_plan')
+    if (savedPlan === 'pro' || savedPlan === 'elite') {
+      router.push('/billing?setup=true')
+    } else {
+      router.push('/dashboard')
+    }
     router.refresh()
   }
 

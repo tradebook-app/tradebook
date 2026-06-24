@@ -1,13 +1,40 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 export function PricingSection() {
   const [yearly, setYearly] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   const proPrice = yearly ? 15 : 19
   const elitePrice = yearly ? 23 : 29
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      setIsLoggedIn(!!data.user)
+    })
+  }, [])
+
+  function handlePlanClick(plan: 'free' | 'pro' | 'elite') {
+    if (plan === 'free') {
+      window.location.href = isLoggedIn ? '/dashboard' : '/signup'
+      return
+    }
+
+    if (isLoggedIn) {
+      // Already logged in — go straight to billing and trigger checkout
+      localStorage.setItem('signup_plan', plan)
+      localStorage.setItem('signup_billing', yearly ? 'yearly' : 'monthly')
+      window.location.href = '/billing?setup=true'
+    } else {
+      // Not logged in — go to signup with plan intent
+      localStorage.setItem('signup_plan', plan)
+      localStorage.setItem('signup_billing', yearly ? 'yearly' : 'monthly')
+      window.location.href = `/signup?plan=${plan}${yearly ? '&billing=yearly' : ''}`
+    }
+  }
 
   return (
     <section id="pricing" style={{ maxWidth: '1000px', margin: '0 auto', padding: '80px 48px' }}>
@@ -41,9 +68,9 @@ export function PricingSection() {
               </div>
             ))}
           </div>
-          <Link href="/signup" style={{ display: 'block', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: 'var(--txt)', background: 'var(--bg4)', border: '1px solid var(--brd2)', borderRadius: '8px', padding: '12px', textDecoration: 'none' }}>
+          <button onClick={() => handlePlanClick('free')} style={{ display: 'block', width: '100%', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: 'var(--txt)', background: 'var(--bg4)', border: '1px solid var(--brd2)', borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>
             Get Started
-          </Link>
+          </button>
         </div>
 
         {/* Pro */}
@@ -62,9 +89,9 @@ export function PricingSection() {
               </div>
             ))}
           </div>
-          <Link href={`/signup?plan=pro${yearly ? '&billing=yearly' : ''}`} style={{ display: 'block', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '8px', padding: '12px', textDecoration: 'none' }}>
+          <button onClick={() => handlePlanClick('pro')} style={{ display: 'block', width: '100%', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: '#000', background: '#10B981', border: 'none', borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>
             Get Started
-          </Link>
+          </button>
         </div>
 
         {/* Elite */}
@@ -89,9 +116,9 @@ export function PricingSection() {
               </div>
             ))}
           </div>
-          <Link href={`/signup?plan=elite${yearly ? '&billing=yearly' : ''}`} style={{ display: 'block', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '8px', padding: '12px', textDecoration: 'none' }}>
+          <button onClick={() => handlePlanClick('elite')} style={{ display: 'block', width: '100%', textAlign: 'center', marginTop: '28px', fontSize: '13px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>
             Get Started
-          </Link>
+          </button>
         </div>
 
       </div>
