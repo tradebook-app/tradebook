@@ -16,7 +16,7 @@ function BillingContent() {
   const setup = searchParams.get('setup') // from pricing page click
 
   async function loadPlan() {
-    const r = await fetch('/api/subscription')
+    const r = await fetch('/api/subscription', { credentials: 'include' })
     const d = await r.json()
     setPlan(d.plan || 'free')
     setTradeCount(d.tradeCount || 0)
@@ -27,7 +27,7 @@ function BillingContent() {
     if (success) {
       async function syncAndLoad() {
         try {
-          const syncRes = await fetch('/api/stripe/sync', { method: 'POST' })
+          const syncRes = await fetch('/api/stripe/sync', { method: 'POST', credentials: 'include' })
           const syncData = await syncRes.json()
           if (syncData.plan && syncData.plan !== 'free') {
             setPlan(syncData.plan)
@@ -40,7 +40,7 @@ function BillingContent() {
         const interval = setInterval(async () => {
           attempts++
           try {
-            const syncRes = await fetch('/api/stripe/sync', { method: 'POST' })
+            const syncRes = await fetch('/api/stripe/sync', { method: 'POST', credentials: 'include' })
             const syncData = await syncRes.json()
             if (syncData.plan && syncData.plan !== 'free') {
               setPlan(syncData.plan)
@@ -90,7 +90,7 @@ function BillingContent() {
       priceId = isYearly ? process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID : process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID
     }
     if (!priceId) { alert(`${tier} price ID not configured yet.`); setCheckoutLoading(null); return }
-    const res = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ priceId }) })
+    const res = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ priceId }), credentials: 'include' })
     const data = await res.json()
     if (data.url) window.location.href = data.url
     else { alert('Error starting checkout'); setCheckoutLoading(null) }
@@ -102,7 +102,7 @@ function BillingContent() {
 
   async function handlePortal() {
     setPortalLoading(true)
-    const res = await fetch('/api/stripe/portal', { method: 'POST' })
+    const res = await fetch('/api/stripe/portal', { method: 'POST', credentials: 'include' })
     const data = await res.json()
     if (data.url) window.location.href = data.url
     else { alert('Error opening billing portal'); setPortalLoading(false) }
