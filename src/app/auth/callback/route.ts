@@ -11,14 +11,20 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser()
-      // If user has a recovery_sent_at, this is a password reset flow
+
+      // Only redirect to update-password if recovery was sent recently (within 10 min)
+      // This prevents Google OAuth users from being sent to update-password
       if (user?.recovery_sent_at) {
-        return NextResponse.redirect(`${origin}/update-password`)
+        const recoverySentAt = new Date(user.recovery_sent_at).getTime()
+        const tenMinutesAgo = Date.now() - 10 * 60 * 1000
+        if (recoverySentAt > tenMinutesAgo) {
+          return NextResponse.redirect(`${origin}/update-password`)
+        }
       }
+
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
 
-  // Auth error → redirect to login with error hint
   return NextResponse.redirect(`${origin}/login?error=auth`)
 }
