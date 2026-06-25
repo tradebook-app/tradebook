@@ -34,7 +34,9 @@ export async function updateSession(request: NextRequest) {
   // Redirect unauthenticated users away from protected routes
   const isAuthRoute = request.nextUrl.pathname.startsWith('/login') ||
                       request.nextUrl.pathname.startsWith('/signup')
-  const isProtected = !isAuthRoute && request.nextUrl.pathname !== '/'
+  const isAuthCallback = request.nextUrl.pathname.startsWith('/auth/callback') ||
+                         request.nextUrl.pathname.startsWith('/auth/confirm')
+  const isProtected = !isAuthRoute && !isAuthCallback && request.nextUrl.pathname !== '/'
 
   if (!user && isProtected) {
     const url = request.nextUrl.clone()

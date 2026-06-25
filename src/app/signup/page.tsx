@@ -19,19 +19,38 @@ function SignupForm() {
   const [loading, setLoading]     = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
+  function getPaidPlanIntent(): { plan: 'pro' | 'elite'; billing: string } | null {
+    const urlPlan = plan === 'pro' || plan === 'elite' ? plan : null
+    const storedPlan =
+      typeof window !== 'undefined' ? localStorage.getItem('signup_plan') : null
+    const resolvedPlan =
+      urlPlan ?? (storedPlan === 'pro' || storedPlan === 'elite' ? storedPlan : null)
+    if (!resolvedPlan) return null
+    const resolvedBilling =
+      billing ||
+      (typeof window !== 'undefined' ? localStorage.getItem('signup_billing') : null) ||
+      'monthly'
+    return { plan: resolvedPlan, billing: resolvedBilling }
+  }
+
+  function getAuthRedirectUrl(): string {
+    const intent = getPaidPlanIntent()
+    if (intent) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('signup_plan', intent.plan)
+        localStorage.setItem('signup_billing', intent.billing)
+      }
+      const upgradePath = `/auth/upgrade?plan=${intent.plan}&billing=${intent.billing}`
+      return `${window.location.origin}/auth/callback?next=${encodeURIComponent(upgradePath)}`
+    }
+    return `${window.location.origin}/auth/callback`
+  }
+
   async function handleGoogleSignup() {
     setGoogleLoading(true)
-    if (plan === 'pro' || plan === 'elite') {
-      localStorage.setItem('signup_plan', plan)
-      localStorage.setItem('signup_billing', billing || 'monthly')
-    }
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: plan
-          ? `${window.location.origin}/auth/callback?next=/auth/upgrade`
-          : `${window.location.origin}/auth/callback`,
-      },
+      options: { redirectTo: getAuthRedirectUrl() },
     })
   }
 
@@ -44,14 +63,7 @@ function SignupForm() {
 
     setLoading(true)
 
-    if (plan === 'pro' || plan === 'elite') {
-      localStorage.setItem('signup_plan', plan)
-      localStorage.setItem('signup_billing', billing || 'monthly')
-    }
-
-    const redirectTo = plan
-      ? `${window.location.origin}/auth/callback?next=/auth/upgrade`
-      : `${window.location.origin}/auth/callback`
+    const redirectTo = getAuthRedirectUrl()
 
     const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } })
 
@@ -63,6 +75,11 @@ function SignupForm() {
     setLoading(false)
   }
 
+  const paidIntent =
+    plan === 'pro' || plan === 'elite'
+      ? { plan, billing: billing || 'monthly' }
+      : null
+
   if (success) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -71,7 +88,7 @@ function SignupForm() {
           <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>Check your email</div>
           <div style={{ fontSize: '12px', color: 'var(--txt2)', lineHeight: 1.6 }}>
             We sent a confirmation link to <strong>{email}</strong>.
-            Click it to activate your account{plan ? ` and complete your ${plan.charAt(0).toUpperCase() + plan.slice(1)} plan setup` : ''}.
+            Click it to activate your account{paidIntent ? ` and complete your ${paidIntent.plan.charAt(0).toUpperCase() + paidIntent.plan.slice(1)} plan setup` : ''}.
           </div>
           <Link href="/login" style={{ display: 'inline-block', marginTop: '20px', color: 'var(--ac2)', fontSize: '11px', fontWeight: 600, textDecoration: 'none' }}>← Back to login</Link>
         </div>
@@ -104,10 +121,10 @@ function SignupForm() {
           <div style={{ fontSize: '12px', color: 'var(--txt3)' }}>Your trading journal</div>
         </div>
 
-        {plan && (
+        {paidIntent && (
           <div style={{ textAlign: 'center', marginBottom: '16px', fontSize: '12px', color: '#10B981', background: 'rgba(16,185,129,.08)', border: '1px solid rgba(16,185,129,.2)', borderRadius: '8px', padding: '8px 16px' }}>
-            🎯 You're signing up for the <strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong> plan
-            {billing === 'yearly' ? ' (billed yearly)' : ''}
+            🎯 You're signing up for the <strong>{paidIntent.plan.charAt(0).toUpperCase() + paidIntent.plan.slice(1)}</strong> plan
+            {paidIntent.billing === 'yearly' ? ' (billed yearly)' : ''}
           </div>
         )}
 
