@@ -29,7 +29,7 @@ function SignupForm() {
       provider: 'google',
       options: {
         redirectTo: plan
-          ? `${window.location.origin}/auth/callback?next=/billing?setup=true`
+          ? `${window.location.origin}/auth/callback?next=/auth/upgrade`
           : `${window.location.origin}/auth/callback`,
       },
     })
@@ -50,7 +50,7 @@ function SignupForm() {
     }
 
     const redirectTo = plan
-      ? `${window.location.origin}/auth/callback?next=/billing?setup=true`
+      ? `${window.location.origin}/auth/callback?next=/auth/upgrade`
       : `${window.location.origin}/auth/callback`
 
     const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } })
