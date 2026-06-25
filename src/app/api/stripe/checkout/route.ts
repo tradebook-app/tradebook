@@ -4,30 +4,13 @@ import { stripe } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 
-const PRICE_IDS: Record<string, string | undefined> = {
-  pro_monthly:   process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
-  pro_yearly:    process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID,
-  elite_monthly: process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID,
-  elite_yearly:  process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID,
-}
-
 export async function POST(req: Request) {
   try {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const body = await req.json()
-    let priceId: string | undefined = body.priceId
-
-    if (!priceId && body.tier) {
-      const cycle = body.cycle === 'yearly' ? 'yearly' : 'monthly'
-      priceId = PRICE_IDS[`${body.tier}_${cycle}`]
-    }
-
-    if (!priceId) {
-      return NextResponse.json({ error: 'Price not configured. Contact support.' }, { status: 400 })
-    }
+    const { priceId } = await req.json()
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -37,13 +20,26 @@ export async function POST(req: Request) {
 
     let customerId = profile?.stripe_customer_id
 
+    // Verify the customer actually exists in Stripe live mode
+    if (customerId) {
+      try {
+        await stripe.customers.retrieve(customerId)
+      } catch {
+        // Customer doesn't exist in live mode (test mode ID or deleted) — create a new one
+        customerId = null
+      }
+    }
+
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email!,
         metadata: { supabase_user_id: user.id },
       })
       customerId = customer.id
-      await supabase.from('profiles').upsert({ id: user.id, stripe_customer_id: customerId })
+
+      await supabase
+        .from('profiles')
+        .upsert({ id: user.id, stripe_customer_id: customerId })
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -53,7 +49,9 @@ export async function POST(req: Request) {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?canceled=true`,
-      subscription_data: { metadata: { supabase_user_id: user.id } },
+      subscription_data: {
+        metadata: { supabase_user_id: user.id },
+      },
     })
 
     return NextResponse.json({ url: session.url })
