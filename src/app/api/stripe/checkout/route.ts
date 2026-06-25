@@ -4,13 +4,30 @@ import { stripe } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 
+const PRICE_IDS: Record<string, string> = {
+  'pro-monthly':   'price_1TmAfF9nrVYxaG6HQ5fUZu10',
+  'pro-yearly':    'price_1TmAfd9nrVYxaG6HpLuJiSoj',
+  'elite-monthly': 'price_1TmAdF9nrVYxaG6H0kGCwAZA',
+  'elite-yearly':  'price_1TmAeO9nrVYxaG6H3EiqB7Xw',
+}
+
 export async function POST(req: Request) {
   try {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { priceId } = await req.json()
+    const body = await req.json()
+    let priceId: string | undefined = body.priceId
+
+    if (!priceId && body.tier) {
+      const cycle = body.cycle === 'yearly' ? 'yearly' : 'monthly'
+      priceId = PRICE_IDS[`${body.tier}_${cycle}`]
+    }
+
+    if (!priceId) {
+      return NextResponse.json({ error: 'Price not configured.' }, { status: 400 })
+    }
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -20,12 +37,10 @@ export async function POST(req: Request) {
 
     let customerId = profile?.stripe_customer_id
 
-    // Verify the customer actually exists in Stripe live mode
     if (customerId) {
       try {
         await stripe.customers.retrieve(customerId)
       } catch {
-        // Customer doesn't exist in live mode (test mode ID or deleted) — create a new one
         customerId = null
       }
     }
@@ -36,10 +51,7 @@ export async function POST(req: Request) {
         metadata: { supabase_user_id: user.id },
       })
       customerId = customer.id
-
-      await supabase
-        .from('profiles')
-        .upsert({ id: user.id, stripe_customer_id: customerId })
+      await supabase.from('profiles').upsert({ id: user.id, stripe_customer_id: customerId })
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -49,9 +61,7 @@ export async function POST(req: Request) {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?canceled=true`,
-      subscription_data: {
-        metadata: { supabase_user_id: user.id },
-      },
+      subscription_data: { metadata: { supabase_user_id: user.id } },
     })
 
     return NextResponse.json({ url: session.url })
