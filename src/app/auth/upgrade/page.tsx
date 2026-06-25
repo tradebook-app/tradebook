@@ -2,12 +2,11 @@
 
 import { useEffect } from 'react'
 
-// Price IDs from Stripe
 const PRICE_IDS: Record<string, string> = {
-  'pro-monthly':    'price_1Tk9Ss9nrVYxaG6HA647kUMy',
-  'pro-yearly':     'price_1TkPHT8xhXO1bxf1ildBaMih',
-  'elite-monthly':  'price_1Tk9YB9nrVYxaG6HdYrGcpRd',
-  'elite-yearly':   'price_1TkSa48xhXO1bxf1yCEPLXH6',
+  'pro-monthly':   process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!,
+  'pro-yearly':    process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID!,
+  'elite-monthly': process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID!,
+  'elite-yearly':  process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID!,
 }
 
 export default function UpgradePage() {
@@ -25,7 +24,7 @@ export default function UpgradePage() {
         return
       }
 
-      const key = `${plan}-${billing}`
+      const key     = `${plan}-${billing}`
       const priceId = PRICE_IDS[key]
 
       if (!priceId) {
@@ -34,10 +33,10 @@ export default function UpgradePage() {
       }
 
       try {
-        const res = await fetch('/api/stripe/checkout', {
-          method: 'POST',
+        const res  = await fetch('/api/stripe/checkout', {
+          method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ priceId }),
+          body:    JSON.stringify({ priceId }),
         })
         const data = await res.json()
         if (data.url) {
@@ -55,13 +54,13 @@ export default function UpgradePage() {
 
   return (
     <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg)',
-      display: 'flex',
-      alignItems: 'center',
+      minHeight:      '100vh',
+      background:     'var(--bg)',
+      display:        'flex',
+      alignItems:     'center',
       justifyContent: 'center',
-      flexDirection: 'column',
-      gap: '16px',
+      flexDirection:  'column',
+      gap:            '16px',
     }}>
       <div style={{ fontSize: '24px' }}>⚡</div>
       <div style={{ fontSize: '16px', fontWeight: 700 }}>Setting up your plan...</div>
