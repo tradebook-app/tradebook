@@ -15,7 +15,6 @@ export default function UpgradePage() {
       const plan    = localStorage.getItem('signup_plan')
       const billing = localStorage.getItem('signup_billing') || 'monthly'
 
-      // Clear storage
       localStorage.removeItem('signup_plan')
       localStorage.removeItem('signup_billing')
 
