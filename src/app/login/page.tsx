@@ -29,8 +29,9 @@ export default function LoginPage() {
     }
 
     const savedPlan = localStorage.getItem('signup_plan')
+    const savedBilling = localStorage.getItem('signup_billing') || 'monthly'
     if (savedPlan === 'pro' || savedPlan === 'elite') {
-      router.push('/billing?setup=true')
+      router.push(`/auth/upgrade?plan=${savedPlan}&billing=${savedBilling}`)
     } else {
       router.push('/dashboard')
     }
@@ -40,8 +41,9 @@ export default function LoginPage() {
   async function handleGoogleLogin() {
     setGoogleLoading(true)
     const savedPlan = localStorage.getItem('signup_plan')
-    const redirectTo = savedPlan
-      ? `${window.location.origin}/auth/callback?next=/billing?setup=true`
+    const savedBilling = localStorage.getItem('signup_billing') || 'monthly'
+    const redirectTo = savedPlan === 'pro' || savedPlan === 'elite'
+      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/auth/upgrade?plan=${savedPlan}&billing=${savedBilling}`)}`
       : `${window.location.origin}/auth/callback`
 
     await supabase.auth.signInWithOAuth({

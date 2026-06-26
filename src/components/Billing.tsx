@@ -63,8 +63,10 @@ export function Billing() {
       }
       syncAndLoad()
     } else if (setup) {
-      const savedPlan = localStorage.getItem('signup_plan') as 'pro' | 'elite' | null
-      const savedBilling = (localStorage.getItem('signup_billing') || 'monthly') as 'monthly' | 'yearly'
+      const urlPlan = params.get('plan') as 'pro' | 'elite' | null
+      const urlBilling = params.get('billing') as 'monthly' | 'yearly' | null
+      const savedPlan = (urlPlan || localStorage.getItem('signup_plan')) as 'pro' | 'elite' | null
+      const savedBilling = (urlBilling || localStorage.getItem('signup_billing') || 'monthly') as 'monthly' | 'yearly'
       localStorage.removeItem('signup_plan')
       localStorage.removeItem('signup_billing')
       if (savedPlan === 'pro' || savedPlan === 'elite') {

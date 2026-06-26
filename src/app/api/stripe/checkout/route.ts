@@ -5,10 +5,10 @@ import { stripe } from '@/lib/stripe'
 export const dynamic = 'force-dynamic'
 
 const PRICE_IDS: Record<string, string> = {
-  'pro-monthly':   'price_1TmAfF9nrVYxaG6HQ5fUZu10',
-  'pro-yearly':    'price_1TmAfd9nrVYxaG6HpLuJiSoj',
-  'elite-monthly': 'price_1TmAdF9nrVYxaG6H0kGCwAZA',
-  'elite-yearly':  'price_1TmAeO9nrVYxaG6H3EiqB7Xw',
+  'pro-monthly':   process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || 'price_1TmAfF9nrVYxaG6HQ5fUZu10',
+  'pro-yearly':    process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID || 'price_1TmAfd9nrVYxaG6HpLuJiSoj',
+  'elite-monthly': process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID || 'price_1TmAdF9nrVYxaG6H0kGCwAZA',
+  'elite-yearly':  process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID || 'price_1TmAeO9nrVYxaG6H3EiqB7Xw',
 }
 
 export async function POST(req: Request) {
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
 
     if (!priceId && body.tier) {
       const cycle = body.cycle === 'yearly' ? 'yearly' : 'monthly'
-      priceId = PRICE_IDS[`${body.tier}_${cycle}`]
+      priceId = PRICE_IDS[`${body.tier}-${cycle}`]
     }
 
     if (!priceId) {

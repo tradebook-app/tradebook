@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 export function PricingSection() {
   const [yearly, setYearly] = useState(false)
@@ -8,16 +9,23 @@ export function PricingSection() {
   const proPrice = yearly ? 15 : 19
   const elitePrice = yearly ? 23 : 29
 
-  function handlePlanClick(plan: 'free' | 'pro' | 'elite') {
+  async function handlePlanClick(plan: 'free' | 'pro' | 'elite') {
     if (plan === 'free') {
       window.location.href = '/signup'
       return
     }
-    // Save plan intent, then go to billing.
-    // If not logged in, billing page redirects to login, which redirects back to billing after auth.
+    const billing = yearly ? 'yearly' : 'monthly'
     localStorage.setItem('signup_plan', plan)
-    localStorage.setItem('signup_billing', yearly ? 'yearly' : 'monthly')
-    window.location.href = '/billing?setup=true'
+    localStorage.setItem('signup_billing', billing)
+
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (user) {
+      window.location.href = `/auth/upgrade?plan=${plan}&billing=${billing}`
+    } else {
+      window.location.href = `/signup?plan=${plan}&billing=${billing}`
+    }
   }
 
   return (
