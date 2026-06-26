@@ -1,79 +1,115 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe'
+import { createClient } from '@/lib/supabase/server'
 
-function detectPlan(priceId: string | undefined): 'elite' | 'pro' | 'free' {
-  if (!priceId) return 'free'
-  const eliteMonthly = process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID
-  const eliteYearly = process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID
-  if (priceId === eliteMonthly || priceId === eliteYearly) return 'elite'
-  return 'pro'
+export const dynamic = 'force-dynamic'
+
+const PRICE_TO_PLAN: Record<string, string> = {
+  'price_1TmAfF9nrVYxaG6HQ5fUZu10': 'pro',
+  'price_1TmAfd9nrVYxaG6HpLuJiSoj': 'pro',
+  'price_1TmAdF9nrVYxaG6H0kGCwAZA': 'elite',
+  'price_1TmAeO9nrVYxaG6H3EiqB7Xw': 'elite',
 }
 
-export async function POST() {
+function getPlan(priceId: string): string {
+  return PRICE_TO_PLAN[priceId] || 'pro'
+}
+
+export async function POST(req: Request) {
+  const body = await req.text()
+  const sig = req.headers.get('stripe-signature')!
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+
+  let event
+
   try {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
+  } catch (err: any) {
+    console.error('Webhook signature verification failed:', err.message)
+    return NextResponse.json({ error: err.message }, { status: 400 })
+  }
 
-    // Get the profile to find the Stripe customer ID
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('stripe_customer_id')
-      .eq('id', user.id)
-      .single()
+  const supabase = createClient()
 
-    if (!profile?.stripe_customer_id) {
-      return NextResponse.json({ plan: 'free', synced: false })
-    }
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as any
+        const customerId = session.customer
+        const subscriptionId = session.subscription
+        const userId = session.metadata?.supabase_user_id
 
-    // Fetch active subscriptions from Stripe directly
-    const subscriptions = await stripe.subscriptions.list({
-      customer: profile.stripe_customer_id,
-      status: 'active',
-      limit: 1,
-    })
+        if (!userId || !subscriptionId) break
 
-    if (subscriptions.data.length === 0) {
-      // No active subscription — check for trialing
-      const trialing = await stripe.subscriptions.list({
-        customer: profile.stripe_customer_id,
-        status: 'trialing',
-        limit: 1,
-      })
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+        const priceId = subscription.items.data[0]?.price.id
+        const plan = getPlan(priceId)
 
-      if (trialing.data.length === 0) {
-        return NextResponse.json({ plan: 'free', synced: false })
+        await supabase.from('profiles').upsert({
+          id: userId,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
+          subscription_status: 'active',
+          plan,
+        })
+        break
       }
 
-      const sub = trialing.data[0]
-      const priceId = sub.items.data[0]?.price?.id
-      const plan = detectPlan(priceId)
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as any
+        const userId = subscription.metadata?.supabase_user_id
+        if (!userId) break
 
-      await supabase.from('profiles').upsert({
-        id: user.id,
-        stripe_subscription_id: sub.id,
-        subscription_status: 'trialing',
-        plan,
-      })
+        const priceId = subscription.items.data[0]?.price.id
+        const plan = getPlan(priceId)
+        const status = subscription.status
 
-      return NextResponse.json({ plan, synced: true })
+        await supabase.from('profiles').upsert({
+          id: userId,
+          stripe_subscription_id: subscription.id,
+          subscription_status: status,
+          plan: status === 'active' ? plan : 'free',
+        })
+        break
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as any
+        const userId = subscription.metadata?.supabase_user_id
+        if (!userId) break
+
+        await supabase.from('profiles').upsert({
+          id: userId,
+          stripe_subscription_id: null,
+          subscription_status: 'canceled',
+          plan: 'free',
+        })
+        break
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as any
+        const customerId = invoice.customer
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('stripe_customer_id', customerId)
+          .single()
+
+        if (profile) {
+          await supabase.from('profiles').upsert({
+            id: profile.id,
+            subscription_status: 'past_due',
+          })
+        }
+        break
+      }
     }
-
-    const sub = subscriptions.data[0]
-    const priceId = sub.items.data[0]?.price?.id
-    const plan = detectPlan(priceId)
-
-    await supabase.from('profiles').upsert({
-      id: user.id,
-      stripe_subscription_id: sub.id,
-      subscription_status: 'active',
-      plan,
-    })
-
-    return NextResponse.json({ plan, synced: true })
   } catch (err: any) {
-    console.error('Sync error:', err)
+    console.error('Webhook handler error:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
+
+  return NextResponse.json({ received: true })
 }
