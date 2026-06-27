@@ -12,6 +12,7 @@ const NAV = [
   { href: '/notebook',    icon: '☰',  label: 'Notebook' },
   { href: '/reports',     icon: '◩',  label: 'Reports' },
   { href: '/strategies',  icon: '◇',  label: 'Strategies' },
+  { href: '/scanner',     icon: '◎',  label: 'Scanner' },
 ]
 
 const TOOLS = [
