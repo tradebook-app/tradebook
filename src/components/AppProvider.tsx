@@ -22,6 +22,7 @@ import { Settings } from '@/components/Settings'
 import { Journal } from '@/components/Journal'
 import { AIAnalysis } from '@/components/AIAnalysis'
 import { Billing } from '@/components/Billing'
+import { Scanner } from '@/components/Scanner'
 
 
 type Props = {
@@ -81,10 +82,10 @@ const PAGE_TITLES: Record<string, string> = {
   '/notebook':      'Notebook',
   '/reports':       'Reports',
   '/strategies':    'Strategies',
+  '/scanner':       'Scanner',
   '/position-size': 'Position Size',
   '/ai-analysis':   'Sleek AI',
   '/billing':       'Billing',
-
   '/import':        'Import Trades',
   '/settings':      'Settings',
 }
@@ -157,7 +158,7 @@ export function AppProvider({ userId, userEmail }: Props) {
   const title = PAGE_TITLES[pathname] || 'Sleektrade'
 
   function renderPage() {
-    if (loading) {
+    if (loading && pathname !== '/scanner') {
       return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '50vh', color: 'var(--txt3)' }}>
           Loading...
@@ -165,18 +166,18 @@ export function AppProvider({ userId, userEmail }: Props) {
       )
     }
 
-    if (pathname === '/trades') return <TradeView trades={trades} filter={filter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} />
-    if (pathname === '/dashboard') return <DashboardWithBanner trades={trades} filter={filter} onEdit={openEdit} onDelete={handleDelete} userId={userId} onReload={reloadTrades} />
-    if (pathname === '/journal') return <Journal trades={trades} onEdit={openEdit} />
-    if (pathname === '/reports') return <GatedReports trades={trades} filter={filter} />
-    if (pathname === '/position-size') return <PositionSize />
-    if (pathname === '/strategies') return <GatedStrategies userId={userId} />
-    if (pathname === '/notebook') return <GatedNotebook userId={userId} />
-    if (pathname === '/import') return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
-    if (pathname === '/settings') return <Settings userEmail={userEmail} />
-    if (pathname === '/ai-analysis') return <GatedAIAnalysis trades={trades} />
-    if (pathname === '/billing') return <Billing />
-    
+    if (pathname === '/scanner')      return <Scanner />
+    if (pathname === '/trades')       return <TradeView trades={trades} filter={filter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} />
+    if (pathname === '/dashboard')    return <DashboardWithBanner trades={trades} filter={filter} onEdit={openEdit} onDelete={handleDelete} userId={userId} onReload={reloadTrades} />
+    if (pathname === '/journal')      return <Journal trades={trades} onEdit={openEdit} />
+    if (pathname === '/reports')      return <GatedReports trades={trades} filter={filter} />
+    if (pathname === '/position-size')return <PositionSize />
+    if (pathname === '/strategies')   return <GatedStrategies userId={userId} />
+    if (pathname === '/notebook')     return <GatedNotebook userId={userId} />
+    if (pathname === '/import')       return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
+    if (pathname === '/settings')     return <Settings userEmail={userEmail} />
+    if (pathname === '/ai-analysis')  return <GatedAIAnalysis trades={trades} />
+    if (pathname === '/billing')      return <Billing />
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: '12px' }}>
