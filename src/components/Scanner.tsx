@@ -55,8 +55,8 @@ export function Scanner() {
     const update = () => {
       const et = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
       const h = et.getHours(), m = et.getMinutes();
-      const status = h < 4 ? "Market Closed" : (h < 9 || (h === 9 && m < 30)) ? "Pre-Market" : h < 16 ? "Market Open" : "After Hours";
-      setClock(`${et.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})} ET — ${status}`);
+      const day = et.getDay(); const isWeekend = day === 0 || day === 6; const status = isWeekend ? "Market Closed" : h < 4 ? "Market Closed" : (h < 9 || (h === 9 && m < 30)) ? "Pre-Market" : h < 16 ? "Market Open" : "After Hours";
+      const dateStr = et.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); setClock(`${dateStr}, ${et.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})} ET — ${status}`);
     };
     update();
     const t = setInterval(update, 30000);
