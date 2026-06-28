@@ -311,14 +311,14 @@ export function Scanner() {
             </div>
             <div style={GRP}><label style={LBL}>Avg Vol 30D</label>
               <div style={{display:'flex',gap:'4px'}}>
-                <input style={INPUT} type="text" value={gAvgVolMin} onChange={e=>setGAvgVolMin(e.target.value)} placeholder="Min 500K"/>
-                <input style={INPUT} type="text" value={gAvgVolMax} onChange={e=>setGAvgVolMax(e.target.value)} placeholder="Max 5M"/>
+                <input style={INPUT} type="text" value={gAvgVolMin} onChange={e=>setGAvgVolMin(e.target.value)} placeholder="Min"/>
+                <input style={INPUT} type="text" value={gAvgVolMax} onChange={e=>setGAvgVolMax(e.target.value)} placeholder="Max"/>
               </div>
             </div>
             <div style={GRP}><label style={LBL}>Mkt Cap</label>
               <div style={{display:'flex',gap:'4px'}}>
-                <input style={INPUT} type="text" value={gMktCapMin} onChange={e=>setGMktCapMin(e.target.value)} placeholder="Min 1B"/>
-                <input style={INPUT} type="text" value={gMktCapMax} onChange={e=>setGMktCapMax(e.target.value)} placeholder="Max 100B"/>
+                <input style={INPUT} type="text" value={gMktCapMin} onChange={e=>setGMktCapMin(e.target.value)} placeholder="Min"/>
+                <input style={INPUT} type="text" value={gMktCapMax} onChange={e=>setGMktCapMax(e.target.value)} placeholder="Max"/>
               </div>
             </div>
             {SB_BTN(loading.gap?'Loading...':'Refresh', ()=>load('gap',`${BASE}/gaps`,setGapData), loading.gap)}
