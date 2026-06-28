@@ -34,6 +34,17 @@ const GRP: React.CSSProperties   = { marginBottom:'9px' };
 const TH: React.CSSProperties    = { fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase' as const, color:'var(--txt3)', padding:'7px 10px', textAlign:'left' as const, borderBottom:'1px solid var(--brd)', whiteSpace:'nowrap' as const };
 const TD: React.CSSProperties    = { padding:'7px 10px', fontSize:'11px', borderBottom:'1px solid var(--brd)', whiteSpace:'nowrap' as const };
 
+function parseKMB(val: string): number {
+  const s = val.trim().toUpperCase();
+  if (!s || s === '0') return 0;
+  const num = parseFloat(s);
+  if (isNaN(num)) return 0;
+  if (s.endsWith('B')) return num * 1_000_000_000;
+  if (s.endsWith('M')) return num * 1_000_000;
+  if (s.endsWith('K')) return num * 1_000;
+  return num;
+}
+
 export function Scanner() {
   const [tab,       setTab]       = useState<'gap'|'momentum'|'themes'|'fundamentals'>('gap');
   const [gapData,   setGapData]   = useState<GapStock[]>([]);
@@ -235,20 +246,14 @@ export function Scanner() {
               <input style={INPUT} type="number" value={gGap} onChange={e=>setGGap(+e.target.value)} placeholder="Min gap %"/>
             </div>
             <div style={GRP}><label style={LBL}>Price $</label>
-              <div style={{display:'flex',gap:'4px',alignItems:'center'}}>
-                <input style={INPUT} type="number" value={gPrice} onChange={e=>setGPrice(+e.target.value)} placeholder="Min"/>
-                <div style={{display:'flex',flexDirection:'column',gap:'1px'}}>
-                  <button onClick={()=>setGPrice(p=>p+1)} style={{width:'18px',height:'13px',background:'var(--bg3)',border:'1px solid var(--brd2)',borderRadius:'3px 3px 0 0',cursor:'pointer',color:'var(--txt2)',fontSize:'9px',display:'flex',alignItems:'center',justifyContent:'center'}}>▲</button>
-                  <button onClick={()=>setGPrice(p=>Math.max(0,p-1))} style={{width:'18px',height:'13px',background:'var(--bg3)',border:'1px solid var(--brd2)',borderRadius:'0 0 3px 3px',cursor:'pointer',color:'var(--txt2)',fontSize:'9px',display:'flex',alignItems:'center',justifyContent:'center'}}>▼</button>
-                </div>
-              </div>
+              <input style={INPUT} type="number" value={gPrice} onChange={e=>setGPrice(+e.target.value)} placeholder="Min price"/>
             </div>
             <div style={GRP}><label style={LBL}>Pre-Mkt Vol (K)</label><input style={INPUT} type="number" value={gVol} onChange={e=>setGVol(+e.target.value)} placeholder="Min volume"/></div>
             <div style={GRP}><label style={LBL}>Float M</label><input style={INPUT} type="number" value={gFloat} onChange={e=>setGFloat(+e.target.value)} placeholder="Max float"/></div>
             <div style={GRP}><label style={LBL}>ADR %</label><input style={INPUT} type="number" value={gAdr} onChange={e=>setGAdr(+e.target.value)} placeholder="Min ADR"/></div>
-            <div style={GRP}><label style={LBL}>ATR %</label><input style={INPUT} type="number" value={gAtr} onChange={e=>setGAtr(+e.target.value)} placeholder="Min ATR"/></div>
-            <div style={GRP}><label style={LBL}>Avg Vol 30D (K)</label><input style={INPUT} type="number" value={gAvgVol} onChange={e=>setGAvgVol(+e.target.value)} placeholder="Min avg vol"/></div>
-            <div style={GRP}><label style={LBL}>Mkt Cap (B)</label><input style={INPUT} type="number" value={gMktCap} onChange={e=>setGMktCap(+e.target.value)} placeholder="Max mkt cap"/></div>
+            <div style={GRP}><label style={LBL}>ATR</label><input style={INPUT} type="number" value={gAtr} onChange={e=>setGAtr(+e.target.value)} placeholder="Min ATR"/></div>
+            <div style={GRP}><label style={LBL}>Avg Vol 30D</label><input style={INPUT} type="text" defaultValue="0" onChange={e=>setGAvgVol(parseKMB(e.target.value))} placeholder="e.g. 500K, 1M"/></div>
+            <div style={GRP}><label style={LBL}>Mkt Cap</label><input style={INPUT} type="text" defaultValue="0" onChange={e=>setGMktCap(parseKMB(e.target.value))} placeholder="e.g. 10B, 500M"/></div>
             {SB_BTN(loading.gap?'Loading...':'Refresh', ()=>load('gap',`${BASE}/gaps`,setGapData), loading.gap)}
           </div>
           <div>
