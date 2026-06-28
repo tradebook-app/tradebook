@@ -275,56 +275,32 @@ export function Scanner() {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
-
-      {/* Market status indicator */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', marginBottom:'12px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:'8px', background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'20px', padding:'5px 12px' }}>
-          {/* Animated pulse ring */}
-          <div style={{ position:'relative', width:'14px', height:'14px', flexShrink:0 }}>
-            <div style={{
-              position:'absolute', inset:0, borderRadius:'50%',
-              background: clock.includes('Open') ? 'var(--ac)' : clock.includes('Pre-Market') ? 'var(--orange)' : 'var(--txt4)',
-              opacity:0.25,
-              animation: clock.includes('Open') ? 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite' : 'none',
-            }}/>
-            <div style={{
-              position:'absolute', inset:'3px', borderRadius:'50%',
-              background: clock.includes('Open') ? 'var(--ac)' : clock.includes('Pre-Market') ? 'var(--orange)' : 'var(--txt4)',
-            }}/>
-          </div>
+      {/* Tabs + Market Status in one row */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid var(--brd)', marginBottom:'14px', paddingRight:'4px' }}>
+        <div style={{ display:'flex' }}>
+          {(['gap','momentum','themes','fundamentals'] as const).map(t=>(
+            <button key={t} onClick={()=>{ setTab(t); setDetail(null); }} style={{
+              padding:'8px 14px', fontSize:'12px', fontWeight:600, cursor:'pointer',
+              background:'none', border:'none', borderBottom: tab===t ? '2px solid var(--ac)' : '2px solid transparent',
+              color: tab===t ? 'var(--ac2)' : 'var(--txt2)', fontFamily:'var(--sans)', transition:'.1s',
+            }}>
+              {t==='gap'?'Gap scanner':t==='fundamentals'?'Fundamentals':t.charAt(0).toUpperCase()+t.slice(1)}
+            </button>
+          ))}
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:'6px', background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'20px', padding:'4px 10px', flexShrink:0 }}>
+          <div style={{ width:'7px', height:'7px', borderRadius:'50%', background: clock.includes('Open') ? 'var(--ac)' : clock.includes('Pre-Market') ? 'var(--orange)' : 'var(--txt4)', flexShrink:0 }}/>
           <div>
-            <div style={{ fontSize:'11px', fontWeight:600, color:'var(--txt)', lineHeight:1.2 }}
-              dangerouslySetInnerHTML={{ __html:
-                clock.includes('Open') ? 'Market Open' :
-                clock.includes('Pre-Market') ? 'Pre-Market' :
-                'Market Closed'
-              }}
-            />
-            <div style={{ fontSize:'10px', color:'var(--txt3)', lineHeight:1.2 }}
-              dangerouslySetInnerHTML={{ __html: clock }}
-            />
+            <div style={{ fontSize:'11px', fontWeight:600, color:'var(--txt)', lineHeight:1.2 }}>{clock.includes('Open')?'Market Open':clock.includes('Pre-Market')?'Pre-Market':'Market Closed'}</div>
+            <div style={{ fontSize:'10px', color:'var(--txt3)', lineHeight:1.2 }} dangerouslySetInnerHTML={{ __html: clock }}/>
           </div>
         </div>
-      </div>
-      <style>{`@keyframes ping { 75%,100% { transform:scale(2); opacity:0; } }`}</style>
-
-      {/* Tabs */}
-      <div style={{ display:'flex', borderBottom:'1px solid var(--brd)', marginBottom:'14px' }}>
-        {(['gap','momentum','themes','fundamentals'] as const).map(t=>(
-          <button key={t} onClick={()=>{ setTab(t); setDetail(null); }} style={{
-            padding:'8px 14px', fontSize:'12px', fontWeight:600, cursor:'pointer',
-            background:'none', border:'none', borderBottom: tab===t ? '2px solid var(--ac)' : '2px solid transparent',
-            color: tab===t ? 'var(--ac2)' : 'var(--txt2)', fontFamily:'var(--sans)', transition:'.1s',
-          }}>
-            {t==='gap'?'Gap scanner':t==='fundamentals'?'Fundamentals':t.charAt(0).toUpperCase()+t.slice(1)}
-          </button>
-        ))}
       </div>
 
       {/* ── GAP SCANNER ── */}
       {tab==='gap' && (
         <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1 }}>
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start', maxHeight:'calc(100vh - 160px)', overflowY:'auto' }}>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start', position:'sticky', top:0, maxHeight:'calc(100vh - 120px)', overflowY:'auto' }}>
             <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'9px', paddingBottom:'7px', borderBottom:'1px solid var(--brd)' }}>Filters</div>
             <div style={GRP}><label style={LBL}>Direction</label>
               <select style={INPUT} value={gDir} onChange={e=>setGDir(e.target.value)}>
