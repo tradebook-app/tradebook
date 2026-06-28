@@ -232,14 +232,23 @@ export function Scanner() {
               </select>
             </div>
             <div style={GRP}><label style={LBL}>Gap %</label>
-              <div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gMin} onChange={e=>setGMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gMax} onChange={e=>setGMax(+e.target.value)} placeholder="Max"/></div>
+              <input style={INPUT} type="number" value={gGap} onChange={e=>setGGap(+e.target.value)} placeholder="Min gap %"/>
             </div>
             <div style={GRP}><label style={LBL}>Price $</label>
-              <div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gPMin} onChange={e=>setGPMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gPMax} onChange={e=>setGPMax(+e.target.value)} placeholder="Max"/></div>
+              <div style={{display:'flex',gap:'4px',alignItems:'center'}}>
+                <input style={INPUT} type="number" value={gPrice} onChange={e=>setGPrice(+e.target.value)} placeholder="Min"/>
+                <div style={{display:'flex',flexDirection:'column',gap:'1px'}}>
+                  <button onClick={()=>setGPrice(p=>p+1)} style={{width:'18px',height:'13px',background:'var(--bg3)',border:'1px solid var(--brd2)',borderRadius:'3px 3px 0 0',cursor:'pointer',color:'var(--txt2)',fontSize:'9px',display:'flex',alignItems:'center',justifyContent:'center'}}>▲</button>
+                  <button onClick={()=>setGPrice(p=>Math.max(0,p-1))} style={{width:'18px',height:'13px',background:'var(--bg3)',border:'1px solid var(--brd2)',borderRadius:'0 0 3px 3px',cursor:'pointer',color:'var(--txt2)',fontSize:'9px',display:'flex',alignItems:'center',justifyContent:'center'}}>▼</button>
+                </div>
+              </div>
             </div>
-            <div style={GRP}><label style={LBL}>Min vol K</label><input style={INPUT} type="number" value={gVol} onChange={e=>setGVol(+e.target.value)}/></div>
-            <div style={GRP}><label style={LBL}>Max float M</label><input style={INPUT} type="number" value={gFloat} onChange={e=>setGFloat(+e.target.value)}/></div>
-            <div style={GRP}><label style={LBL}>Min ADR %</label><input style={INPUT} type="number" value={gAdr} onChange={e=>setGAdr(+e.target.value)}/></div>
+            <div style={GRP}><label style={LBL}>Pre-Mkt Vol (K)</label><input style={INPUT} type="number" value={gVol} onChange={e=>setGVol(+e.target.value)} placeholder="Min volume"/></div>
+            <div style={GRP}><label style={LBL}>Float M</label><input style={INPUT} type="number" value={gFloat} onChange={e=>setGFloat(+e.target.value)} placeholder="Max float"/></div>
+            <div style={GRP}><label style={LBL}>ADR %</label><input style={INPUT} type="number" value={gAdr} onChange={e=>setGAdr(+e.target.value)} placeholder="Min ADR"/></div>
+            <div style={GRP}><label style={LBL}>ATR %</label><input style={INPUT} type="number" value={gAtr} onChange={e=>setGAtr(+e.target.value)} placeholder="Min ATR"/></div>
+            <div style={GRP}><label style={LBL}>Avg Vol 30D (K)</label><input style={INPUT} type="number" value={gAvgVol} onChange={e=>setGAvgVol(+e.target.value)} placeholder="Min avg vol"/></div>
+            <div style={GRP}><label style={LBL}>Mkt Cap (B)</label><input style={INPUT} type="number" value={gMktCap} onChange={e=>setGMktCap(+e.target.value)} placeholder="Max mkt cap"/></div>
             {SB_BTN(loading.gap?'Loading...':'Refresh', ()=>load('gap',`${BASE}/gaps`,setGapData), loading.gap)}
           </div>
           <div>
