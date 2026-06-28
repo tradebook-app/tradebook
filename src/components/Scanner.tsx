@@ -141,12 +141,17 @@ export function Scanner() {
     if (mktCapMaxN > 0 && r.mktCap && r.mktCap > mktCapMaxN) return false;
     return true;
   }).sort((a:any,b:any) => {
-    const av = Math.abs(a.gap), bv = Math.abs(b.gap);
-    if (gSortCol==='gap')   return gSortAsc ? av-bv : bv-av;
-    if (gSortCol==='float') return gSortAsc ? (a.float||0)-(b.float||0) : (b.float||0)-(a.float||0);
-    if (gSortCol==='atr')   return gSortAsc ? (a.atr||0)-(b.atr||0) : (b.atr||0)-(a.atr||0);
-    if (gSortCol==='adr')   return gSortAsc ? (a.adr||0)-(b.adr||0) : (b.adr||0)-(a.adr||0);
-    return bv - av;
+    const dir = gSortAsc ? 1 : -1;
+    if (gSortCol==='gap')      return dir * (Math.abs(a.gap) - Math.abs(b.gap));
+    if (gSortCol==='preVol')   return dir * ((a.preVol||0) - (b.preVol||0));
+    if (gSortCol==='prevClose')return dir * ((a.prevClose||0) - (b.prevClose||0));
+    if (gSortCol==='float')    return dir * ((a.float||0) - (b.float||0));
+    if (gSortCol==='adr')      return dir * ((a.adr||0) - (b.adr||0));
+    if (gSortCol==='atr')      return dir * ((a.atr||0) - (b.atr||0));
+    if (gSortCol==='industry') return dir * ((a.industry||'').localeCompare(b.industry||''));
+    if (gSortCol==='sector')   return dir * ((a.sector||'').localeCompare(b.sector||''));
+    if (gSortCol==='ticker')   return dir * a.ticker.localeCompare(b.ticker);
+    return Math.abs(b.gap) - Math.abs(a.gap);
   });
 
   const filteredMom   = momData.filter(r=>r.m1>=mM1&&r.m3>=mM3&&r.m6>=mM6&&r.adr>=mAdr&&r.price>=mPMin&&r.price<=mPMax&&r.rs>=mRs).sort((a,b)=>b.rs-a.rs);
@@ -306,14 +311,14 @@ export function Scanner() {
             </div>
             <div style={GRP}><label style={LBL}>Avg Vol 30D</label>
               <div style={{display:'flex',gap:'4px'}}>
-                <input style={INPUT} type="text" value={gAvgVolMin} onChange={e=>setGAvgVolMin(e.target.value)} placeholder="Min e.g. 500K"/>
-                <input style={INPUT} type="text" value={gAvgVolMax} onChange={e=>setGAvgVolMax(e.target.value)} placeholder="Max e.g. 5M"/>
+                <input style={INPUT} type="text" value={gAvgVolMin} onChange={e=>setGAvgVolMin(e.target.value)} placeholder="Min 500K"/>
+                <input style={INPUT} type="text" value={gAvgVolMax} onChange={e=>setGAvgVolMax(e.target.value)} placeholder="Max 5M"/>
               </div>
             </div>
             <div style={GRP}><label style={LBL}>Mkt Cap</label>
               <div style={{display:'flex',gap:'4px'}}>
-                <input style={INPUT} type="text" value={gMktCapMin} onChange={e=>setGMktCapMin(e.target.value)} placeholder="Min e.g. 1B"/>
-                <input style={INPUT} type="text" value={gMktCapMax} onChange={e=>setGMktCapMax(e.target.value)} placeholder="Max e.g. 100B"/>
+                <input style={INPUT} type="text" value={gMktCapMin} onChange={e=>setGMktCapMin(e.target.value)} placeholder="Min 1B"/>
+                <input style={INPUT} type="text" value={gMktCapMax} onChange={e=>setGMktCapMax(e.target.value)} placeholder="Max 100B"/>
               </div>
             </div>
             {SB_BTN(loading.gap?'Loading...':'Refresh', ()=>load('gap',`${BASE}/gaps`,setGapData), loading.gap)}
@@ -322,20 +327,16 @@ export function Scanner() {
             {error.gap && <div style={{ marginBottom:'8px', padding:'9px 12px', background:'var(--red-d)', border:'1px solid rgba(239,68,68,.2)', borderRadius:'var(--r)', fontSize:'11px', color:'var(--red)' }}>{error.gap}</div>}
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'7px' }}>
               <span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.gap?'Loading live data...':`${filteredGaps.length} results · live`}</span>
-              <span style={{ fontSize:'10px', color:'var(--txt4)' }}>click row to expand</span>
+              
             </div>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflow:'hidden' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
                 <thead><tr>
-                    <th style={TH}>Ticker</th>
-                    <th style={{...TH,cursor:'pointer'}} onClick={()=>{setGSortCol('gap');setGSortAsc(a=>gSortCol==='gap'?!a:false);}}>Gap %{gSortCol==='gap'?(gSortAsc?' ↑':' ↓'):''}</th>
-                    <th style={TH}>Pre-Mkt Vol</th>
-                    <th style={TH}>Prev Close</th>
-                    <th style={{...TH,cursor:'pointer'}} onClick={()=>{setGSortCol('float');setGSortAsc(a=>gSortCol==='float'?!a:false);}}>Float{gSortCol==='float'?(gSortAsc?' ↑':' ↓'):''}</th>
-                    <th style={TH}>ADR %</th>
-                    <th style={{...TH,cursor:'pointer'}} onClick={()=>{setGSortCol('atr');setGSortAsc(a=>gSortCol==='atr'?!a:false);}}>ATR{gSortCol==='atr'?(gSortAsc?' ↑':' ↓'):''}</th>
-                    <th style={TH}>Industry</th>
-                    <th style={TH}>Sector</th>
+                    {[['ticker','Ticker'],['gap','Gap %'],['preVol','Pre-Mkt Vol'],['prevClose','Prev Close'],['float','Float'],['adr','ADR %'],['atr','ATR'],['industry','Industry'],['sector','Sector']].map(([col,label])=>(
+                      <th key={col} style={{...TH,cursor:'pointer'}} onClick={()=>{setGSortCol(col);setGSortAsc(a=>gSortCol===col?!a:false);}}>
+                        {label}{gSortCol===col?(gSortAsc?' ↑':' ↓'):''}
+                      </th>
+                    ))}
                   </tr></thead>
                 <tbody>
                   {loading.gap ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Fetching live data...</td></tr>
