@@ -54,7 +54,10 @@ export async function GET() {
         ]);
         if (!q?.price || !q?.previousClose) return;
 
-        const prePrice  = q.preMarketPrice || q.postMarketPrice || q.price;
+        // Only use real pre-market price — never fall back to regular price
+        // If no pre-market activity, skip this stock
+        const prePrice = q.preMarketPrice ?? null;
+        if (!prePrice) return;
         const prevClose = q.previousClose;
         const gapPct    = ((prePrice - prevClose) / Math.abs(prevClose)) * 100;
         const adr       = calcADR(q.yearHigh, q.yearLow);
@@ -71,7 +74,7 @@ export async function GET() {
         const mktCap = q.marketCap ?? null;
 
         // Pre-market volume
-        const preVol = q.preMarketVolume || q.postMarketVolume || 0;
+        const preVol = q.preMarketVolume || 0;
 
         results.push({
           ticker:       symbol,
@@ -87,8 +90,8 @@ export async function GET() {
           mktCap:       mktCap,                             // raw number (dollars)
           sector:       profile?.sector || q.sector || null,
           industry:     profile?.industry || q.industry || null,
-          isPreMarket:  !!q.preMarketPrice,
-          isPostMarket: !q.preMarketPrice && !!q.postMarketPrice,
+          isPreMarket:  true,
+          isPostMarket: false,
           lastUpdated:  new Date().toISOString(),
         });
       }));
