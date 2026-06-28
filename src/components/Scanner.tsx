@@ -236,19 +236,20 @@ export function Scanner() {
             </div>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflow:'hidden' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                <thead><tr>{['Ticker','Gap %','Pre px','Vol K','Prev close','Float','ADR %','Sector'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Ticker','Gap %','Pre-Mkt Vol','Prev close','Float','ADR %','ATR %','Industry','Sector'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
                 <tbody>
-                  {loading.gap ? <tr><td colSpan={8} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Fetching live data...</td></tr>
-                  : filteredGaps.length===0 ? <tr><td colSpan={8} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>No results — adjust filters</td></tr>
+                  {loading.gap ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Fetching live data...</td></tr>
+                  : filteredGaps.length===0 ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>No results — adjust filters</td></tr>
                   : filteredGaps.map(r=>(
                     <tr key={r.ticker} onClick={()=>openDetail(r,'gap',r.ticker)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
                       <td style={TD}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px' }}>{r.ticker}</div><div style={{ fontSize:'10px', color:'var(--txt3)' }}>{r.name}</div></td>
                       <td style={{ ...TD, color:pctColor(r.gap), fontWeight:600 }}>{pct(r.gap)}</td>
-                      <td style={{ ...TD, fontFamily:'var(--mono)' }}>{fmt$(r.prePrice)}</td>
                       <td style={{ ...TD, color:'var(--txt2)' }}>{r.preVol?r.preVol.toLocaleString()+'K':'—'}</td>
                       <td style={{ ...TD, fontFamily:'var(--mono)' }}>{fmt$(r.prevClose)}</td>
                       <td style={{ ...TD, color:'var(--txt2)' }}>{r.float?r.float+'M':'—'}</td>
                       <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.adr?r.adr.toFixed(1)+'%':'—'}</td>
+                      <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.atr?r.atr.toFixed(1)+'%':'—'}</td>
+                      <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.industry||'—'}</td>
                       <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.sector||'—'}</td>
                     </tr>
                   ))}
