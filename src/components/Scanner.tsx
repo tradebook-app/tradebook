@@ -23,7 +23,7 @@ function RkBadge({ v }: { v: number | null }) {
   return <span style={{ display:'inline-block', minWidth:'26px', textAlign:'center', padding:'2px 5px', borderRadius:'4px', fontSize:'10px', fontWeight:700, background:bg, color, border:`1px solid ${bdr}` }}>{v}</span>;
 }
 
-type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; sector:string|null; industry:string|null; isPreMarket:boolean; isPostMarket:boolean };
+type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; avgVol:number|null; mktCap:number|null; sector:string|null; industry:string|null; isPreMarket:boolean; isPostMarket:boolean };
 type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; rs:number; sector:string|null; d50:number|null; d200:number|null };
 type Theme      = { name:string; pct:number; stocks:{t:string;n:string;p:string;pctVal:number}[] };
 type FundaStock = { ticker:string; name:string; price:number; epsQoQ:number|null; epsYoY:number|null; revGrowth:number|null; epsRank:number|null; revRank:number|null; instRank:number|null; floatM:number|null; shortPct:number|null };
@@ -105,14 +105,16 @@ export function Scanner() {
   useEffect(() => { if (themeLoaded) load('themes',`${BASE}/themes?period=${themeTime}`,d=>{ setThemeData(d); setOpenTheme(-1); }); }, [themeTime]);
 
   const filteredGaps = gapData.filter(r => {
-    if (gDir==='up'&&r.gap<0) return false; if (gDir==='down'&&r.gap>0) return false;
+    if (gDir==='up'&&r.gap<0) return false;
+    if (gDir==='down'&&r.gap>0) return false;
     if (Math.abs(r.gap)<gGap) return false;
     if (r.prevClose<gPrice) return false;
-    if ((r.preVol||0)<gVol) return false;
-    if (r.float&&r.float>gFloat) return false;
-    if (r.adr<gAdr) return false;
-    if (r.atr<gAtr) return false;
-    if (gMktCap>0 && r.mktCap && r.mktCap/1e9 > gMktCap) return false;
+    if (gVol>0 && (r.preVol||0)<gVol) return false;
+    if (gFloat>0 && r.float && r.float>gFloat) return false;
+    if (gAdr>0 && r.adr<gAdr) return false;
+    if (gAtr>0 && r.atr<gAtr) return false;
+    if (gAvgVol>0 && r.avgVol && r.avgVol<gAvgVol) return false;
+    if (gMktCap>0 && r.mktCap && r.mktCap>gMktCap) return false;
     return true;
   }).sort((a:any,b:any) => {
     const av = Math.abs(a.gap), bv = Math.abs(b.gap);

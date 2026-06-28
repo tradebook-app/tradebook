@@ -41,7 +41,7 @@ export async function GET() {
   try {
     if (!KEY) return NextResponse.json({ error: 'FMP_API_KEY not configured' }, { status: 503 });
 
-    const BATCH = 8;
+    const BATCH = 6;
     const results: any[] = [];
 
     for (let i = 0; i < UNIVERSE.length; i += BATCH) {
@@ -60,23 +60,33 @@ export async function GET() {
         const adr       = calcADR(q.yearHigh, q.yearLow);
         const atrPct    = q.dayHigh && q.dayLow ? ((q.dayHigh - q.dayLow) / q.price) * 100 : 0;
 
-        // Float from shares-float endpoint
+        // Float — from shares-float endpoint
         const floatShares = floatData?.floatShares ?? floatData?.float ?? null;
         const floatM = floatShares ? parseFloat((floatShares / 1e6).toFixed(1)) : null;
+
+        // Avg Volume — from quote response directly (avgVolume field)
+        const avgVol = q.avgVolume ?? q.averageVolume ?? null;
+
+        // Market Cap — from quote response directly (marketCap field, in raw dollars)
+        const mktCap = q.marketCap ?? null;
+
+        // Pre-market volume
+        const preVol = q.preMarketVolume || q.postMarketVolume || 0;
 
         results.push({
           ticker:       symbol,
           name:         q.name || symbol,
           gap:          parseFloat(gapPct.toFixed(2)),
           prePrice:     parseFloat(prePrice.toFixed(2)),
-          preVol:       Math.round((q.preMarketVolume || 0) / 1000),
+          preVol:       Math.round(preVol / 1000),         // in K
           prevClose:    parseFloat(prevClose.toFixed(2)),
           float:        floatM,
           adr:          parseFloat(adr.toFixed(2)),
           atr:          parseFloat(atrPct.toFixed(2)),
-          mktCap:       q.marketCap || null,
-          sector:       profile?.sector || null,
-          industry:     profile?.industry || null,
+          avgVol:       avgVol,                             // raw number (shares)
+          mktCap:       mktCap,                             // raw number (dollars)
+          sector:       profile?.sector || q.sector || null,
+          industry:     profile?.industry || q.industry || null,
           isPreMarket:  !!q.preMarketPrice,
           isPostMarket: !q.preMarketPrice && !!q.postMarketPrice,
           lastUpdated:  new Date().toISOString(),
