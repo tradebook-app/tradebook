@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+const FMP = 'https://financialmodelingprep.com';
+const KEY = process.env.FMP_API_KEY;
+
 const UNIVERSE = [
   'NVDA','PLTR','META','GOOGL','AMZN','AAPL','TSM',
   'SMCI','IONQ','SOUN','MSTR','CRWD','PANW','ARM','AI',
@@ -8,104 +11,76 @@ const UNIVERSE = [
   'NET','LMT','RTX','AXON','MRNA','TSLA','RIVN','MSFT',
 ];
 
-async function getYahooCrumb(): Promise<{ crumb: string; cookie: string } | null> {
-  try {
-    const cookieRes = await fetch('https://fc.yahoo.com', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      },
-      redirect: 'follow',
-    });
-    const cookie = cookieRes.headers.get('set-cookie') || '';
-
-    const crumbRes = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-        'Cookie': cookie,
-      },
-    });
-
-    if (!crumbRes.ok) return null;
-    const crumb = await crumbRes.text();
-    if (!crumb || crumb.includes('<')) return null;
-    return { crumb: crumb.trim(), cookie };
-  } catch {
-    return null;
-  }
+// Fetch regular batch quote (price, prevClose, volume, dayHigh/Low, yearHigh/Low, marketCap, sharesOutstanding)
+async function batchQuote(symbols: string[]) {
+  const url = `${FMP}/stable/batch-quote?symbols=${symbols.join(',')}&apikey=${KEY}`;
+  const res = await fetch(url, { next: { revalidate: 60 } });
+  if (!res.ok) throw new Error(`FMP quote error: ${res.status}`);
+  return res.json();
 }
 
-async function fetchQuotes(tickers: string[], crumb: string, cookie: string) {
-  const joined = tickers.join(',');
-  const fields = 'symbol,longName,shortName,regularMarketPrice,regularMarketPreviousClose,regularMarketChangePercent,preMarketPrice,preMarketChange,preMarketChangePercent,preMarketVolume,postMarketPrice,postMarketChange,postMarketChangePercent,regularMarketVolume,averageDailyVolume10Day,fiftyTwoWeekHigh,fiftyTwoWeekLow,fiftyDayAverage,twoHundredDayAverage,marketCap,floatShares,shortPercentOfFloat,sector,industry,regularMarketDayHigh,regularMarketDayLow';
-  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${joined}&fields=${fields}&crumb=${encodeURIComponent(crumb)}`;
-
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-      'Cookie': cookie,
-      'Accept': 'application/json',
-    },
-  });
-
-  if (!res.ok) throw new Error(`Yahoo quote error: ${res.status}`);
-  const data = await res.json();
-  return data?.quoteResponse?.result || [];
+// Fetch aftermarket / pre-market quote (bid/ask/price + volume outside RTH)
+async function batchAftermarket(symbols: string[]) {
+  const url = `${FMP}/stable/batch-aftermarket-quote?symbols=${symbols.join(',')}&apikey=${KEY}`;
+  const res = await fetch(url, { next: { revalidate: 60 } });
+  if (!res.ok) return []; // aftermarket may be empty during RTH — not fatal
+  return res.json();
 }
 
-function calcADR(high52: number, low52: number): number {
-  if (!high52 || !low52 || low52 === 0) return 0;
-  return ((high52 - low52) / ((high52 + low52) / 2)) / 52 * 100;
+function calcADR(high: number, low: number): number {
+  if (!high || !low || low === 0) return 0;
+  return ((high - low) / ((high + low) / 2)) / 52 * 100;
 }
 
 export async function GET() {
   try {
-    const auth = await getYahooCrumb();
-    if (!auth) {
-      return NextResponse.json({ error: 'Could not authenticate with Yahoo Finance' }, { status: 503 });
-    }
+    if (!KEY) return NextResponse.json({ error: 'FMP_API_KEY not configured' }, { status: 503 });
 
-    const BATCH = 20;
-    const allQuotes: any[] = [];
-    for (let i = 0; i < UNIVERSE.length; i += BATCH) {
-      const quotes = await fetchQuotes(UNIVERSE.slice(i, i + BATCH), auth.crumb, auth.cookie);
-      allQuotes.push(...quotes);
-    }
+    const [quotes, after] = await Promise.all([
+      batchQuote(UNIVERSE),
+      batchAftermarket(UNIVERSE),
+    ]);
 
-    const gaps = allQuotes
-      .filter(q => q?.regularMarketPrice && q?.regularMarketPreviousClose)
-      .map(q => {
-        const prePrice  = q.preMarketPrice || q.postMarketPrice || q.regularMarketPrice;
-        const prevClose = q.regularMarketPreviousClose;
+    // Map aftermarket prices by symbol
+    const afterMap: Record<string, any> = {};
+    for (const a of (after || [])) afterMap[a.symbol] = a;
+
+    const gaps = (quotes || [])
+      .filter((q: any) => q?.price && q?.previousClose)
+      .map((q: any) => {
+        const after = afterMap[q.symbol];
+        // Pre/after-market price if available, else regular price
+        const prePrice  = after?.price || q.price;
+        const prevClose = q.previousClose;
         const gapPct    = ((prePrice - prevClose) / Math.abs(prevClose)) * 100;
-        const floatM    = q.floatShares ? q.floatShares / 1e6 : null;
+        const preVol    = after?.volume || q.volume || 0;
+        const adr       = calcADR(q.yearHigh, q.yearLow);
+        const atrPct    = q.dayHigh && q.dayLow && q.price
+          ? ((q.dayHigh - q.dayLow) / q.price) * 100 : 0;
+        const floatM    = q.sharesOutstanding ? q.sharesOutstanding / 1e6 : null;
 
         return {
           ticker:       q.symbol,
-          name:         q.longName || q.shortName || q.symbol,
+          name:         q.name || q.symbol,
           gap:          parseFloat(gapPct.toFixed(2)),
           prePrice:     parseFloat(prePrice.toFixed(2)),
-          preVol:       Math.round((q.preMarketVolume || 0) / 1000),
+          preVol:       Math.round(preVol / 1000),
           prevClose:    parseFloat(prevClose.toFixed(2)),
           float:        floatM ? parseFloat(floatM.toFixed(1)) : null,
-          adr:          parseFloat(calcADR(q.fiftyTwoWeekHigh, q.fiftyTwoWeekLow).toFixed(2)),
-          atr:          q.regularMarketDayHigh && q.regularMarketDayLow
-            ? parseFloat(((q.regularMarketDayHigh - q.regularMarketDayLow) / q.regularMarketPrice * 100).toFixed(2))
-            : 0,
+          adr:          parseFloat(adr.toFixed(2)),
+          atr:          parseFloat(atrPct.toFixed(2)),
           mktCap:       q.marketCap || null,
-          sector:       q.sector    || null,
-          industry:     q.industry  || null,
-          isPreMarket:  !!q.preMarketPrice,
-          isPostMarket: !q.preMarketPrice && !!q.postMarketPrice,
+          sector:       q.sector || null,
+          industry:     q.industry || null,
+          isPreMarket:  !!after,
+          isPostMarket: false,
           lastUpdated:  new Date().toISOString(),
         };
       })
-      .filter(q => Math.abs(q.gap) >= 0.5)
-      .sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap));
+      .filter((q: any) => Math.abs(q.gap) >= 0.5)
+      .sort((a: any, b: any) => Math.abs(b.gap) - Math.abs(a.gap));
 
-    return NextResponse.json(gaps, {
-      headers: { 'Cache-Control': 's-maxage=120, stale-while-revalidate' },
-    });
+    return NextResponse.json(gaps);
   } catch (err: any) {
     console.error('[scanner/gaps]', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

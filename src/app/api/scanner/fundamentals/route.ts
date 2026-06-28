@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 
+const FMP = 'https://financialmodelingprep.com';
+const KEY = process.env.FMP_API_KEY;
+
 const UNIVERSE = [
-  'NVDA','PLTR','MSFT','META','GOOGL','AMZN','AAPL','TSM',
+  'NVDA','PLTR','META','GOOGL','AMZN','AAPL','TSM',
   'SMCI','IONQ','SOUN','MSTR','CRWD','PANW','ARM','AI',
   'RGTI','QUBT','CELH','WOLF','COIN','RIOT','MARA',
-  'AMD','AVGO','QCOM','MU','AMAT','NOW','CRM','SNOW','DDOG',
-  'NET','ZS','LMT','RTX','AXON','MRNA','CRSP','TSLA','RIVN',
+  'AMD','AVGO','QCOM','MU','NOW','CRM','SNOW','DDOG',
+  'NET','LMT','RTX','AXON','MRNA','TSLA','RIVN','MSFT',
 ];
 
 function rank99(value: number, arr: number[], higherBetter = true): number {
@@ -17,104 +20,93 @@ function rank99(value: number, arr: number[], higherBetter = true): number {
   return Math.max(1, Math.min(99, Math.round(higherBetter ? pct * 99 : (1 - pct) * 99)));
 }
 
-async function fetchQuoteSummary(ticker: string) {
-  // Yahoo Finance v11 quoteSummary for fundamentals
-  const modules = 'defaultKeyStatistics,financialData,earningsTrend,price';
-  const url = `https://query1.finance.yahoo.com/v11/finance/quoteSummary/${ticker}?modules=${modules}`;
+async function batchQuote(symbols: string[]) {
+  const url = `${FMP}/stable/batch-quote?symbols=${symbols.join(',')}&apikey=${KEY}`;
+  const res = await fetch(url, { next: { revalidate: 3600 } });
+  if (!res.ok) throw new Error(`FMP error: ${res.status}`);
+  return res.json();
+}
 
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-    next: { revalidate: 3600 }, // cache 1 hour
-  });
+// Income statement growth (EPS QoQ / YoY, revenue growth)
+async function incomeGrowth(symbol: string) {
+  const url = `${FMP}/stable/income-statement-growth?symbol=${symbol}&limit=5&apikey=${KEY}`;
+  const res = await fetch(url, { next: { revalidate: 3600 } });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+// Key metrics / ratios (for float, short interest via separate endpoint)
+async function sharesFloat(symbol: string) {
+  const url = `${FMP}/stable/shares-float?symbol=${symbol}&apikey=${KEY}`;
+  const res = await fetch(url, { next: { revalidate: 3600 } });
   if (!res.ok) return null;
   const data = await res.json();
-  return data?.quoteSummary?.result?.[0] || null;
+  return Array.isArray(data) ? data[0] : data;
 }
 
 export async function GET() {
   try {
+    if (!KEY) return NextResponse.json({ error: 'FMP_API_KEY not configured' }, { status: 503 });
+
+    const quotes = await batchQuote(UNIVERSE);
+    const quoteMap: Record<string, any> = {};
+    for (const q of (quotes || [])) quoteMap[q.symbol] = q;
+
     const results: any[] = [];
+    const BATCH = 6;
 
-    // Fetch fundamentals for each ticker (sequential to avoid rate limits)
-    for (const ticker of UNIVERSE) {
-      try {
-        const summary = await fetchQuoteSummary(ticker);
-        if (!summary) continue;
+    for (let i = 0; i < UNIVERSE.length; i += BATCH) {
+      const batch = UNIVERSE.slice(i, i + BATCH);
+      await Promise.all(batch.map(async (ticker) => {
+        const q = quoteMap[ticker];
+        if (!q?.price) return;
 
-        const price     = summary.price?.regularMarketPrice?.raw;
-        const stats     = summary.defaultKeyStatistics || {};
-        const finData   = summary.financialData || {};
-        const trend     = summary.earningsTrend?.trend || [];
+        const [growth, float] = await Promise.all([
+          incomeGrowth(ticker),
+          sharesFloat(ticker),
+        ]);
 
-        if (!price) continue;
+        const g = Array.isArray(growth) ? growth : [];
+        // Most recent quarter growth
+        const epsQoQ = g[0]?.growthEPS != null ? parseFloat((g[0].growthEPS * 100).toFixed(1)) : null;
+        // Year-over-year: compare to 4 quarters ago if available
+        const epsYoY = g[3]?.growthEPS != null
+          ? parseFloat((((g[0]?.eps ?? 0) - (g[3]?.eps ?? 0)) / Math.abs(g[3]?.eps || 1) * 100).toFixed(1))
+          : (g[0]?.growthEPS != null ? parseFloat((g[0].growthEPS * 100).toFixed(1)) : null);
+        const revGrowth = g[0]?.growthRevenue != null ? parseFloat((g[0].growthRevenue * 100).toFixed(1)) : null;
 
-        // EPS growth
-        const currentTrend = trend.find((t: any) => t.period === '0q');
-        const epsQoQ = currentTrend?.growth?.raw != null
-          ? parseFloat((currentTrend.growth.raw * 100).toFixed(1))
-          : null;
-
-        const annualTrend = trend.find((t: any) => t.period === '0y');
-        const epsYoY = annualTrend?.growth?.raw != null
-          ? parseFloat((annualTrend.growth.raw * 100).toFixed(1))
-          : null;
-
-        // Revenue growth
-        const revGrowth = finData.revenueGrowth?.raw != null
-          ? parseFloat((finData.revenueGrowth.raw * 100).toFixed(1))
-          : null;
-
-        // Float
-        const floatM = stats.floatShares?.raw
-          ? parseFloat((stats.floatShares.raw / 1e6).toFixed(1))
-          : null;
-
-        // Short interest
-        const shortPct = stats.shortPercentOfFloat?.raw != null
-          ? parseFloat((stats.shortPercentOfFloat.raw * 100).toFixed(1))
-          : null;
-
-        // Institutional ownership
-        const instOwn = stats.heldPercentInstitutions?.raw != null
-          ? parseFloat((stats.heldPercentInstitutions.raw * 100).toFixed(1))
-          : null;
+        const floatM = float?.floatShares ? parseFloat((float.floatShares / 1e6).toFixed(1))
+          : (q.sharesOutstanding ? parseFloat((q.sharesOutstanding / 1e6).toFixed(1)) : null);
 
         results.push({
           ticker,
-          name:     summary.price?.longName || ticker,
-          price:    parseFloat(price.toFixed(2)),
+          name:     q.name || ticker,
+          price:    parseFloat(q.price.toFixed(2)),
           epsQoQ,
           epsYoY,
           revGrowth,
           floatM,
-          shortPct,
-          instOwn,
-          sector:   summary.price?.sector   || null,
-          industry: summary.price?.industry || null,
-          mktCap:   summary.price?.marketCap?.raw || null,
+          shortPct: null, // FMP short interest needs separate premium endpoint; left null for now
+          instOwn:  null,
+          sector:   q.sector || null,
+          industry: q.industry || null,
+          mktCap:   q.marketCap || null,
         });
-      } catch {
-        // Skip tickers that fail silently
-      }
+      }));
     }
 
-    // Build 1-99 rankings across the universe
     const epsQoQArr = results.map(r => r.epsQoQ).filter((v): v is number => v !== null);
     const epsYoYArr = results.map(r => r.epsYoY).filter((v): v is number => v !== null);
     const revArr    = results.map(r => r.revGrowth).filter((v): v is number => v !== null);
-    const instArr   = results.map(r => r.instOwn).filter((v): v is number => v !== null);
     const floatArr  = results.map(r => r.floatM).filter((v): v is number => v !== null);
-    const shortArr  = results.map(r => r.shortPct).filter((v): v is number => v !== null);
 
     const ranked = results
       .map(r => ({
         ...r,
-        epsRank:   r.epsQoQ    != null ? rank99(r.epsQoQ,    epsQoQArr, true)  : null,
-        epsYoYRank: r.epsYoY   != null ? rank99(r.epsYoY,    epsYoYArr, true)  : null,
-        revRank:   r.revGrowth != null ? rank99(r.revGrowth, revArr,    true)  : null,
-        instRank:  r.instOwn   != null ? rank99(r.instOwn,   instArr,   true)  : null,
-        floatRank: r.floatM    != null ? rank99(r.floatM,    floatArr,  false) : null, // lower = better
-        shortRank: r.shortPct  != null ? rank99(r.shortPct,  shortArr,  true)  : null,
+        epsRank:  r.epsQoQ    != null ? rank99(r.epsQoQ,    epsQoQArr, true)  : null,
+        revRank:  r.revGrowth != null ? rank99(r.revGrowth, revArr,    true)  : null,
+        instRank: null,
+        floatRank: r.floatM   != null ? rank99(r.floatM,    floatArr,  false) : null,
       }))
       .sort((a, b) => (b.epsRank || 0) - (a.epsRank || 0));
 

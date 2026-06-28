@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+const FMP = 'https://financialmodelingprep.com';
+const KEY = process.env.FMP_API_KEY;
+
 const THEMES: Record<string, string[]> = {
   'AI / Machine Learning':  ['NVDA','PLTR','AI','MSFT','GOOGL','AMZN'],
   'Semiconductors':         ['NVDA','AMD','AVGO','QCOM','MU','TSM','ARM'],
@@ -9,7 +12,7 @@ const THEMES: Record<string, string[]> = {
   'Cloud Software':         ['CRM','NOW','SNOW','DDOG','NET'],
   'Defense & Aerospace':    ['LMT','RTX','NOC','GD','AXON'],
   'Biotech / Genomics':     ['MRNA','CRSP','NTLA'],
-  'EV / Clean Energy':      ['TSLA','RIVN','PLUG','FSLR'],
+  'EV / Clean Energy':      ['TSLA','RIVN','LCID','PLUG','FSLR'],
   'Gold Miners':            ['NEM','AEM','WPM','GOLD'],
   'Banks & Financials':     ['JPM','GS','BAC','WFC','MS'],
   'Social Media':           ['META','SNAP','PINS'],
@@ -18,72 +21,68 @@ const THEMES: Record<string, string[]> = {
   'Robotics / Automation':  ['ISRG','ROK','EMR'],
 };
 
-async function getYahooCrumb(): Promise<{ crumb: string; cookie: string } | null> {
-  try {
-    const cookieRes = await fetch('https://fc.yahoo.com', {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36' },
-      redirect: 'follow',
-    });
-    const cookie = cookieRes.headers.get('set-cookie') || '';
-    const crumbRes = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36', 'Cookie': cookie },
-    });
-    if (!crumbRes.ok) return null;
-    const crumb = await crumbRes.text();
-    if (!crumb || crumb.includes('<')) return null;
-    return { crumb: crumb.trim(), cookie };
-  } catch { return null; }
+async function batchQuote(symbols: string[]) {
+  const url = `${FMP}/stable/batch-quote?symbols=${symbols.join(',')}&apikey=${KEY}`;
+  const res = await fetch(url, { next: { revalidate: 900 } });
+  if (!res.ok) throw new Error(`FMP error: ${res.status}`);
+  return res.json();
 }
 
-async function fetchQuotes(tickers: string[], crumb: string, cookie: string) {
-  const fields = 'symbol,longName,shortName,regularMarketPrice,regularMarketChangePercent,fiftyDayAverage,twoHundredDayAverage,fiftyTwoWeekLow,fiftyTwoWeekHigh';
-  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers.join(',')}&fields=${fields}&crumb=${encodeURIComponent(crumb)}`;
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36', 'Cookie': cookie, 'Accept': 'application/json' },
-  });
-  if (!res.ok) throw new Error(`Yahoo error: ${res.status}`);
+async function priceChange(symbol: string) {
+  const url = `${FMP}/stable/stock-price-change?symbol=${symbol}&apikey=${KEY}`;
+  const res = await fetch(url, { next: { revalidate: 900 } });
+  if (!res.ok) return null;
   const data = await res.json();
-  return data?.quoteResponse?.result || [];
+  return Array.isArray(data) ? data[0] : data;
 }
 
 export async function GET(request: Request) {
   try {
+    if (!KEY) return NextResponse.json({ error: 'FMP_API_KEY not configured' }, { status: 503 });
+
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'today';
 
-    const auth = await getYahooCrumb();
-    if (!auth) return NextResponse.json({ error: 'Could not authenticate with Yahoo Finance' }, { status: 503 });
-
     const allTickers = [...new Set(Object.values(THEMES).flat())];
-    const BATCH = 20;
-    const allQuotes: any[] = [];
-    for (let i = 0; i < allTickers.length; i += BATCH) {
-      const quotes = await fetchQuotes(allTickers.slice(i, i + BATCH), auth.crumb, auth.cookie);
-      allQuotes.push(...quotes);
+    const quotes = await batchQuote(allTickers);
+    const quoteMap: Record<string, any> = {};
+    for (const q of (quotes || [])) quoteMap[q.symbol] = q;
+
+    // For non-today periods, fetch real price changes
+    let changeMap: Record<string, any> = {};
+    if (period !== 'today') {
+      const BATCH = 8;
+      for (let i = 0; i < allTickers.length; i += BATCH) {
+        const batch = allTickers.slice(i, i + BATCH);
+        await Promise.all(batch.map(async (t) => {
+          const chg = await priceChange(t);
+          if (chg) changeMap[t] = chg;
+        }));
+      }
     }
-    const quoteMap = Object.fromEntries(allQuotes.map(q => [q.symbol, q]));
 
     const themeResults = Object.entries(THEMES).map(([themeName, tickers]) => {
       const stockData = tickers.map(ticker => {
         const q = quoteMap[ticker];
-        if (!q?.regularMarketPrice) return null;
-        const price = q.regularMarketPrice;
-        const d50   = q.fiftyDayAverage;
-        const d200  = q.twoHundredDayAverage;
-        const l52   = q.fiftyTwoWeekLow;
+        if (!q?.price) return null;
 
         let pct = 0;
-        if (period === 'today')    pct = q.regularMarketChangePercent || 0;
-        else if (period === '1w')  pct = (q.regularMarketChangePercent || 0) * 5;
-        else if (period === '1m')  pct = d50  ? ((price - d50)  / Math.abs(d50))  * 100 : 0;
-        else if (period === 'ytd') pct = l52  ? ((price - l52)  / Math.abs(l52))  * 100 * 0.6 : 0;
+        if (period === 'today') {
+          pct = q.changePercentage ?? q.changesPercentage ?? 0;
+        } else if (period === '1w') {
+          pct = changeMap[ticker]?.['5D'] ?? changeMap[ticker]?.['1W'] ?? 0;
+        } else if (period === '1m') {
+          pct = changeMap[ticker]?.['1M'] ?? 0;
+        } else if (period === 'ytd') {
+          pct = changeMap[ticker]?.['ytd'] ?? changeMap[ticker]?.['YTD'] ?? 0;
+        }
 
         return {
           t: ticker,
-          n: q.longName || q.shortName || ticker,
-          p: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%',
-          pctVal: pct,
-          price: parseFloat(price.toFixed(2)),
+          n: q.name || ticker,
+          p: (pct >= 0 ? '+' : '') + (+pct).toFixed(2) + '%',
+          pctVal: +pct,
+          price: parseFloat(q.price.toFixed(2)),
         };
       }).filter(Boolean) as any[];
 
@@ -98,9 +97,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json(themeResults.sort((a, b) => b.pct - a.pct), {
-      headers: { 'Cache-Control': 's-maxage=900, stale-while-revalidate' },
-    });
+    return NextResponse.json(themeResults.sort((a, b) => b.pct - a.pct));
   } catch (err: any) {
     console.error('[scanner/themes]', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

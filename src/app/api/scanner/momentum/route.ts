@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+const FMP = 'https://financialmodelingprep.com';
+const KEY = process.env.FMP_API_KEY;
+
 const UNIVERSE = [
   'NVDA','PLTR','META','GOOGL','AMZN','AAPL','TSM',
   'SMCI','IONQ','SOUN','MSTR','CRWD','PANW','ARM','AI',
@@ -17,91 +20,79 @@ function rank99(value: number, arr: number[], higherBetter = true): number {
   return Math.max(1, Math.min(99, Math.round(higherBetter ? pct * 99 : (1 - pct) * 99)));
 }
 
-async function getYahooCrumb(): Promise<{ crumb: string; cookie: string } | null> {
-  try {
-    const cookieRes = await fetch('https://fc.yahoo.com', {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36' },
-      redirect: 'follow',
-    });
-    const cookie = cookieRes.headers.get('set-cookie') || '';
-    const crumbRes = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36', 'Cookie': cookie },
-    });
-    if (!crumbRes.ok) return null;
-    const crumb = await crumbRes.text();
-    if (!crumb || crumb.includes('<')) return null;
-    return { crumb: crumb.trim(), cookie };
-  } catch { return null; }
+async function batchQuote(symbols: string[]) {
+  const url = `${FMP}/stable/batch-quote?symbols=${symbols.join(',')}&apikey=${KEY}`;
+  const res = await fetch(url, { next: { revalidate: 1800 } });
+  if (!res.ok) throw new Error(`FMP quote error: ${res.status}`);
+  return res.json();
 }
 
-async function fetchQuotes(tickers: string[], crumb: string, cookie: string) {
-  const fields = 'symbol,longName,shortName,regularMarketPrice,regularMarketChangePercent,regularMarketVolume,averageDailyVolume3Month,fiftyTwoWeekHigh,fiftyTwoWeekLow,fiftyDayAverage,twoHundredDayAverage,marketCap,sector,industry,regularMarketDayHigh,regularMarketDayLow';
-  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers.join(',')}&fields=${fields}&crumb=${encodeURIComponent(crumb)}`;
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36', 'Cookie': cookie, 'Accept': 'application/json' },
-  });
-  if (!res.ok) throw new Error(`Yahoo error: ${res.status}`);
+// Use FMP's stock-price-change endpoint — gives 1M/3M/6M/1Y % directly, real data
+async function priceChange(symbol: string) {
+  const url = `${FMP}/stable/stock-price-change?symbol=${symbol}&apikey=${KEY}`;
+  const res = await fetch(url, { next: { revalidate: 1800 } });
+  if (!res.ok) return null;
   const data = await res.json();
-  return data?.quoteResponse?.result || [];
+  return Array.isArray(data) ? data[0] : data;
 }
 
 export async function GET() {
   try {
-    const auth = await getYahooCrumb();
-    if (!auth) return NextResponse.json({ error: 'Could not authenticate with Yahoo Finance' }, { status: 503 });
+    if (!KEY) return NextResponse.json({ error: 'FMP_API_KEY not configured' }, { status: 503 });
 
-    const BATCH = 20;
-    const allQuotes: any[] = [];
+    const quotes = await batchQuote(UNIVERSE);
+    const quoteMap: Record<string, any> = {};
+    for (const q of (quotes || [])) quoteMap[q.symbol] = q;
+
+    // Fetch real price changes for each ticker (1M, 3M, 6M)
+    const results: any[] = [];
+    const BATCH = 8;
     for (let i = 0; i < UNIVERSE.length; i += BATCH) {
-      const quotes = await fetchQuotes(UNIVERSE.slice(i, i + BATCH), auth.crumb, auth.cookie);
-      allQuotes.push(...quotes);
-    }
+      const batch = UNIVERSE.slice(i, i + BATCH);
+      await Promise.all(batch.map(async (ticker) => {
+        const q = quoteMap[ticker];
+        if (!q?.price) return;
+        const chg = await priceChange(ticker);
 
-    const results = allQuotes
-      .filter(q => q?.regularMarketPrice)
-      .map(q => {
-        const price = q.regularMarketPrice;
-        const d50   = q.fiftyDayAverage;
-        const d200  = q.twoHundredDayAverage;
-        const h52   = q.fiftyTwoWeekHigh;
-        const l52   = q.fiftyTwoWeekLow;
+        // FMP price-change fields: 1M, 3M, 6M (percent values)
+        const m1 = chg?.['1M'] ?? 0;
+        const m3 = chg?.['3M'] ?? 0;
+        const m6 = chg?.['6M'] ?? 0;
 
-        const m1 = d50  ? ((price - d50)  / Math.abs(d50))  * 100 * 0.8 : 0;
-        const m3 = d50  ? ((price - d50)  / Math.abs(d50))  * 100 * 1.2 : 0;
-        const m6 = d200 ? ((price - d200) / Math.abs(d200)) * 100       : 0;
-        const adr = h52 && l52 ? ((h52 - l52) / ((h52 + l52) / 2)) / 52 * 100 : 0;
-        const atrPct = q.regularMarketDayHigh && q.regularMarketDayLow
-          ? ((q.regularMarketDayHigh - q.regularMarketDayLow) / price) * 100 : 0;
+        const adr = q.yearHigh && q.yearLow
+          ? ((q.yearHigh - q.yearLow) / ((q.yearHigh + q.yearLow) / 2)) / 52 * 100 : 0;
+        const atrPct = q.dayHigh && q.dayLow
+          ? ((q.dayHigh - q.dayLow) / q.price) * 100 : 0;
 
-        return {
-          ticker:   q.symbol,
-          name:     q.longName || q.shortName || q.symbol,
-          price:    parseFloat(price.toFixed(2)),
-          m1:       parseFloat(m1.toFixed(1)),
-          m3:       parseFloat(m3.toFixed(1)),
-          m6:       parseFloat(m6.toFixed(1)),
+        results.push({
+          ticker,
+          name:     q.name || ticker,
+          price:    parseFloat(q.price.toFixed(2)),
+          m1:       parseFloat((+m1).toFixed(1)),
+          m3:       parseFloat((+m3).toFixed(1)),
+          m6:       parseFloat((+m6).toFixed(1)),
           adr:      parseFloat(adr.toFixed(2)),
           atrPct:   parseFloat(atrPct.toFixed(2)),
-          d50:      d50  ? parseFloat(d50.toFixed(2))  : null,
-          d200:     d200 ? parseFloat(d200.toFixed(2)) : null,
-          h52:      h52  ? parseFloat(h52.toFixed(2))  : null,
-          l52:      l52  ? parseFloat(l52.toFixed(2))  : null,
-          volume:   q.regularMarketVolume || 0,
-          avgVol:   q.averageDailyVolume3Month || 0,
-          mktCap:   q.marketCap  || null,
-          sector:   q.sector     || null,
-          industry: q.industry   || null,
-        };
-      });
+          d50:      q.priceAvg50  ? parseFloat(q.priceAvg50.toFixed(2))  : null,
+          d200:     q.priceAvg200 ? parseFloat(q.priceAvg200.toFixed(2)) : null,
+          h52:      q.yearHigh || null,
+          l52:      q.yearLow  || null,
+          volume:   q.volume || 0,
+          avgVol:   q.avgVolume || 0,
+          mktCap:   q.marketCap || null,
+          sector:   q.sector || null,
+          industry: q.industry || null,
+        });
+      }));
+    }
 
+    // RS rank based on real 6M performance
     const allM6 = results.map(r => r.m6);
     const ranked = results
       .map(r => ({ ...r, rs: rank99(r.m6, allM6, true) }))
       .sort((a, b) => b.rs - a.rs);
 
-    return NextResponse.json(ranked, {
-      headers: { 'Cache-Control': 's-maxage=1800, stale-while-revalidate' },
-    });
+    return NextResponse.json(ranked);
   } catch (err: any) {
     console.error('[scanner/momentum]', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
