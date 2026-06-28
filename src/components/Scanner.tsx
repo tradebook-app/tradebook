@@ -62,17 +62,7 @@ export function Scanner() {
   const [fundaLoaded, setFundaLoaded] = useState(false);
   const [clock, setClock] = useState("");
 
-  useEffect(() => {
-    const update = () => {
-      const et = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
-      const h = et.getHours(), m = et.getMinutes();
-      const day = et.getDay(); const isWeekend = day === 0 || day === 6; const status = isWeekend ? "Market Closed" : h < 4 ? "Market Closed" : (h < 9 || (h === 9 && m < 30)) ? "Pre-Market" : h < 16 ? "Market Open" : "After Hours";
-      const dateStr = et.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); setClock(`${dateStr}, ${et.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})} ET — ${status}`);
-    };
-    update();
-    const t = setInterval(update, 30000);
-    return () => clearInterval(t);
-  }, []);
+
 
 
 
@@ -275,26 +265,17 @@ export function Scanner() {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
-      {/* Tabs + Market Status in one row */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid var(--brd)', marginBottom:'14px', paddingRight:'4px' }}>
-        <div style={{ display:'flex' }}>
-          {(['gap','momentum','themes','fundamentals'] as const).map(t=>(
-            <button key={t} onClick={()=>{ setTab(t); setDetail(null); }} style={{
-              padding:'8px 14px', fontSize:'12px', fontWeight:600, cursor:'pointer',
-              background:'none', border:'none', borderBottom: tab===t ? '2px solid var(--ac)' : '2px solid transparent',
-              color: tab===t ? 'var(--ac2)' : 'var(--txt2)', fontFamily:'var(--sans)', transition:'.1s',
-            }}>
-              {t==='gap'?'Gap scanner':t==='fundamentals'?'Fundamentals':t.charAt(0).toUpperCase()+t.slice(1)}
-            </button>
-          ))}
-        </div>
-        <div style={{ display:'flex', alignItems:'center', gap:'6px', background:'var(--bg3)', border:'1px solid var(--brd)', borderRadius:'20px', padding:'4px 10px', flexShrink:0 }}>
-          <div style={{ width:'7px', height:'7px', borderRadius:'50%', background: clock.includes('Open') ? 'var(--ac)' : clock.includes('Pre-Market') ? 'var(--orange)' : 'var(--txt4)', flexShrink:0 }}/>
-          <div>
-            <div style={{ fontSize:'11px', fontWeight:600, color:'var(--txt)', lineHeight:1.2 }}>{clock.includes('Open')?'Market Open':clock.includes('Pre-Market')?'Pre-Market':'Market Closed'}</div>
-            <div style={{ fontSize:'10px', color:'var(--txt3)', lineHeight:1.2 }} dangerouslySetInnerHTML={{ __html: clock }}/>
-          </div>
-        </div>
+      {/* Tabs */}
+      <div style={{ display:'flex', borderBottom:'1px solid var(--brd)', marginBottom:'14px' }}>
+        {(['gap','momentum','themes','fundamentals'] as const).map(t=>(
+          <button key={t} onClick={()=>{ setTab(t); setDetail(null); }} style={{
+            padding:'8px 14px', fontSize:'12px', fontWeight:600, cursor:'pointer',
+            background:'none', border:'none', borderBottom: tab===t ? '2px solid var(--ac)' : '2px solid transparent',
+            color: tab===t ? 'var(--ac2)' : 'var(--txt2)', fontFamily:'var(--sans)', transition:'.1s',
+          }}>
+            {t==='gap'?'Gap scanner':t==='fundamentals'?'Fundamentals':t.charAt(0).toUpperCase()+t.slice(1)}
+          </button>
+        ))}
       </div>
 
       {/* ── GAP SCANNER ── */}
