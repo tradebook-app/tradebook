@@ -324,7 +324,7 @@ export function Scanner() {
       {/* ── GAP SCANNER ── */}
       {tab==='gap' && (
         <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1 }}>
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start' }}>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start', maxHeight:'calc(100vh - 160px)', overflowY:'auto' }}>
             <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'9px', paddingBottom:'7px', borderBottom:'1px solid var(--brd)' }}>Filters</div>
             <div style={GRP}><label style={LBL}>Direction</label>
               <select style={INPUT} value={gDir} onChange={e=>setGDir(e.target.value)}>
@@ -400,7 +400,7 @@ export function Scanner() {
                 <button onClick={savePreset} style={{ height:'28px', padding:'0 8px', background:'var(--ac)', color:'#000', border:'none', borderRadius:'var(--r)', fontSize:'11px', fontWeight:700, cursor:'pointer', flexShrink:0 }}>Save</button>
               </div>
               {presets.length > 0 && (
-                <div style={{ maxHeight:'120px', overflowY:'auto', display:'flex', flexDirection:'column', gap:'2px', paddingRight:'2px' }}>
+                <div style={{ maxHeight:'100px', overflowY:'auto', display:'flex', flexDirection:'column', gap:'2px', paddingRight:'2px' }}>
                   {presets.map(p=>(
                     <div key={p.name} style={{ display:'flex', alignItems:'center', gap:'4px', flexShrink:0 }}>
                       <button onClick={()=>loadPreset(p)} style={{ flex:1, height:'24px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'10px', cursor:'pointer', textAlign:'left', padding:'0 6px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
