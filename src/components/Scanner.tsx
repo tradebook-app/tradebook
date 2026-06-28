@@ -62,35 +62,6 @@ export function Scanner() {
   const [fundaLoaded, setFundaLoaded] = useState(false);
   const [clock, setClock] = useState("");
 
-  // Save and restore gap filters from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('st-gap-filters');
-      if (saved) {
-        const f = JSON.parse(saved);
-        if (f.gDir !== undefined) setGDir(f.gDir);
-        if (f.gGapMin !== undefined) setGGapMin(f.gGapMin);
-        if (f.gGapMax !== undefined) setGGapMax(f.gGapMax);
-        if (f.gPriceMin !== undefined) setGPriceMin(f.gPriceMin);
-        if (f.gPriceMax !== undefined) setGPriceMax(f.gPriceMax);
-        if (f.gVolMin !== undefined) setGVolMin(f.gVolMin);
-        if (f.gVolMax !== undefined) setGVolMax(f.gVolMax);
-        if (f.gFloatMin !== undefined) setGFloatMin(f.gFloatMin);
-        if (f.gFloatMax !== undefined) setGFloatMax(f.gFloatMax);
-        if (f.gAdrMin !== undefined) setGAdrMin(f.gAdrMin);
-        if (f.gAdrMax !== undefined) setGAdrMax(f.gAdrMax);
-        if (f.gAtrMin !== undefined) setGAtrMin(f.gAtrMin);
-        if (f.gAtrMax !== undefined) setGAtrMax(f.gAtrMax);
-        if (f.gAvgVolMin !== undefined) setGAvgVolMin(f.gAvgVolMin);
-        if (f.gAvgVolMax !== undefined) setGAvgVolMax(f.gAvgVolMax);
-        if (f.gMktCapMin !== undefined) setGMktCapMin(f.gMktCapMin);
-        if (f.gMktCapMax !== undefined) setGMktCapMax(f.gMktCapMax);
-        if (f.gDolVolMin !== undefined) setGDolVolMin(f.gDolVolMin);
-        if (f.gDolVolMax !== undefined) setGDolVolMax(f.gDolVolMax);
-      }
-    } catch {}
-  }, []);
-
   useEffect(() => {
     const update = () => {
       const et = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
@@ -116,17 +87,21 @@ export function Scanner() {
     } catch {}
   }, [gDir,gGapMin,gGapMax,gPriceMin,gPriceMax,gVolMin,gVolMax,gFloatMin,gFloatMax,gAdrMin,gAdrMax,gAtrMin,gAtrMax,gAvgVolMin,gAvgVolMax,gMktCapMin,gMktCapMax,gDolVolMin,gDolVolMax]);
 
-  // Gap filters
-  const [gDir,setGDir]=useState('both');
-  const [gGapMin,setGGapMin]=useState(0); const [gGapMax,setGGapMax]=useState(0);
-  const [gPriceMin,setGPriceMin]=useState(0); const [gPriceMax,setGPriceMax]=useState(0);
-  const [gVolMin,setGVolMin]=useState(0); const [gVolMax,setGVolMax]=useState(0);
-  const [gFloatMin,setGFloatMin]=useState(0); const [gFloatMax,setGFloatMax]=useState(0);
-  const [gAdrMin,setGAdrMin]=useState(0); const [gAdrMax,setGAdrMax]=useState(0);
-  const [gAtrMin,setGAtrMin]=useState(0); const [gAtrMax,setGAtrMax]=useState(0);
-  const [gAvgVolMin,setGAvgVolMin]=useState(''); const [gAvgVolMax,setGAvgVolMax]=useState('');
-  const [gMktCapMin,setGMktCapMin]=useState(''); const [gMktCapMax,setGMktCapMax]=useState('');
-  const [gDolVolMin,setGDolVolMin]=useState(''); const [gDolVolMax,setGDolVolMax]=useState('');
+  // Gap filters — lazy init from localStorage
+  function loadGF(key: string, def: any) {
+    try { const s = localStorage.getItem('st-gap-filters'); if(s) { const f=JSON.parse(s); if(f[key]!==undefined) return f[key]; } } catch {}
+    return def;
+  }
+  const [gDir,setGDir]=useState(()=>loadGF('gDir','both'));
+  const [gGapMin,setGGapMin]=useState(()=>loadGF('gGapMin',0)); const [gGapMax,setGGapMax]=useState(()=>loadGF('gGapMax',0));
+  const [gPriceMin,setGPriceMin]=useState(()=>loadGF('gPriceMin',0)); const [gPriceMax,setGPriceMax]=useState(()=>loadGF('gPriceMax',0));
+  const [gVolMin,setGVolMin]=useState(()=>loadGF('gVolMin',0)); const [gVolMax,setGVolMax]=useState(()=>loadGF('gVolMax',0));
+  const [gFloatMin,setGFloatMin]=useState(()=>loadGF('gFloatMin',0)); const [gFloatMax,setGFloatMax]=useState(()=>loadGF('gFloatMax',0));
+  const [gAdrMin,setGAdrMin]=useState(()=>loadGF('gAdrMin',0)); const [gAdrMax,setGAdrMax]=useState(()=>loadGF('gAdrMax',0));
+  const [gAtrMin,setGAtrMin]=useState(()=>loadGF('gAtrMin',0)); const [gAtrMax,setGAtrMax]=useState(()=>loadGF('gAtrMax',0));
+  const [gAvgVolMin,setGAvgVolMin]=useState(()=>loadGF('gAvgVolMin','')); const [gAvgVolMax,setGAvgVolMax]=useState(()=>loadGF('gAvgVolMax',''));
+  const [gMktCapMin,setGMktCapMin]=useState(()=>loadGF('gMktCapMin','')); const [gMktCapMax,setGMktCapMax]=useState(()=>loadGF('gMktCapMax',''));
+  const [gDolVolMin,setGDolVolMin]=useState(()=>loadGF('gDolVolMin','')); const [gDolVolMax,setGDolVolMax]=useState(()=>loadGF('gDolVolMax',''));
   const [gSortCol,setGSortCol]=useState('gap'); const [gSortAsc,setGSortAsc]=useState(false);
   // Mom filters
   const [mM1,setMM1]=useState(-100); const [mM3,setMM3]=useState(-100); const [mM6,setMM6]=useState(-100);
