@@ -45,6 +45,15 @@ function parseKMB(val: string): number {
   return num;
 }
 
+function loadGF(key: string, def: any) {
+  try {
+    if (typeof window === 'undefined') return def;
+    const s = localStorage.getItem('st-gap-filters');
+    if (s) { const f = JSON.parse(s); if (f[key] !== undefined) return f[key]; }
+  } catch {}
+  return def;
+}
+
 export function Scanner() {
   const [tab,       setTab]       = useState<'gap'|'momentum'|'themes'|'fundamentals'>('gap');
   const [gapData,   setGapData]   = useState<GapStock[]>([]);
@@ -88,10 +97,6 @@ export function Scanner() {
   }, [gDir,gGapMin,gGapMax,gPriceMin,gPriceMax,gVolMin,gVolMax,gFloatMin,gFloatMax,gAdrMin,gAdrMax,gAtrMin,gAtrMax,gAvgVolMin,gAvgVolMax,gMktCapMin,gMktCapMax,gDolVolMin,gDolVolMax]);
 
   // Gap filters — lazy init from localStorage
-  function loadGF(key: string, def: any) {
-    try { const s = localStorage.getItem('st-gap-filters'); if(s) { const f=JSON.parse(s); if(f[key]!==undefined) return f[key]; } } catch {}
-    return def;
-  }
   const [gDir,setGDir]=useState(()=>loadGF('gDir','both'));
   const [gGapMin,setGGapMin]=useState(()=>loadGF('gGapMin',0)); const [gGapMax,setGGapMax]=useState(()=>loadGF('gGapMax',0));
   const [gPriceMin,setGPriceMin]=useState(()=>loadGF('gPriceMin',0)); const [gPriceMax,setGPriceMax]=useState(()=>loadGF('gPriceMax',0));
