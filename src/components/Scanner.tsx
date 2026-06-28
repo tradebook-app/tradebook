@@ -75,10 +75,10 @@ export function Scanner() {
   }, []);
 
   // Gap filters
-  const [gDir,setGDir]=useState('both'); const [gGap,setGGap]=useState(1);
+  const [gDir,setGDir]=useState('both');
   const [gPrice,setGPrice]=useState(5); const [gVol,setGVol]=useState(0);
   const [gFloat,setGFloat]=useState(500); const [gAdr,setGAdr]=useState(0);
-  const [gAtr,setGAtr]=useState(0); const [gAvgVol,setGAvgVol]=useState(0);
+
   const [gMktCap,setGMktCap]=useState(0);
   const [gSortCol,setGSortCol]=useState('gap'); const [gSortAsc,setGSortAsc]=useState(false);
   // Mom filters
@@ -104,17 +104,37 @@ export function Scanner() {
   useEffect(() => { if (tab==='fundamentals'&&!fundaLoaded) { setFundaLoaded(true); load('funda',`${BASE}/fundamentals`,setFundaData); } }, [tab]);
   useEffect(() => { if (themeLoaded) load('themes',`${BASE}/themes?period=${themeTime}`,d=>{ setThemeData(d); setOpenTheme(-1); }); }, [themeTime]);
 
+  const avgVolMinN = parseKMB(gAvgVolMin); const avgVolMaxN = parseKMB(gAvgVolMax);
+  const mktCapMinN = parseKMB(gMktCapMin); const mktCapMaxN = parseKMB(gMktCapMax);
+
   const filteredGaps = gapData.filter(r => {
-    if (gDir==='up'&&r.gap<0) return false;
-    if (gDir==='down'&&r.gap>0) return false;
-    if (Math.abs(r.gap)<gGap) return false;
-    if (r.prevClose<gPrice) return false;
-    if (gVol>0 && (r.preVol||0)<gVol) return false;
-    if (gFloat>0 && r.float && r.float>gFloat) return false;
-    if (gAdr>0 && r.adr<gAdr) return false;
-    if (gAtr>0 && r.atr<gAtr) return false;
-    if (gAvgVol>0 && r.avgVol && r.avgVol<gAvgVol) return false;
-    if (gMktCap>0 && r.mktCap && r.mktCap>gMktCap) return false;
+    // Direction
+    if (gDir==='up'  && r.gap <= 0) return false;
+    if (gDir==='down' && r.gap >= 0) return false;
+    // Gap % — Min means "at least this gap up", Max means "no more than this"
+    if (gGapMin > 0 && r.gap < gGapMin) return false;
+    if (gGapMax > 0 && r.gap > gGapMax) return false;
+    // Price
+    if (gPriceMin > 0 && r.prevClose < gPriceMin) return false;
+    if (gPriceMax > 0 && r.prevClose > gPriceMax) return false;
+    // Pre-mkt Vol (K)
+    if (gVolMin > 0 && (r.preVol||0) < gVolMin) return false;
+    if (gVolMax > 0 && (r.preVol||0) > gVolMax) return false;
+    // Float (M)
+    if (gFloatMin > 0 && r.float && r.float < gFloatMin) return false;
+    if (gFloatMax > 0 && r.float && r.float > gFloatMax) return false;
+    // ADR %
+    if (gAdrMin > 0 && r.adr < gAdrMin) return false;
+    if (gAdrMax > 0 && r.adr > gAdrMax) return false;
+    // ATR
+    if (gAtrMin > 0 && r.atr < gAtrMin) return false;
+    if (gAtrMax > 0 && r.atr > gAtrMax) return false;
+    // Avg Vol 30D
+    if (avgVolMinN > 0 && r.avgVol && r.avgVol < avgVolMinN) return false;
+    if (avgVolMaxN > 0 && r.avgVol && r.avgVol > avgVolMaxN) return false;
+    // Mkt Cap
+    if (mktCapMinN > 0 && r.mktCap && r.mktCap < mktCapMinN) return false;
+    if (mktCapMaxN > 0 && r.mktCap && r.mktCap > mktCapMaxN) return false;
     return true;
   }).sort((a:any,b:any) => {
     const av = Math.abs(a.gap), bv = Math.abs(b.gap);
@@ -245,17 +265,53 @@ export function Scanner() {
               </select>
             </div>
             <div style={GRP}><label style={LBL}>Gap %</label>
-              <input style={INPUT} type="number" value={gGap} onChange={e=>setGGap(+e.target.value)} placeholder="Min gap %"/>
+              <div style={{display:'flex',gap:'4px'}}>
+                <input style={INPUT} type="number" value={gGapMin||''} onChange={e=>setGGapMin(+e.target.value)} placeholder="Min"/>
+                <input style={INPUT} type="number" value={gGapMax||''} onChange={e=>setGGapMax(+e.target.value)} placeholder="Max"/>
+              </div>
             </div>
             <div style={GRP}><label style={LBL}>Price $</label>
-              <input style={INPUT} type="number" value={gPrice} onChange={e=>setGPrice(+e.target.value)} placeholder="Min price"/>
+              <div style={{display:'flex',gap:'4px'}}>
+                <input style={INPUT} type="number" value={gPriceMin||''} onChange={e=>setGPriceMin(+e.target.value)} placeholder="Min"/>
+                <input style={INPUT} type="number" value={gPriceMax||''} onChange={e=>setGPriceMax(+e.target.value)} placeholder="Max"/>
+              </div>
             </div>
-            <div style={GRP}><label style={LBL}>Pre-Mkt Vol (K)</label><input style={INPUT} type="number" value={gVol} onChange={e=>setGVol(+e.target.value)} placeholder="Min volume"/></div>
-            <div style={GRP}><label style={LBL}>Float M</label><input style={INPUT} type="number" value={gFloat} onChange={e=>setGFloat(+e.target.value)} placeholder="Max float"/></div>
-            <div style={GRP}><label style={LBL}>ADR %</label><input style={INPUT} type="number" value={gAdr} onChange={e=>setGAdr(+e.target.value)} placeholder="Min ADR"/></div>
-            <div style={GRP}><label style={LBL}>ATR</label><input style={INPUT} type="number" value={gAtr} onChange={e=>setGAtr(+e.target.value)} placeholder="Min ATR"/></div>
-            <div style={GRP}><label style={LBL}>Avg Vol 30D</label><input style={INPUT} type="text" defaultValue="0" onChange={e=>setGAvgVol(parseKMB(e.target.value))} placeholder="e.g. 500K, 1M"/></div>
-            <div style={GRP}><label style={LBL}>Mkt Cap</label><input style={INPUT} type="text" defaultValue="0" onChange={e=>setGMktCap(parseKMB(e.target.value))} placeholder="e.g. 10B, 500M"/></div>
+            <div style={GRP}><label style={LBL}>Pre-Mkt Vol (K)</label>
+              <div style={{display:'flex',gap:'4px'}}>
+                <input style={INPUT} type="number" value={gVolMin||''} onChange={e=>setGVolMin(+e.target.value)} placeholder="Min"/>
+                <input style={INPUT} type="number" value={gVolMax||''} onChange={e=>setGVolMax(+e.target.value)} placeholder="Max"/>
+              </div>
+            </div>
+            <div style={GRP}><label style={LBL}>Float (M)</label>
+              <div style={{display:'flex',gap:'4px'}}>
+                <input style={INPUT} type="number" value={gFloatMin||''} onChange={e=>setGFloatMin(+e.target.value)} placeholder="Min"/>
+                <input style={INPUT} type="number" value={gFloatMax||''} onChange={e=>setGFloatMax(+e.target.value)} placeholder="Max"/>
+              </div>
+            </div>
+            <div style={GRP}><label style={LBL}>ADR %</label>
+              <div style={{display:'flex',gap:'4px'}}>
+                <input style={INPUT} type="number" value={gAdrMin||''} onChange={e=>setGAdrMin(+e.target.value)} placeholder="Min"/>
+                <input style={INPUT} type="number" value={gAdrMax||''} onChange={e=>setGAdrMax(+e.target.value)} placeholder="Max"/>
+              </div>
+            </div>
+            <div style={GRP}><label style={LBL}>ATR</label>
+              <div style={{display:'flex',gap:'4px'}}>
+                <input style={INPUT} type="number" value={gAtrMin||''} onChange={e=>setGAtrMin(+e.target.value)} placeholder="Min"/>
+                <input style={INPUT} type="number" value={gAtrMax||''} onChange={e=>setGAtrMax(+e.target.value)} placeholder="Max"/>
+              </div>
+            </div>
+            <div style={GRP}><label style={LBL}>Avg Vol 30D</label>
+              <div style={{display:'flex',gap:'4px'}}>
+                <input style={INPUT} type="text" value={gAvgVolMin} onChange={e=>setGAvgVolMin(e.target.value)} placeholder="Min e.g. 500K"/>
+                <input style={INPUT} type="text" value={gAvgVolMax} onChange={e=>setGAvgVolMax(e.target.value)} placeholder="Max e.g. 5M"/>
+              </div>
+            </div>
+            <div style={GRP}><label style={LBL}>Mkt Cap</label>
+              <div style={{display:'flex',gap:'4px'}}>
+                <input style={INPUT} type="text" value={gMktCapMin} onChange={e=>setGMktCapMin(e.target.value)} placeholder="Min e.g. 1B"/>
+                <input style={INPUT} type="text" value={gMktCapMax} onChange={e=>setGMktCapMax(e.target.value)} placeholder="Max e.g. 100B"/>
+              </div>
+            </div>
             {SB_BTN(loading.gap?'Loading...':'Refresh', ()=>load('gap',`${BASE}/gaps`,setGapData), loading.gap)}
           </div>
           <div>
