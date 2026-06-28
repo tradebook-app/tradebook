@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-const FMP = 'https://financialmodelingprep.com';
-const KEY = process.env.FMP_API_KEY;
+const BASE = 'https://financialmodelingprep.com/stable';
+const KEY  = process.env.FMP_API_KEY;
 
 const THEMES: Record<string, string[]> = {
   'AI / Machine Learning':  ['NVDA','PLTR','AI','MSFT','GOOGL','AMZN'],
@@ -21,25 +21,24 @@ const THEMES: Record<string, string[]> = {
   'Robotics / Automation':  ['ISRG','ROK','EMR'],
 };
 
-async function fetchQuotes(symbols: string[]) {
-  const url = `${FMP}/api/v3/quote/${symbols.join(',')}?apikey=${KEY}`;
-  const res = await fetch(url, { next: { revalidate: 900 } });
-  if (!res.ok) throw new Error(`FMP error: ${res.status}`);
-  return res.json();
+async function fetchQuote(symbol: string) {
+  const res = await fetch(`${BASE}/quote?symbol=${symbol}&apikey=${KEY}`, { next: { revalidate: 900 } });
+  if (!res.ok) return null;
+  const d = await res.json();
+  return Array.isArray(d) ? d[0] : d;
 }
 
-async function fetchHistory(symbol: string, days: number) {
-  const url = `${FMP}/api/v3/historical-price-full/${symbol}?timeseries=${days}&apikey=${KEY}`;
-  const res = await fetch(url, { next: { revalidate: 900 } });
+async function fetchHistory(symbol: string, limit: number) {
+  const res = await fetch(`${BASE}/historical-price-eod/full?symbol=${symbol}&limit=${limit}&apikey=${KEY}`, { next: { revalidate: 900 } });
   if (!res.ok) return [];
-  const data = await res.json();
-  return data?.historical || [];
+  const d = await res.json();
+  return Array.isArray(d) ? d : (d?.historical || []);
 }
 
-function perfFromHistory(history: any[], daysAgo: number): number {
+function perf(history: any[], days: number): number {
   if (!history || history.length < 2) return 0;
   const latest = history[0]?.close;
-  const past   = history[Math.min(daysAgo, history.length - 1)]?.close;
+  const past   = history[Math.min(days, history.length - 1)]?.close;
   if (!latest || !past || past === 0) return 0;
   return ((latest - past) / Math.abs(past)) * 100;
 }
@@ -47,67 +46,46 @@ function perfFromHistory(history: any[], daysAgo: number): number {
 export async function GET(request: Request) {
   try {
     if (!KEY) return NextResponse.json({ error: 'FMP_API_KEY not configured' }, { status: 503 });
-
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'today';
 
     const allTickers = [...new Set(Object.values(THEMES).flat())];
-    const BATCH = 20;
-    const allQuotes: any[] = [];
-    for (let i = 0; i < allTickers.length; i += BATCH) {
-      const quotes = await fetchQuotes(allTickers.slice(i, i + BATCH));
-      allQuotes.push(...(Array.isArray(quotes) ? quotes : []));
-    }
+    const BATCH = 8;
     const quoteMap: Record<string, any> = {};
-    for (const q of allQuotes) quoteMap[q.symbol] = q;
 
-    // For non-today periods, fetch history for each ticker
+    for (let i = 0; i < allTickers.length; i += BATCH) {
+      const batch = allTickers.slice(i, i + BATCH);
+      await Promise.all(batch.map(async t => {
+        const q = await fetchQuote(t);
+        if (q) quoteMap[t] = q;
+      }));
+    }
+
     const histMap: Record<string, any[]> = {};
     if (period !== 'today') {
-      const days = period === '1w' ? 10 : period === '1m' ? 25 : 260;
-      const HBATCH = 5;
-      for (let i = 0; i < allTickers.length; i += HBATCH) {
-        const batch = allTickers.slice(i, i + HBATCH);
+      const limit = period === '1w' ? 10 : period === '1m' ? 25 : 260;
+      for (let i = 0; i < allTickers.length; i += BATCH) {
+        const batch = allTickers.slice(i, i + BATCH);
         await Promise.all(batch.map(async t => {
-          histMap[t] = await fetchHistory(t, days);
+          histMap[t] = await fetchHistory(t, limit);
         }));
       }
     }
 
-    const themeResults = Object.entries(THEMES).map(([themeName, tickers]) => {
-      const stockData = tickers.map(ticker => {
-        const q = quoteMap[ticker];
+    const themeResults = Object.entries(THEMES).map(([name, tickers]) => {
+      const stockData = tickers.map(t => {
+        const q = quoteMap[t];
         if (!q?.price) return null;
-
         let pct = 0;
-        if (period === 'today') {
-          pct = q.changesPercentage ?? 0;
-        } else if (period === '1w') {
-          pct = perfFromHistory(histMap[ticker] || [], 5);
-        } else if (period === '1m') {
-          pct = perfFromHistory(histMap[ticker] || [], 21);
-        } else if (period === 'ytd') {
-          pct = perfFromHistory(histMap[ticker] || [], 252);
-        }
-
-        return {
-          t: ticker,
-          n: q.name || ticker,
-          p: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%',
-          pctVal: pct,
-          price: parseFloat(q.price.toFixed(2)),
-        };
+        if (period === 'today') pct = q.changesPercentage ?? 0;
+        else if (period === '1w')  pct = perf(histMap[t] || [], 5);
+        else if (period === '1m')  pct = perf(histMap[t] || [], 21);
+        else if (period === 'ytd') pct = perf(histMap[t] || [], 252);
+        return { t, n: q.name || t, p: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%', pctVal: pct, price: parseFloat(q.price.toFixed(2)) };
       }).filter(Boolean) as any[];
 
-      const avgPct = stockData.length
-        ? stockData.reduce((s, d) => s + d.pctVal, 0) / stockData.length : 0;
-
-      return {
-        name:   themeName,
-        pct:    parseFloat(avgPct.toFixed(2)),
-        stocks: stockData.sort((a, b) => b.pctVal - a.pctVal).slice(0, 5),
-        period,
-      };
+      const avgPct = stockData.length ? stockData.reduce((s, d) => s + d.pctVal, 0) / stockData.length : 0;
+      return { name, pct: parseFloat(avgPct.toFixed(2)), stocks: stockData.sort((a, b) => b.pctVal - a.pctVal).slice(0, 5), period };
     });
 
     return NextResponse.json(themeResults.sort((a, b) => b.pct - a.pct));
