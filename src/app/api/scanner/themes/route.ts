@@ -21,19 +21,27 @@ const THEMES: Record<string, string[]> = {
   'Robotics / Automation':  ['ISRG','ROK','EMR'],
 };
 
-async function batchQuote(symbols: string[]) {
-  const url = `${FMP}/stable/batch-quote?symbols=${symbols.join(',')}&apikey=${KEY}`;
+async function fetchQuotes(symbols: string[]) {
+  const url = `${FMP}/api/v3/quote/${symbols.join(',')}?apikey=${KEY}`;
   const res = await fetch(url, { next: { revalidate: 900 } });
   if (!res.ok) throw new Error(`FMP error: ${res.status}`);
   return res.json();
 }
 
-async function priceChange(symbol: string) {
-  const url = `${FMP}/stable/stock-price-change?symbol=${symbol}&apikey=${KEY}`;
+async function fetchHistory(symbol: string, days: number) {
+  const url = `${FMP}/api/v3/historical-price-full/${symbol}?timeseries=${days}&apikey=${KEY}`;
   const res = await fetch(url, { next: { revalidate: 900 } });
-  if (!res.ok) return null;
+  if (!res.ok) return [];
   const data = await res.json();
-  return Array.isArray(data) ? data[0] : data;
+  return data?.historical || [];
+}
+
+function perfFromHistory(history: any[], daysAgo: number): number {
+  if (!history || history.length < 2) return 0;
+  const latest = history[0]?.close;
+  const past   = history[Math.min(daysAgo, history.length - 1)]?.close;
+  if (!latest || !past || past === 0) return 0;
+  return ((latest - past) / Math.abs(past)) * 100;
 }
 
 export async function GET(request: Request) {
@@ -44,19 +52,24 @@ export async function GET(request: Request) {
     const period = searchParams.get('period') || 'today';
 
     const allTickers = [...new Set(Object.values(THEMES).flat())];
-    const quotes = await batchQuote(allTickers);
+    const BATCH = 20;
+    const allQuotes: any[] = [];
+    for (let i = 0; i < allTickers.length; i += BATCH) {
+      const quotes = await fetchQuotes(allTickers.slice(i, i + BATCH));
+      allQuotes.push(...(Array.isArray(quotes) ? quotes : []));
+    }
     const quoteMap: Record<string, any> = {};
-    for (const q of (quotes || [])) quoteMap[q.symbol] = q;
+    for (const q of allQuotes) quoteMap[q.symbol] = q;
 
-    // For non-today periods, fetch real price changes
-    let changeMap: Record<string, any> = {};
+    // For non-today periods, fetch history for each ticker
+    const histMap: Record<string, any[]> = {};
     if (period !== 'today') {
-      const BATCH = 8;
-      for (let i = 0; i < allTickers.length; i += BATCH) {
-        const batch = allTickers.slice(i, i + BATCH);
-        await Promise.all(batch.map(async (t) => {
-          const chg = await priceChange(t);
-          if (chg) changeMap[t] = chg;
+      const days = period === '1w' ? 10 : period === '1m' ? 25 : 260;
+      const HBATCH = 5;
+      for (let i = 0; i < allTickers.length; i += HBATCH) {
+        const batch = allTickers.slice(i, i + HBATCH);
+        await Promise.all(batch.map(async t => {
+          histMap[t] = await fetchHistory(t, days);
         }));
       }
     }
@@ -68,20 +81,20 @@ export async function GET(request: Request) {
 
         let pct = 0;
         if (period === 'today') {
-          pct = q.changePercentage ?? q.changesPercentage ?? 0;
+          pct = q.changesPercentage ?? 0;
         } else if (period === '1w') {
-          pct = changeMap[ticker]?.['5D'] ?? changeMap[ticker]?.['1W'] ?? 0;
+          pct = perfFromHistory(histMap[ticker] || [], 5);
         } else if (period === '1m') {
-          pct = changeMap[ticker]?.['1M'] ?? 0;
+          pct = perfFromHistory(histMap[ticker] || [], 21);
         } else if (period === 'ytd') {
-          pct = changeMap[ticker]?.['ytd'] ?? changeMap[ticker]?.['YTD'] ?? 0;
+          pct = perfFromHistory(histMap[ticker] || [], 252);
         }
 
         return {
           t: ticker,
           n: q.name || ticker,
-          p: (pct >= 0 ? '+' : '') + (+pct).toFixed(2) + '%',
-          pctVal: +pct,
+          p: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%',
+          pctVal: pct,
           price: parseFloat(q.price.toFixed(2)),
         };
       }).filter(Boolean) as any[];

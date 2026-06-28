@@ -11,49 +11,47 @@ const UNIVERSE = [
   'NET','LMT','RTX','AXON','MRNA','TSLA','RIVN','MSFT',
 ];
 
-// Fetch regular batch quote (price, prevClose, volume, dayHigh/Low, yearHigh/Low, marketCap, sharesOutstanding)
-async function batchQuote(symbols: string[]) {
-  const url = `${FMP}/stable/batch-quote?symbols=${symbols.join(',')}&apikey=${KEY}`;
-  const res = await fetch(url, { next: { revalidate: 60 } });
+function calcADR(high: number, low: number): number {
+  if (!high || !low || low === 0) return 0;
+  return ((high - low) / ((high + low) / 2)) / 52 * 100;
+}
+
+async function fetchQuotes(symbols: string[]) {
+  // v3 quote endpoint — available on Starter plan
+  const url = `${FMP}/api/v3/quote/${symbols.join(',')}?apikey=${KEY}`;
+  const res = await fetch(url, { next: { revalidate: 120 } });
   if (!res.ok) throw new Error(`FMP quote error: ${res.status}`);
   return res.json();
 }
 
-// Fetch aftermarket / pre-market quote (bid/ask/price + volume outside RTH)
-async function batchAftermarket(symbols: string[]) {
-  const url = `${FMP}/stable/batch-aftermarket-quote?symbols=${symbols.join(',')}&apikey=${KEY}`;
+async function fetchAftermarket(symbol: string) {
+  const url = `${FMP}/api/v4/pre-post-market?symbol=${symbol}&apikey=${KEY}`;
   const res = await fetch(url, { next: { revalidate: 60 } });
-  if (!res.ok) return []; // aftermarket may be empty during RTH — not fatal
+  if (!res.ok) return null;
   return res.json();
-}
-
-function calcADR(high: number, low: number): number {
-  if (!high || !low || low === 0) return 0;
-  return ((high - low) / ((high + low) / 2)) / 52 * 100;
 }
 
 export async function GET() {
   try {
     if (!KEY) return NextResponse.json({ error: 'FMP_API_KEY not configured' }, { status: 503 });
 
-    const [quotes, after] = await Promise.all([
-      batchQuote(UNIVERSE),
-      batchAftermarket(UNIVERSE),
-    ]);
+    // Fetch in batches of 20
+    const BATCH = 20;
+    const allQuotes: any[] = [];
+    for (let i = 0; i < UNIVERSE.length; i += BATCH) {
+      const batch = UNIVERSE.slice(i, i + BATCH);
+      const quotes = await fetchQuotes(batch);
+      allQuotes.push(...(Array.isArray(quotes) ? quotes : []));
+    }
 
-    // Map aftermarket prices by symbol
-    const afterMap: Record<string, any> = {};
-    for (const a of (after || [])) afterMap[a.symbol] = a;
-
-    const gaps = (quotes || [])
-      .filter((q: any) => q?.price && q?.previousClose)
-      .map((q: any) => {
-        const after = afterMap[q.symbol];
-        // Pre/after-market price if available, else regular price
-        const prePrice  = after?.price || q.price;
+    const gaps = allQuotes
+      .filter(q => q?.price && q?.previousClose)
+      .map(q => {
+        // FMP v3 quote includes pre/post market fields
+        const prePrice  = q.preMarketPrice || q.postMarketPrice || q.price;
         const prevClose = q.previousClose;
         const gapPct    = ((prePrice - prevClose) / Math.abs(prevClose)) * 100;
-        const preVol    = after?.volume || q.volume || 0;
+        const preVol    = q.preMarketVolume || 0;
         const adr       = calcADR(q.yearHigh, q.yearLow);
         const atrPct    = q.dayHigh && q.dayLow && q.price
           ? ((q.dayHigh - q.dayLow) / q.price) * 100 : 0;
@@ -70,15 +68,15 @@ export async function GET() {
           adr:          parseFloat(adr.toFixed(2)),
           atr:          parseFloat(atrPct.toFixed(2)),
           mktCap:       q.marketCap || null,
-          sector:       q.sector || null,
-          industry:     q.industry || null,
-          isPreMarket:  !!after,
-          isPostMarket: false,
+          sector:       null,
+          industry:     null,
+          isPreMarket:  !!q.preMarketPrice,
+          isPostMarket: !q.preMarketPrice && !!q.postMarketPrice,
           lastUpdated:  new Date().toISOString(),
         };
       })
-      .filter((q: any) => Math.abs(q.gap) >= 0.5)
-      .sort((a: any, b: any) => Math.abs(b.gap) - Math.abs(a.gap));
+      .filter(q => Math.abs(q.gap) >= 0.5)
+      .sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap));
 
     return NextResponse.json(gaps);
   } catch (err: any) {
