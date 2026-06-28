@@ -24,7 +24,7 @@ function RkBadge({ v }: { v: number | null }) {
 }
 
 type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; avgVol:number|null; mktCap:number|null; dollarVol:number|null; sector:string|null; industry:string|null; isPreMarket:boolean; isPostMarket:boolean };
-type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; rs:number; sector:string|null; d50:number|null; d200:number|null };
+type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; rs:number; epsRank:number|null; revRank:number|null; sector:string|null; d50:number|null; d200:number|null };
 type Theme      = { name:string; pct:number; stocks:{t:string;n:string;p:string;pctVal:number}[] };
 type FundaStock = { ticker:string; name:string; price:number; epsQoQ:number|null; epsYoY:number|null; revGrowth:number|null; epsRank:number|null; revRank:number|null; instRank:number|null; floatM:number|null; shortPct:number|null };
 
@@ -131,7 +131,8 @@ export function Scanner() {
   }
   // Mom filters
   const [mM1,setMM1]=useState(-100); const [mM3,setMM3]=useState(-100); const [mM6,setMM6]=useState(-100);
-  const [mAdr,setMAdr]=useState(0); const [mPMin,setMPMin]=useState(5); const [mPMax,setMPMax]=useState(5000); const [mRs,setMRs]=useState(1);
+  const [mAdr,setMAdr]=useState(0); const [mPMin,setMPMin]=useState(5); const [mPMax,setMPMax]=useState(5000);
+  const [mRs,setMRs]=useState(1); const [mEps,setMEps]=useState(1); const [mRev,setMRevR]=useState(1);
   // Funda filters
   const [fEps,setFEps]=useState(1); const [fRev,setFRev]=useState(1); const [fInst,setFInst]=useState(1);
   const [fFloat,setFFloat]=useState(1000); const [fShort,setFShort]=useState(0);
@@ -202,7 +203,7 @@ export function Scanner() {
     return Math.abs(b.gap) - Math.abs(a.gap);
   });
 
-  const filteredMom   = momData.filter(r=>r.m1>=mM1&&r.m3>=mM3&&r.m6>=mM6&&r.adr>=mAdr&&r.price>=mPMin&&r.price<=mPMax&&r.rs>=mRs).sort((a,b)=>b.rs-a.rs);
+  const filteredMom   = momData.filter(r=>r.m1>=mM1&&r.m3>=mM3&&r.m6>=mM6&&r.adr>=mAdr&&r.price>=mPMin&&r.price<=mPMax&&r.rs>=mRs&&(r.epsRank==null||r.epsRank>=mEps)&&(r.revRank==null||r.revRank>=mRev)).sort((a,b)=>b.rs-a.rs);
   const filteredFunda = fundaData.filter(r=>(r.epsRank||0)>=fEps&&(r.revRank||0)>=fRev&&(r.instRank||0)>=fInst&&(!r.floatM||r.floatM<=fFloat)&&(!r.shortPct||r.shortPct>=fShort));
 
   function openDetail(row: any, type: string, t: string) { setDetail(row); setDetailType(type); setTicker(t); }
@@ -239,7 +240,7 @@ export function Scanner() {
           ['3M',<span style={{color:pctColor(detail.m3)}}>{pct(detail.m3)}</span>],
           ['6M',<span style={{color:pctColor(detail.m6)}}>{pct(detail.m6)}</span>],
           ['ADR %',detail.adr.toFixed(1)+'%'],['ATR %',detail.atrPct.toFixed(1)+'%'],
-          ['RS rank',<RkBadge v={detail.rs}/>],['50D MA',fmt$(detail.d50)],['200D MA',fmt$(detail.d200)],
+          ['RS rank',<RkBadge v={detail.rs}/>],['EPS rank',<RkBadge v={detail.epsRank}/>],['Rev rank',<RkBadge v={detail.revRank}/>],['50D MA',fmt$(detail.d50)],['200D MA',fmt$(detail.d200)],
         ] : [
           ['EPS QoQ',<span style={{color:pctColor(detail.epsQoQ)}}>{pct(detail.epsQoQ)}</span>],
           ['EPS YoY',<span style={{color:pctColor(detail.epsYoY)}}>{pct(detail.epsYoY)}</span>],
@@ -419,7 +420,7 @@ export function Scanner() {
         <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1 }}>
           <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start' }}>
             <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'9px', paddingBottom:'7px', borderBottom:'1px solid var(--brd)' }}>Filters</div>
-            {([['Min 1M %',mM1,setMM1],['Min 3M %',mM3,setMM3],['Min 6M %',mM6,setMM6],['Min ADR %',mAdr,setMAdr],['Min RS rank',mRs,setMRs]] as any[]).map(([l,v,s])=>(
+            {([['Min 1M %',mM1,setMM1],['Min 3M %',mM3,setMM3],['Min 6M %',mM6,setMM6],['Min ADR %',mAdr,setMAdr],['Min RS rank',mRs,setMRs],['Min EPS rank',mEps,setMEps],['Min Rev rank',mRev,setMRevR]] as any[]).map(([l,v,s])=>(
               <div key={l} style={GRP}><label style={LBL}>{l}</label><input style={INPUT} type="number" value={v} onChange={e=>s(+e.target.value)}/></div>
             ))}
             <div style={GRP}><label style={LBL}>Price $</label>
@@ -431,9 +432,9 @@ export function Scanner() {
             <div style={{ marginBottom:'7px' }}><span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.mom?'Loading...':`${filteredMom.length} results · live`}</span></div>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflow:'hidden' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                <thead><tr>{['Ticker','1M %','3M %','6M %','ADR %','ATR %','RS rank','Sector'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Ticker','1M %','3M %','6M %','ADR %','ATR %','RS rank','EPS rank','Rev rank','Sector'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
                 <tbody>
-                  {loading.mom ? <tr><td colSpan={8} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading momentum data...</td></tr>
+                  {loading.mom ? <tr><td colSpan={10} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading momentum data...</td></tr>
                   : filteredMom.map(r=>(
                     <tr key={r.ticker} onClick={()=>openDetail(r,'mom',r.ticker)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
                       <td style={TD}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px' }}>{r.ticker}</div><div style={{ fontSize:'10px', color:'var(--txt3)' }}>{r.name}</div></td>
@@ -443,6 +444,8 @@ export function Scanner() {
                       <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.adr.toFixed(1)}%</td>
                       <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.atrPct.toFixed(1)}%</td>
                       <td style={TD}><RkBadge v={r.rs}/></td>
+                      <td style={TD}><RkBadge v={r.epsRank}/></td>
+                      <td style={TD}><RkBadge v={r.revRank}/></td>
                       <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.sector||'—'}</td>
                     </tr>
                   ))}
