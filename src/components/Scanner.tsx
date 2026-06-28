@@ -23,7 +23,7 @@ function RkBadge({ v }: { v: number | null }) {
   return <span style={{ display:'inline-block', minWidth:'26px', textAlign:'center', padding:'2px 5px', borderRadius:'4px', fontSize:'10px', fontWeight:700, background:bg, color, border:`1px solid ${bdr}` }}>{v}</span>;
 }
 
-type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; avgVol:number|null; mktCap:number|null; sector:string|null; industry:string|null; isPreMarket:boolean; isPostMarket:boolean };
+type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; avgVol:number|null; mktCap:number|null; dollarVol:number|null; sector:string|null; industry:string|null; isPreMarket:boolean; isPostMarket:boolean };
 type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; rs:number; sector:string|null; d50:number|null; d200:number|null };
 type Theme      = { name:string; pct:number; stocks:{t:string;n:string;p:string;pctVal:number}[] };
 type FundaStock = { ticker:string; name:string; price:number; epsQoQ:number|null; epsYoY:number|null; revGrowth:number|null; epsRank:number|null; revRank:number|null; instRank:number|null; floatM:number|null; shortPct:number|null };
@@ -62,6 +62,35 @@ export function Scanner() {
   const [fundaLoaded, setFundaLoaded] = useState(false);
   const [clock, setClock] = useState("");
 
+  // Save and restore gap filters from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('st-gap-filters');
+      if (saved) {
+        const f = JSON.parse(saved);
+        if (f.gDir !== undefined) setGDir(f.gDir);
+        if (f.gGapMin !== undefined) setGGapMin(f.gGapMin);
+        if (f.gGapMax !== undefined) setGGapMax(f.gGapMax);
+        if (f.gPriceMin !== undefined) setGPriceMin(f.gPriceMin);
+        if (f.gPriceMax !== undefined) setGPriceMax(f.gPriceMax);
+        if (f.gVolMin !== undefined) setGVolMin(f.gVolMin);
+        if (f.gVolMax !== undefined) setGVolMax(f.gVolMax);
+        if (f.gFloatMin !== undefined) setGFloatMin(f.gFloatMin);
+        if (f.gFloatMax !== undefined) setGFloatMax(f.gFloatMax);
+        if (f.gAdrMin !== undefined) setGAdrMin(f.gAdrMin);
+        if (f.gAdrMax !== undefined) setGAdrMax(f.gAdrMax);
+        if (f.gAtrMin !== undefined) setGAtrMin(f.gAtrMin);
+        if (f.gAtrMax !== undefined) setGAtrMax(f.gAtrMax);
+        if (f.gAvgVolMin !== undefined) setGAvgVolMin(f.gAvgVolMin);
+        if (f.gAvgVolMax !== undefined) setGAvgVolMax(f.gAvgVolMax);
+        if (f.gMktCapMin !== undefined) setGMktCapMin(f.gMktCapMin);
+        if (f.gMktCapMax !== undefined) setGMktCapMax(f.gMktCapMax);
+        if (f.gDolVolMin !== undefined) setGDolVolMin(f.gDolVolMin);
+        if (f.gDolVolMax !== undefined) setGDolVolMax(f.gDolVolMax);
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     const update = () => {
       const et = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
@@ -74,6 +103,19 @@ export function Scanner() {
     return () => clearInterval(t);
   }, []);
 
+  // Auto-save gap filters to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('st-gap-filters', JSON.stringify({
+        gDir, gGapMin, gGapMax, gPriceMin, gPriceMax,
+        gVolMin, gVolMax, gFloatMin, gFloatMax,
+        gAdrMin, gAdrMax, gAtrMin, gAtrMax,
+        gAvgVolMin, gAvgVolMax, gMktCapMin, gMktCapMax,
+        gDolVolMin, gDolVolMax,
+      }));
+    } catch {}
+  }, [gDir,gGapMin,gGapMax,gPriceMin,gPriceMax,gVolMin,gVolMax,gFloatMin,gFloatMax,gAdrMin,gAdrMax,gAtrMin,gAtrMax,gAvgVolMin,gAvgVolMax,gMktCapMin,gMktCapMax,gDolVolMin,gDolVolMax]);
+
   // Gap filters
   const [gDir,setGDir]=useState('both');
   const [gGapMin,setGGapMin]=useState(0); const [gGapMax,setGGapMax]=useState(0);
@@ -84,6 +126,7 @@ export function Scanner() {
   const [gAtrMin,setGAtrMin]=useState(0); const [gAtrMax,setGAtrMax]=useState(0);
   const [gAvgVolMin,setGAvgVolMin]=useState(''); const [gAvgVolMax,setGAvgVolMax]=useState('');
   const [gMktCapMin,setGMktCapMin]=useState(''); const [gMktCapMax,setGMktCapMax]=useState('');
+  const [gDolVolMin,setGDolVolMin]=useState(''); const [gDolVolMax,setGDolVolMax]=useState('');
   const [gSortCol,setGSortCol]=useState('gap'); const [gSortAsc,setGSortAsc]=useState(false);
   // Mom filters
   const [mM1,setMM1]=useState(-100); const [mM3,setMM3]=useState(-100); const [mM6,setMM6]=useState(-100);
@@ -139,6 +182,10 @@ export function Scanner() {
     // Mkt Cap
     if (mktCapMinN > 0 && r.mktCap && r.mktCap < mktCapMinN) return false;
     if (mktCapMaxN > 0 && r.mktCap && r.mktCap > mktCapMaxN) return false;
+    // Dollar Volume = price × avgVol
+    const dolVolMinN = parseKMB(gDolVolMin); const dolVolMaxN = parseKMB(gDolVolMax);
+    if (dolVolMinN > 0 && r.dollarVol && r.dollarVol < dolVolMinN) return false;
+    if (dolVolMaxN > 0 && r.dollarVol && r.dollarVol > dolVolMaxN) return false;
     return true;
   }).sort((a:any,b:any) => {
     const dir = gSortAsc ? 1 : -1;
@@ -313,6 +360,12 @@ export function Scanner() {
               <div style={{display:'flex',gap:'4px'}}>
                 <input style={INPUT} type="text" value={gAvgVolMin} onChange={e=>setGAvgVolMin(e.target.value)} placeholder="Min"/>
                 <input style={INPUT} type="text" value={gAvgVolMax} onChange={e=>setGAvgVolMax(e.target.value)} placeholder="Max"/>
+              </div>
+            </div>
+            <div style={GRP}><label style={LBL}>Dollar Vol</label>
+              <div style={{display:'flex',gap:'4px'}}>
+                <input style={INPUT} type="text" value={gDolVolMin} onChange={e=>setGDolVolMin(e.target.value)} placeholder="Min"/>
+                <input style={INPUT} type="text" value={gDolVolMax} onChange={e=>setGDolVolMax(e.target.value)} placeholder="Max"/>
               </div>
             </div>
             <div style={GRP}><label style={LBL}>Mkt Cap</label>

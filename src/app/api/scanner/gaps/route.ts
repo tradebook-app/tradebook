@@ -73,6 +73,9 @@ export async function GET() {
         // Market Cap — from quote response directly (marketCap field, in raw dollars)
         const mktCap = q.marketCap ?? null;
 
+        // Dollar Volume = price × avgVolume (how much $ traded per day)
+        const dollarVol = q.price && avgVol ? q.price * avgVol : null;
+
         // Pre-market volume
         const preVol = q.preMarketVolume || 0;
 
@@ -88,6 +91,7 @@ export async function GET() {
           atr:          parseFloat(atrPct.toFixed(2)),
           avgVol:       avgVol,                             // raw number (shares)
           mktCap:       mktCap,                             // raw number (dollars)
+          dollarVol:    dollarVol,                          // price × avgVol
           sector:       profile?.sector || q.sector || null,
           industry:     profile?.industry || q.industry || null,
           isPreMarket:  true,
