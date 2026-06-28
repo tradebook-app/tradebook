@@ -64,9 +64,12 @@ export function Scanner() {
   }, []);
 
   // Gap filters
-  const [gDir,setGDir]=useState('both'); const [gMin,setGMin]=useState(1); const [gMax,setGMax]=useState(50);
-  const [gPMin,setGPMin]=useState(5); const [gPMax,setGPMax]=useState(1000); const [gVol,setGVol]=useState(0);
+  const [gDir,setGDir]=useState('both'); const [gGap,setGGap]=useState(1);
+  const [gPrice,setGPrice]=useState(5); const [gVol,setGVol]=useState(0);
   const [gFloat,setGFloat]=useState(500); const [gAdr,setGAdr]=useState(0);
+  const [gAtr,setGAtr]=useState(0); const [gAvgVol,setGAvgVol]=useState(0);
+  const [gMktCap,setGMktCap]=useState(0);
+  const [gSortCol,setGSortCol]=useState('gap'); const [gSortAsc,setGSortAsc]=useState(false);
   // Mom filters
   const [mM1,setMM1]=useState(-100); const [mM3,setMM3]=useState(-100); const [mM6,setMM6]=useState(-100);
   const [mAdr,setMAdr]=useState(0); const [mPMin,setMPMin]=useState(5); const [mPMax,setMPMax]=useState(5000); const [mRs,setMRs]=useState(1);
@@ -92,11 +95,22 @@ export function Scanner() {
 
   const filteredGaps = gapData.filter(r => {
     if (gDir==='up'&&r.gap<0) return false; if (gDir==='down'&&r.gap>0) return false;
-    if (Math.abs(r.gap)<gMin||Math.abs(r.gap)>gMax) return false;
-    if (r.prePrice<gPMin||r.prePrice>gPMax) return false;
-    if ((r.preVol||0)<gVol) return false; if (r.float&&r.float>gFloat) return false;
-    if (r.adr<gAdr) return false; return true;
-  }).sort((a,b)=>Math.abs(b.gap)-Math.abs(a.gap));
+    if (Math.abs(r.gap)<gGap) return false;
+    if (r.prevClose<gPrice) return false;
+    if ((r.preVol||0)<gVol) return false;
+    if (r.float&&r.float>gFloat) return false;
+    if (r.adr<gAdr) return false;
+    if (r.atr<gAtr) return false;
+    if (gMktCap>0 && r.mktCap && r.mktCap/1e9 > gMktCap) return false;
+    return true;
+  }).sort((a:any,b:any) => {
+    const av = Math.abs(a.gap), bv = Math.abs(b.gap);
+    if (gSortCol==='gap')   return gSortAsc ? av-bv : bv-av;
+    if (gSortCol==='float') return gSortAsc ? (a.float||0)-(b.float||0) : (b.float||0)-(a.float||0);
+    if (gSortCol==='atr')   return gSortAsc ? (a.atr||0)-(b.atr||0) : (b.atr||0)-(a.atr||0);
+    if (gSortCol==='adr')   return gSortAsc ? (a.adr||0)-(b.adr||0) : (b.adr||0)-(a.adr||0);
+    return bv - av;
+  });
 
   const filteredMom   = momData.filter(r=>r.m1>=mM1&&r.m3>=mM3&&r.m6>=mM6&&r.adr>=mAdr&&r.price>=mPMin&&r.price<=mPMax&&r.rs>=mRs).sort((a,b)=>b.rs-a.rs);
   const filteredFunda = fundaData.filter(r=>(r.epsRank||0)>=fEps&&(r.revRank||0)>=fRev&&(r.instRank||0)>=fInst&&(!r.floatM||r.floatM<=fFloat)&&(!r.shortPct||r.shortPct>=fShort));
@@ -236,7 +250,17 @@ export function Scanner() {
             </div>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflow:'hidden' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                <thead><tr>{['Ticker','Gap %','Pre-Mkt Vol','Prev close','Float','ADR %','ATR %','Industry','Sector'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <thead><tr>
+                    <th style={TH}>Ticker</th>
+                    <th style={{...TH,cursor:'pointer'}} onClick={()=>{setGSortCol('gap');setGSortAsc(a=>gSortCol==='gap'?!a:false);}}>Gap %{gSortCol==='gap'?(gSortAsc?' ↑':' ↓'):''}</th>
+                    <th style={TH}>Pre-Mkt Vol</th>
+                    <th style={TH}>Prev Close</th>
+                    <th style={{...TH,cursor:'pointer'}} onClick={()=>{setGSortCol('float');setGSortAsc(a=>gSortCol==='float'?!a:false);}}>Float{gSortCol==='float'?(gSortAsc?' ↑':' ↓'):''}</th>
+                    <th style={TH}>ADR %</th>
+                    <th style={{...TH,cursor:'pointer'}} onClick={()=>{setGSortCol('atr');setGSortAsc(a=>gSortCol==='atr'?!a:false);}}>ATR{gSortCol==='atr'?(gSortAsc?' ↑':' ↓'):''}</th>
+                    <th style={TH}>Industry</th>
+                    <th style={TH}>Sector</th>
+                  </tr></thead>
                 <tbody>
                   {loading.gap ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Fetching live data...</td></tr>
                   : filteredGaps.length===0 ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>No results — adjust filters</td></tr>
@@ -248,7 +272,7 @@ export function Scanner() {
                       <td style={{ ...TD, fontFamily:'var(--mono)' }}>{fmt$(r.prevClose)}</td>
                       <td style={{ ...TD, color:'var(--txt2)' }}>{r.float?r.float+'M':'—'}</td>
                       <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.adr?r.adr.toFixed(1)+'%':'—'}</td>
-                      <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.atr?r.atr.toFixed(1)+'%':'—'}</td>
+                      <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.atr?r.atr.toFixed(1):'—'}</td>
                       <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.industry||'—'}</td>
                       <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.sector||'—'}</td>
                     </tr>
