@@ -19,6 +19,13 @@ function rank99(value: number, arr: number[], higherBetter = true): number {
   return Math.max(1, Math.min(99, Math.round(higherBetter ? (raw / sorted.length) * 99 : (1 - raw / sorted.length) * 99)));
 }
 
+async function fetchProfile(symbol: string) {
+  const res = await fetch(`${BASE}/profile?symbol=${symbol}&apikey=${KEY}`, { next: { revalidate: 3600 } });
+  if (!res.ok) return null;
+  const d = await res.json();
+  return Array.isArray(d) ? d[0] : d;
+}
+
 async function fetchQuote(symbol: string) {
   const res = await fetch(`${BASE}/quote?symbol=${symbol}&apikey=${KEY}`, { next: { revalidate: 1800 } });
   if (!res.ok) return null;
@@ -51,7 +58,7 @@ export async function GET() {
     for (let i = 0; i < UNIVERSE.length; i += BATCH) {
       const batch = UNIVERSE.slice(i, i + BATCH);
       await Promise.all(batch.map(async ticker => {
-        const [q, history] = await Promise.all([fetchQuote(ticker), fetchHistory(ticker)]);
+        const [q, history, profile] = await Promise.all([fetchQuote(ticker), fetchHistory(ticker), fetchProfile(ticker)]);
         if (!q?.price) return;
 
         const m1 = perf(history, 21);
