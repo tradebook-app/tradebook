@@ -340,7 +340,7 @@ export function Scanner() {
                   </tr></thead>
                 <tbody>
                   {loading.gap ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Fetching live data...</td></tr>
-                  : filteredGaps.length===0 ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>No results — adjust filters</td></tr>
+                  : filteredGaps.length===0 ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>{gapData.length===0 ? 'No pre-market activity detected — gap scanner is live Monday–Friday 4:00 AM to 9:30 AM ET' : 'No results — adjust your filters'}</td></tr>
                   : filteredGaps.map(r=>(
                     <tr key={r.ticker} onClick={()=>openDetail(r,'gap',r.ticker)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
                       <td style={TD}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px' }}>{r.ticker}</div><div style={{ fontSize:'10px', color:'var(--txt3)' }}>{r.name}</div></td>
