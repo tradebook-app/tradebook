@@ -45,15 +45,6 @@ function parseKMB(val: string): number {
   return num;
 }
 
-function loadGF(key: string, def: any) {
-  try {
-    if (typeof window === 'undefined') return def;
-    const s = localStorage.getItem('st-gap-filters');
-    if (s) { const f = JSON.parse(s); if (f[key] !== undefined) return f[key]; }
-  } catch {}
-  return def;
-}
-
 export function Scanner() {
   const [tab,       setTab]       = useState<'gap'|'momentum'|'themes'|'fundamentals'>('gap');
   const [gapData,   setGapData]   = useState<GapStock[]>([]);
@@ -83,30 +74,19 @@ export function Scanner() {
     return () => clearInterval(t);
   }, []);
 
-  // Auto-save gap filters to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('st-gap-filters', JSON.stringify({
-        gDir, gGapMin, gGapMax, gPriceMin, gPriceMax,
-        gVolMin, gVolMax, gFloatMin, gFloatMax,
-        gAdrMin, gAdrMax, gAtrMin, gAtrMax,
-        gAvgVolMin, gAvgVolMax, gMktCapMin, gMktCapMax,
-        gDolVolMin, gDolVolMax,
-      }));
-    } catch {}
-  }, [gDir,gGapMin,gGapMax,gPriceMin,gPriceMax,gVolMin,gVolMax,gFloatMin,gFloatMax,gAdrMin,gAdrMax,gAtrMin,gAtrMax,gAvgVolMin,gAvgVolMax,gMktCapMin,gMktCapMax,gDolVolMin,gDolVolMax]);
 
-  // Gap filters — lazy init from localStorage
-  const [gDir,setGDir]=useState(()=>loadGF('gDir','both'));
-  const [gGapMin,setGGapMin]=useState(()=>loadGF('gGapMin',0)); const [gGapMax,setGGapMax]=useState(()=>loadGF('gGapMax',0));
-  const [gPriceMin,setGPriceMin]=useState(()=>loadGF('gPriceMin',0)); const [gPriceMax,setGPriceMax]=useState(()=>loadGF('gPriceMax',0));
-  const [gVolMin,setGVolMin]=useState(()=>loadGF('gVolMin',0)); const [gVolMax,setGVolMax]=useState(()=>loadGF('gVolMax',0));
-  const [gFloatMin,setGFloatMin]=useState(()=>loadGF('gFloatMin',0)); const [gFloatMax,setGFloatMax]=useState(()=>loadGF('gFloatMax',0));
-  const [gAdrMin,setGAdrMin]=useState(()=>loadGF('gAdrMin',0)); const [gAdrMax,setGAdrMax]=useState(()=>loadGF('gAdrMax',0));
-  const [gAtrMin,setGAtrMin]=useState(()=>loadGF('gAtrMin',0)); const [gAtrMax,setGAtrMax]=useState(()=>loadGF('gAtrMax',0));
-  const [gAvgVolMin,setGAvgVolMin]=useState(()=>loadGF('gAvgVolMin','')); const [gAvgVolMax,setGAvgVolMax]=useState(()=>loadGF('gAvgVolMax',''));
-  const [gMktCapMin,setGMktCapMin]=useState(()=>loadGF('gMktCapMin','')); const [gMktCapMax,setGMktCapMax]=useState(()=>loadGF('gMktCapMax',''));
-  const [gDolVolMin,setGDolVolMin]=useState(()=>loadGF('gDolVolMin','')); const [gDolVolMax,setGDolVolMax]=useState(()=>loadGF('gDolVolMax',''));
+
+  // Gap filters
+  const [gDir,setGDir]=useState('both');
+  const [gGapMin,setGGapMin]=useState(0); const [gGapMax,setGGapMax]=useState(0);
+  const [gPriceMin,setGPriceMin]=useState(0); const [gPriceMax,setGPriceMax]=useState(0);
+  const [gVolMin,setGVolMin]=useState(0); const [gVolMax,setGVolMax]=useState(0);
+  const [gFloatMin,setGFloatMin]=useState(0); const [gFloatMax,setGFloatMax]=useState(0);
+  const [gAdrMin,setGAdrMin]=useState(0); const [gAdrMax,setGAdrMax]=useState(0);
+  const [gAtrMin,setGAtrMin]=useState(0); const [gAtrMax,setGAtrMax]=useState(0);
+  const [gAvgVolMin,setGAvgVolMin]=useState(''); const [gAvgVolMax,setGAvgVolMax]=useState('');
+  const [gMktCapMin,setGMktCapMin]=useState(''); const [gMktCapMax,setGMktCapMax]=useState('');
+  const [gDolVolMin,setGDolVolMin]=useState(''); const [gDolVolMax,setGDolVolMax]=useState('');
   const [gSortCol,setGSortCol]=useState('gap'); const [gSortAsc,setGSortAsc]=useState(false);
   // Mom filters
   const [mM1,setMM1]=useState(-100); const [mM3,setMM3]=useState(-100); const [mM6,setMM6]=useState(-100);
