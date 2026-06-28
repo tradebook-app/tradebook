@@ -88,6 +88,57 @@ export function Scanner() {
   const [gMktCapMin,setGMktCapMin]=useState(''); const [gMktCapMax,setGMktCapMax]=useState('');
   const [gDolVolMin,setGDolVolMin]=useState(''); const [gDolVolMax,setGDolVolMax]=useState('');
   const [gSortCol,setGSortCol]=useState('gap'); const [gSortAsc,setGSortAsc]=useState(false);
+  const [presets,setPresets]=useState<{name:string;filters:any}[]>([]);
+  const [presetName,setPresetName]=useState('');
+  const [showPresets,setShowPresets]=useState(false);
+
+  // Load presets from localStorage on mount
+  useEffect(()=>{
+    try { const s=localStorage.getItem('st-scanner-presets'); if(s) setPresets(JSON.parse(s)); } catch {}
+  },[]);
+
+  function currentFilters() {
+    return { gDir,gGapMin,gGapMax,gPriceMin,gPriceMax,gVolMin,gVolMax,gFloatMin,gFloatMax,gAdrMin,gAdrMax,gAtrMin,gAtrMax,gAvgVolMin,gAvgVolMax,gMktCapMin,gMktCapMax,gDolVolMin,gDolVolMax };
+  }
+
+  function savePreset() {
+    const name = presetName.trim();
+    if (!name) return;
+    const updated = [...presets.filter(p=>p.name!==name), { name, filters: currentFilters() }];
+    setPresets(updated);
+    try { localStorage.setItem('st-scanner-presets', JSON.stringify(updated)); } catch {}
+    setPresetName('');
+    setShowPresets(true);
+  }
+
+  function loadPreset(p: {name:string;filters:any}) {
+    const f = p.filters;
+    if(f.gDir!==undefined) setGDir(f.gDir);
+    if(f.gGapMin!==undefined) setGGapMin(f.gGapMin); if(f.gGapMax!==undefined) setGGapMax(f.gGapMax);
+    if(f.gPriceMin!==undefined) setGPriceMin(f.gPriceMin); if(f.gPriceMax!==undefined) setGPriceMax(f.gPriceMax);
+    if(f.gVolMin!==undefined) setGVolMin(f.gVolMin); if(f.gVolMax!==undefined) setGVolMax(f.gVolMax);
+    if(f.gFloatMin!==undefined) setGFloatMin(f.gFloatMin); if(f.gFloatMax!==undefined) setGFloatMax(f.gFloatMax);
+    if(f.gAdrMin!==undefined) setGAdrMin(f.gAdrMin); if(f.gAdrMax!==undefined) setGAdrMax(f.gAdrMax);
+    if(f.gAtrMin!==undefined) setGAtrMin(f.gAtrMin); if(f.gAtrMax!==undefined) setGAtrMax(f.gAtrMax);
+    if(f.gAvgVolMin!==undefined) setGAvgVolMin(f.gAvgVolMin); if(f.gAvgVolMax!==undefined) setGAvgVolMax(f.gAvgVolMax);
+    if(f.gMktCapMin!==undefined) setGMktCapMin(f.gMktCapMin); if(f.gMktCapMax!==undefined) setGMktCapMax(f.gMktCapMax);
+    if(f.gDolVolMin!==undefined) setGDolVolMin(f.gDolVolMin); if(f.gDolVolMax!==undefined) setGDolVolMax(f.gDolVolMax);
+    setShowPresets(false);
+  }
+
+  function deletePreset(name: string) {
+    const updated = presets.filter(p=>p.name!==name);
+    setPresets(updated);
+    try { localStorage.setItem('st-scanner-presets', JSON.stringify(updated)); } catch {}
+  }
+
+  function resetFilters() {
+    setGDir('both'); setGGapMin(0); setGGapMax(0); setGPriceMin(0); setGPriceMax(0);
+    setGVolMin(0); setGVolMax(0); setGFloatMin(0); setGFloatMax(0);
+    setGAdrMin(0); setGAdrMax(0); setGAtrMin(0); setGAtrMax(0);
+    setGAvgVolMin(''); setGAvgVolMax(''); setGMktCapMin(''); setGMktCapMax('');
+    setGDolVolMin(''); setGDolVolMax('');
+  }
   // Mom filters
   const [mM1,setMM1]=useState(-100); const [mM3,setMM3]=useState(-100); const [mM6,setMM6]=useState(-100);
   const [mAdr,setMAdr]=useState(0); const [mPMin,setMPMin]=useState(5); const [mPMax,setMPMax]=useState(5000); const [mRs,setMRs]=useState(1);
@@ -334,7 +385,38 @@ export function Scanner() {
                 <input style={INPUT} type="text" value={gMktCapMax} onChange={e=>setGMktCapMax(e.target.value)} placeholder="Max"/>
               </div>
             </div>
-            {SB_BTN(loading.gap?'Loading...':'Refresh', ()=>load('gap',`${BASE}/gaps`,setGapData), loading.gap)}
+            {/* ── Preset save/load ── */}
+            <div style={{ borderTop:'1px solid var(--brd)', marginTop:'8px', paddingTop:'8px' }}>
+              <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'6px' }}>Saved Screens</div>
+              <div style={{ display:'flex', gap:'4px', marginBottom:'6px' }}>
+                <input
+                  style={{ ...INPUT, flex:1 }}
+                  type="text"
+                  value={presetName}
+                  onChange={e=>setPresetName(e.target.value)}
+                  placeholder="Screen name"
+                  onKeyDown={e=>e.key==='Enter'&&savePreset()}
+                />
+                <button onClick={savePreset} style={{ height:'28px', padding:'0 8px', background:'var(--ac)', color:'#000', border:'none', borderRadius:'var(--r)', fontSize:'11px', fontWeight:700, cursor:'pointer', flexShrink:0 }}>Save</button>
+              </div>
+              {presets.length > 0 && (
+                <div style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
+                  {presets.map(p=>(
+                    <div key={p.name} style={{ display:'flex', alignItems:'center', gap:'4px' }}>
+                      <button onClick={()=>loadPreset(p)} style={{ flex:1, height:'24px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'10px', cursor:'pointer', textAlign:'left', padding:'0 6px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {p.name}
+                      </button>
+                      <button onClick={()=>deletePreset(p.name)} style={{ width:'24px', height:'24px', background:'none', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt3)', fontSize:'12px', cursor:'pointer', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {presets.length === 0 && <div style={{ fontSize:'10px', color:'var(--txt4)', textAlign:'center', padding:'4px 0' }}>No saved screens yet</div>}
+            </div>
+            <div style={{ display:'flex', gap:'4px', marginTop:'8px' }}>
+              <button onClick={resetFilters} style={{ flex:1, height:'28px', background:'none', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'11px', cursor:'pointer', fontFamily:'var(--sans)' }}>Reset</button>
+              {SB_BTN(loading.gap?'Loading...':'Refresh', ()=>load('gap',`${BASE}/gaps`,setGapData), loading.gap)}
+            </div>
           </div>
           <div>
             {error.gap && <div style={{ marginBottom:'8px', padding:'9px 12px', background:'var(--red-d)', border:'1px solid rgba(239,68,68,.2)', borderRadius:'var(--r)', fontSize:'11px', color:'var(--red)' }}>{error.gap}</div>}
