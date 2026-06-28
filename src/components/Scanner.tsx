@@ -76,10 +76,14 @@ export function Scanner() {
 
   // Gap filters
   const [gDir,setGDir]=useState('both');
-  const [gPrice,setGPrice]=useState(5); const [gVol,setGVol]=useState(0);
-  const [gFloat,setGFloat]=useState(500); const [gAdr,setGAdr]=useState(0);
-
-  const [gMktCap,setGMktCap]=useState(0);
+  const [gGapMin,setGGapMin]=useState(0); const [gGapMax,setGGapMax]=useState(0);
+  const [gPriceMin,setGPriceMin]=useState(0); const [gPriceMax,setGPriceMax]=useState(0);
+  const [gVolMin,setGVolMin]=useState(0); const [gVolMax,setGVolMax]=useState(0);
+  const [gFloatMin,setGFloatMin]=useState(0); const [gFloatMax,setGFloatMax]=useState(0);
+  const [gAdrMin,setGAdrMin]=useState(0); const [gAdrMax,setGAdrMax]=useState(0);
+  const [gAtrMin,setGAtrMin]=useState(0); const [gAtrMax,setGAtrMax]=useState(0);
+  const [gAvgVolMin,setGAvgVolMin]=useState(''); const [gAvgVolMax,setGAvgVolMax]=useState('');
+  const [gMktCapMin,setGMktCapMin]=useState(''); const [gMktCapMax,setGMktCapMax]=useState('');
   const [gSortCol,setGSortCol]=useState('gap'); const [gSortAsc,setGSortAsc]=useState(false);
   // Mom filters
   const [mM1,setMM1]=useState(-100); const [mM3,setMM3]=useState(-100); const [mM6,setMM6]=useState(-100);
