@@ -49,6 +49,19 @@ export function Scanner() {
   const [ticker,    setTicker]    = useState('');
   const [themeLoaded, setThemeLoaded] = useState(false);
   const [fundaLoaded, setFundaLoaded] = useState(false);
+  const [clock, setClock] = useState("");
+
+  useEffect(() => {
+    const update = () => {
+      const et = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
+      const h = et.getHours(), m = et.getMinutes();
+      const status = h < 4 ? "Market Closed" : (h < 9 || (h === 9 && m < 30)) ? "Pre-Market" : h < 16 ? "Market Open" : "After Hours";
+      setClock(`${et.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})} ET — ${status}`);
+    };
+    update();
+    const t = setInterval(update, 30000);
+    return () => clearInterval(t);
+  }, []);
 
   // Gap filters
   const [gDir,setGDir]=useState('both'); const [gMin,setGMin]=useState(1); const [gMax,setGMax]=useState(50);
@@ -149,13 +162,37 @@ export function Scanner() {
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
 
-      {/* Live indicator */}
+      {/* Market status indicator */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', marginBottom:'12px' }}>
-        <span style={{ display:'flex', alignItems:'center', gap:'6px', fontSize:'10px', color:'var(--txt3)' }}>
-          <span style={{ width:'6px', height:'6px', borderRadius:'50%', background:'var(--ac)', display:'inline-block' }}></span>
-          Live data · Yahoo Finance
-        </span>
+        <div style={{ display:'flex', alignItems:'center', gap:'8px', background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'20px', padding:'5px 12px' }}>
+          {/* Animated pulse ring */}
+          <div style={{ position:'relative', width:'14px', height:'14px', flexShrink:0 }}>
+            <div style={{
+              position:'absolute', inset:0, borderRadius:'50%',
+              background: clock.includes('Open') ? 'var(--ac)' : clock.includes('Pre-Market') ? 'var(--orange)' : 'var(--txt4)',
+              opacity:0.25,
+              animation: clock.includes('Open') ? 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite' : 'none',
+            }}/>
+            <div style={{
+              position:'absolute', inset:'3px', borderRadius:'50%',
+              background: clock.includes('Open') ? 'var(--ac)' : clock.includes('Pre-Market') ? 'var(--orange)' : 'var(--txt4)',
+            }}/>
+          </div>
+          <div>
+            <div style={{ fontSize:'11px', fontWeight:600, color:'var(--txt)', lineHeight:1.2 }}
+              dangerouslySetInnerHTML={{ __html:
+                clock.includes('Open') ? 'Market Open' :
+                clock.includes('Pre-Market') ? 'Pre-Market' :
+                'Market Closed'
+              }}
+            />
+            <div style={{ fontSize:'10px', color:'var(--txt3)', lineHeight:1.2 }}
+              dangerouslySetInnerHTML={{ __html: clock }}
+            />
+          </div>
+        </div>
       </div>
+      <style>{`@keyframes ping { 75%,100% { transform:scale(2); opacity:0; } }`}</style>
 
       {/* Tabs */}
       <div style={{ display:'flex', borderBottom:'1px solid var(--brd)', marginBottom:'14px' }}>
