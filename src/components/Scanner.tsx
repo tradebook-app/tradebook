@@ -400,9 +400,9 @@ export function Scanner() {
                 <button onClick={savePreset} style={{ height:'28px', padding:'0 8px', background:'var(--ac)', color:'#000', border:'none', borderRadius:'var(--r)', fontSize:'11px', fontWeight:700, cursor:'pointer', flexShrink:0 }}>Save</button>
               </div>
               {presets.length > 0 && (
-                <div style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
+                <div style={{ maxHeight:'120px', overflowY:'auto', display:'flex', flexDirection:'column', gap:'2px', paddingRight:'2px' }}>
                   {presets.map(p=>(
-                    <div key={p.name} style={{ display:'flex', alignItems:'center', gap:'4px' }}>
+                    <div key={p.name} style={{ display:'flex', alignItems:'center', gap:'4px', flexShrink:0 }}>
                       <button onClick={()=>loadPreset(p)} style={{ flex:1, height:'24px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'10px', cursor:'pointer', textAlign:'left', padding:'0 6px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                         {p.name}
                       </button>
