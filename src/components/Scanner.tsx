@@ -81,7 +81,10 @@ export function Scanner() {
   const [presets,setPresets]=useState<{name:string;filters:any}[]>([]);
   const [presetName,setPresetName]=useState('');
 
-  useEffect(()=>{ try { const s=localStorage.getItem('st-scanner-presets'); if(s) setPresets(JSON.parse(s)); } catch {} },[]);
+  useEffect(()=>{
+    try { const s=localStorage.getItem('st-scanner-presets'); if(s) setPresets(JSON.parse(s)); } catch {}
+    try { const s=localStorage.getItem('st-mom-presets'); if(s) setMPresets(JSON.parse(s)); } catch {}
+  },[]);
 
   function currentFilters() { return { gDir,gGapMin,gGapMax,gPriceMin,gPriceMax,gVolMin,gVolMax,gFloatMin,gFloatMax,gAdrMin,gAdrMax,gAtrMin,gAtrMax,gAvgVolMin,gAvgVolMax,gMktCapMin,gMktCapMax,gDolVolMin,gDolVolMax }; }
 
@@ -123,6 +126,8 @@ export function Scanner() {
   const [mDolVolMin,setMDolVolMin]=useState(''); const [mDolVolMax,setMDolVolMax]=useState('');
   const [mMktCapMin,setMMktCapMin]=useState(''); const [mMktCapMax,setMMktCapMax]=useState('');
   const [mAtrMin,setMAtrMin]=useState<number|''>(''); const [mAtrMax,setMAtrMax]=useState<number|''>('');
+  const [mPresets,setMPresets]=useState<{name:string;filters:any}[]>([]);
+  const [mPresetName,setMPresetName]=useState('');
   const [fEps,setFEps]=useState(1); const [fRev,setFRev]=useState(1); const [fInst,setFInst]=useState(1);
   const [fFloat,setFFloat]=useState(1000); const [fShort,setFShort]=useState(0);
 
@@ -177,6 +182,36 @@ export function Scanner() {
   const mAvgVolMinN = parseKMB(mAvgVolMin); const mAvgVolMaxN = parseKMB(mAvgVolMax);
   const mDolVolMinN = parseKMB(mDolVolMin); const mDolVolMaxN = parseKMB(mDolVolMax);
   const mMktCapMinN = parseKMB(mMktCapMin); const mMktCapMaxN = parseKMB(mMktCapMax);
+
+  function mCurrentFilters() {
+    return { mM1,mM3,mM6,mAdr,mPMin,mPMax,mRs,mEps,mRev,mAtrMin,mAtrMax,mAvgVolMin,mAvgVolMax,mDolVolMin,mDolVolMax,mMktCapMin,mMktCapMax };
+  }
+  function saveMPreset() {
+    const name = mPresetName.trim(); if (!name) return;
+    const updated = [...mPresets.filter(p=>p.name!==name), { name, filters: mCurrentFilters() }];
+    setMPresets(updated); try { localStorage.setItem('st-mom-presets', JSON.stringify(updated)); } catch {}
+    setMPresetName('');
+  }
+  function loadMPreset(p: {name:string;filters:any}) {
+    const f = p.filters;
+    if(f.mM1!==undefined) setMM1(f.mM1); if(f.mM3!==undefined) setMM3(f.mM3); if(f.mM6!==undefined) setMM6(f.mM6);
+    if(f.mAdr!==undefined) setMAdr(f.mAdr); if(f.mPMin!==undefined) setMPMin(f.mPMin); if(f.mPMax!==undefined) setMPMax(f.mPMax);
+    if(f.mRs!==undefined) setMRs(f.mRs); if(f.mEps!==undefined) setMEps(f.mEps); if(f.mRev!==undefined) setMRevR(f.mRev);
+    if(f.mAtrMin!==undefined) setMAtrMin(f.mAtrMin); if(f.mAtrMax!==undefined) setMAtrMax(f.mAtrMax);
+    if(f.mAvgVolMin!==undefined) setMAvgVolMin(f.mAvgVolMin); if(f.mAvgVolMax!==undefined) setMAvgVolMax(f.mAvgVolMax);
+    if(f.mDolVolMin!==undefined) setMDolVolMin(f.mDolVolMin); if(f.mDolVolMax!==undefined) setMDolVolMax(f.mDolVolMax);
+    if(f.mMktCapMin!==undefined) setMMktCapMin(f.mMktCapMin); if(f.mMktCapMax!==undefined) setMMktCapMax(f.mMktCapMax);
+  }
+  function deleteMPreset(name: string) {
+    const updated = mPresets.filter(p=>p.name!==name); setMPresets(updated);
+    try { localStorage.setItem('st-mom-presets', JSON.stringify(updated)); } catch {}
+  }
+  function resetMFilters() {
+    setMM1(''); setMM3(''); setMM6(''); setMAdr(''); setMPMin(''); setMPMax('');
+    setMRs(''); setMEps(''); setMRevR(''); setMAtrMin(''); setMAtrMax('');
+    setMAvgVolMin(''); setMAvgVolMax(''); setMDolVolMin(''); setMDolVolMax('');
+    setMMktCapMin(''); setMMktCapMax('');
+  }
 
   const filteredMom = momData
     .filter(r=>
@@ -411,7 +446,7 @@ export function Scanner() {
       {/* ── MOMENTUM ── */}
       {tab==='momentum' && (
         <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1, minWidth:0 }}>
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start' }}>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start', position:'sticky', top:0, maxHeight:'calc(100vh - 120px)', overflowY:'auto' }}>
             <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'9px', paddingBottom:'7px', borderBottom:'1px solid var(--brd)' }}>Filters</div>
             {([['Min 1M %',mM1,setMM1],['Min 3M %',mM3,setMM3],['Min 6M %',mM6,setMM6],['Min ADR %',mAdr,setMAdr],['Min RS rank',mRs,setMRs],['Min EPS rank',mEps,setMEps],['Min Rev rank',mRev,setMRevR]] as any[]).map(([l,v,s])=>(
               <div key={l} style={GRP}><label style={LBL}>{l}</label><input style={INPUT} type="number" value={v} onChange={e=>s(e.target.value===''?'':+e.target.value)} placeholder="Min"/></div>
@@ -431,7 +466,29 @@ export function Scanner() {
             <div style={GRP}><label style={LBL}>Mkt Cap</label>
               <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="text" value={mMktCapMin} onChange={e=>setMMktCapMin(e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="text" value={mMktCapMax} onChange={e=>setMMktCapMax(e.target.value)} placeholder="Max"/></div>
             </div>
-            {SB_BTN(loading.mom?'Loading...':'Refresh',()=>load('mom',`${BASE}/momentum`,setMomData),loading.mom)}
+            {/* ── Saved Screens ── */}
+            <div style={{ borderTop:'1px solid var(--brd)', marginTop:'8px', paddingTop:'8px' }}>
+              <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'6px' }}>Saved Screens</div>
+              <div style={{ display:'flex', gap:'4px', marginBottom:'6px' }}>
+                <input style={{ ...INPUT, flex:1 }} type="text" value={mPresetName} onChange={e=>setMPresetName(e.target.value)} placeholder="Screen name" onKeyDown={e=>e.key==='Enter'&&saveMPreset()}/>
+                <button onClick={saveMPreset} style={{ height:'28px', padding:'0 8px', background:'var(--ac)', color:'#000', border:'none', borderRadius:'var(--r)', fontSize:'11px', fontWeight:700, cursor:'pointer', flexShrink:0 }}>Save</button>
+              </div>
+              {mPresets.length > 0 && (
+                <div style={{ maxHeight:'100px', overflowY:'auto', display:'flex', flexDirection:'column', gap:'2px' }}>
+                  {mPresets.map(p=>(
+                    <div key={p.name} style={{ display:'flex', alignItems:'center', gap:'4px' }}>
+                      <button onClick={()=>loadMPreset(p)} style={{ flex:1, height:'24px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'10px', cursor:'pointer', textAlign:'left', padding:'0 6px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</button>
+                      <button onClick={()=>deleteMPreset(p.name)} style={{ width:'24px', height:'24px', background:'none', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt3)', fontSize:'12px', cursor:'pointer', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {mPresets.length===0 && <div style={{ fontSize:'10px', color:'var(--txt4)', textAlign:'center', padding:'4px 0' }}>No saved screens yet</div>}
+            </div>
+            <div style={{ display:'flex', gap:'4px', marginTop:'8px' }}>
+              <button onClick={resetMFilters} style={{ flex:1, height:'28px', background:'none', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'11px', cursor:'pointer', fontFamily:'var(--sans)' }}>Reset</button>
+              {SB_BTN(loading.mom?'Loading...':'Refresh',()=>load('mom',`${BASE}/momentum`,setMomData),loading.mom)}
+            </div>
           </div>
           <div style={{ minWidth:0 }}>
             <div style={{ marginBottom:'7px' }}><span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.mom?'Loading...':`${filteredMom.length} results · live`}</span></div>
