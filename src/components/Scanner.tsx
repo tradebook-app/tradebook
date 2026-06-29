@@ -30,8 +30,8 @@ type Theme      = { name:string; etf:string; sector:string; pct:number; pct1d:nu
 type ThemeResponse = { sectors: SectorData[]; themes: Theme[] };
 type FundaStock = { ticker:string; name:string; price:number; epsQoQ:number|null; epsYoY:number|null; revGrowth:number|null; epsRank:number|null; revRank:number|null; instRank:number|null; floatM:number|null; shortPct:number|null };
 
-const INPUT: React.CSSProperties = { width:'100%', height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none', boxSizing:'border-box' };
-const INPUT_HALF: React.CSSProperties = { flex:1, minWidth:0, height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none', boxSizing:'border-box' };
+const INPUT: React.CSSProperties = { display:'block', width:'100%', height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none', boxSizing:'border-box' };
+const INPUT_HALF: React.CSSProperties = { display:'block', flex:1, minWidth:0, width:'auto', height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none', boxSizing:'border-box' };
 const LBL: React.CSSProperties   = { fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase' as const, color:'var(--txt3)', marginBottom:'3px', display:'block' };
 const GRP: React.CSSProperties   = { marginBottom:'9px' };
 const TH: React.CSSProperties    = { fontSize:'9px', fontWeight:600, letterSpacing:'.04em', textTransform:'uppercase' as const, color:'var(--txt3)', padding:'6px 6px', textAlign:'left' as const, borderBottom:'1px solid var(--brd)', whiteSpace:'nowrap' as const, cursor:'pointer', userSelect:'none' as const };
