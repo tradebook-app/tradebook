@@ -3,7 +3,25 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+/* ─── Override Tailwind base input reset ─────────────────────────────────── */
+input {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background: var(--bg4) !important;
+  border: 1px solid var(--brd2) !important;
+  border-radius: var(--r) !important;
+  color: var(--txt) !important;
+  font-family: var(--sans) !important;
+  font-size: 11px !important;
+  height: 28px !important;
+  padding: 0 8px !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+}
+input:focus {
+  border-color: var(--ac) !important;
+}
 /* ─── CSS Variables ──────────────────────────────────────────────────────── */
 :root {
   --bg:  #0D0D11;
