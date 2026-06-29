@@ -244,8 +244,6 @@ export async function GET(request: Request) {
       total:           stocks.length,
       updated_at:      new Date().toISOString(),
     });
-      updated_at: new Date().toISOString(),
-    });
 
   } catch (err: any) {
     console.error('[enrich]', err);
