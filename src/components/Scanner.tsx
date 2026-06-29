@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
 const BASE = '/api/scanner';
 
@@ -63,6 +63,8 @@ export function Scanner() {
   const [ticker,    setTicker]    = useState('');
   const [themeLoaded, setThemeLoaded] = useState(false);
   const [fundaLoaded, setFundaLoaded] = useState(false);
+  const [chartStock, setChartStock] = useState<MomStock|null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
 
   const [mSortCol, setMSortCol] = useState('rs');
   const [mSortAsc, setMSortAsc] = useState(false);
@@ -307,6 +309,157 @@ export function Scanner() {
     </div>
   );
 
+  // ── Chart Modal ──────────────────────────────────────────────────────────
+  const ChartModal = () => {
+    const [bars, setBars] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      if (!chartStock) return;
+      setLoading(true);
+      setBars([]);
+      fetch(`/api/chart?symbol=${chartStock.ticker}`)
+        .then(r => r.json())
+        .then(d => { setBars(d.bars || []); setLoading(false); })
+        .catch(() => setLoading(false));
+    }, [chartStock?.ticker]);
+
+    useEffect(() => {
+      if (!containerRef.current || !bars.length || loading) return;
+
+      // Dynamically load TradingView Lightweight Charts
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js';
+      script.onload = () => {
+        if (!containerRef.current) return;
+        containerRef.current.innerHTML = '';
+        const LWC = (window as any).LightweightCharts;
+        if (!LWC) return;
+
+        const chart = LWC.createChart(containerRef.current, {
+          width:  containerRef.current.clientWidth,
+          height: 380,
+          layout: { background: { color: '#131318' }, textColor: '#9999AA' },
+          grid:   { vertLines: { color: '#252530' }, horzLines: { color: '#252530' } },
+          crosshair: { mode: 1 },
+          rightPriceScale: { borderColor: '#252530' },
+          timeScale: { borderColor: '#252530', timeVisible: true },
+        });
+
+        // Candlestick series
+        const candleSeries = chart.addCandlestickSeries({
+          upColor:   '#10B981', downColor: '#EF4444',
+          borderUpColor: '#10B981', borderDownColor: '#EF4444',
+          wickUpColor: '#10B981', wickDownColor: '#EF4444',
+        });
+        candleSeries.setData(bars);
+
+        // Volume series
+        const volSeries = chart.addHistogramSeries({
+          color: 'rgba(16,185,129,0.3)',
+          priceFormat: { type: 'volume' },
+          priceScaleId: 'volume',
+        });
+        chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
+        volSeries.setData(bars.map(b => ({
+          time:  b.time,
+          value: b.volume,
+          color: b.close >= b.open ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)',
+        })));
+
+        // 50MA
+        if (chartStock?.d50) {
+          const ma50 = bars.slice(-50).map((b,i,arr) => {
+            const slice = bars.slice(Math.max(0, bars.length - 50 + i - 49), bars.length - 50 + i + 1);
+            const avg = slice.reduce((s,x) => s + x.close, 0) / slice.length;
+            return { time: b.time, value: parseFloat(avg.toFixed(2)) };
+          });
+          const ma50Series = chart.addLineSeries({ color: '#F59E0B', lineWidth: 1, priceLineVisible: false });
+          ma50Series.setData(ma50.filter(x => x.value > 0));
+        }
+
+        // 200MA
+        if (chartStock?.d200) {
+          const ma200 = bars.map((b,i) => {
+            const slice = bars.slice(Math.max(0, i - 199), i + 1);
+            const avg = slice.reduce((s,x) => s + x.close, 0) / slice.length;
+            return { time: b.time, value: parseFloat(avg.toFixed(2)) };
+          }).filter((_,i) => i >= 199);
+          const ma200Series = chart.addLineSeries({ color: '#3B82F6', lineWidth: 1, priceLineVisible: false });
+          ma200Series.setData(ma200);
+        }
+
+        chart.timeScale().fitContent();
+      };
+      document.head.appendChild(script);
+      return () => { try { document.head.removeChild(script); } catch {} };
+    }, [bars, loading]);
+
+    if (!chartStock) return null;
+
+    return (
+      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}
+        onClick={e=>{ if(e.target===e.currentTarget) setChartStock(null); }}>
+        <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', width:'100%', maxWidth:'900px', overflow:'hidden' }}>
+          {/* Header */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px', borderBottom:'1px solid var(--brd)' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'16px' }}>
+              <div>
+                <div style={{ fontSize:'18px', fontWeight:700, color:'var(--txt)' }}>{chartStock.ticker}</div>
+                <div style={{ fontSize:'11px', color:'var(--txt3)' }}>{chartStock.name}</div>
+              </div>
+              <div style={{ fontSize:'16px', fontWeight:700 }}>${chartStock.price.toFixed(2)}</div>
+              <div style={{ fontSize:'13px', fontWeight:600, color:pctColor(chartStock.m1) }}>{pct(chartStock.m1)} 1M</div>
+              <div style={{ display:'flex', gap:'6px' }}>
+                <RkBadge v={chartStock.rs}/>
+                {chartStock.epsRank && <RkBadge v={chartStock.epsRank}/>}
+                {chartStock.revRank && <RkBadge v={chartStock.revRank}/>}
+              </div>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+              <a href={`https://www.tradingview.com/chart/?symbol=${chartStock.ticker}`} target="_blank" rel="noreferrer"
+                style={{ fontSize:'11px', color:'var(--txt3)', textDecoration:'none', border:'1px solid var(--brd2)', borderRadius:'var(--r)', padding:'4px 10px' }}>
+                TradingView ↗
+              </a>
+              <button onClick={()=>setChartStock(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--txt3)', fontSize:'20px', lineHeight:1 }}>×</button>
+            </div>
+          </div>
+          {/* Legend */}
+          <div style={{ display:'flex', gap:'16px', padding:'8px 16px', borderBottom:'1px solid var(--brd)', fontSize:'10px' }}>
+            <span style={{ color:'#F59E0B' }}>— 50 MA</span>
+            <span style={{ color:'#3B82F6' }}>— 200 MA</span>
+            <span style={{ color:'#10B981' }}>▲ Volume up</span>
+            <span style={{ color:'#EF4444' }}>▼ Volume down</span>
+          </div>
+          {/* Chart */}
+          <div style={{ padding:'0' }}>
+            {loading
+              ? <div style={{ height:'380px', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--txt3)', fontSize:'12px' }}>Loading chart data...</div>
+              : <div ref={containerRef} style={{ width:'100%', height:'380px' }}/>
+            }
+          </div>
+          {/* Footer stats */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'1px', background:'var(--brd)', borderTop:'1px solid var(--brd)' }}>
+            {[
+              ['1M', pct(chartStock.m1), pctColor(chartStock.m1)],
+              ['3M', pct(chartStock.m3), pctColor(chartStock.m3)],
+              ['6M', pct(chartStock.m6), pctColor(chartStock.m6)],
+              ['ADR%', chartStock.adr.toFixed(1)+'%', 'var(--ac)'],
+              ['50 MA', chartStock.d50 ? '$'+chartStock.d50.toFixed(2) : '—', 'var(--txt2)'],
+              ['200 MA', chartStock.d200 ? '$'+chartStock.d200.toFixed(2) : '—', 'var(--txt2)'],
+            ].map(([l,v,c]:any)=>(
+              <div key={l} style={{ background:'var(--bg3)', padding:'8px 12px' }}>
+                <div style={{ fontSize:'9px', color:'var(--txt3)', marginBottom:'2px', textTransform:'uppercase', letterSpacing:'.06em' }}>{l}</div>
+                <div style={{ fontSize:'12px', fontWeight:600, color:c }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const ROW_HOVER = { onMouseEnter:(e:any)=>e.currentTarget.style.background='rgba(255,255,255,.025)', onMouseLeave:(e:any)=>e.currentTarget.style.background='transparent' };
 
   // Sector strip component
@@ -334,6 +487,7 @@ export function Scanner() {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
+      <ChartModal/>
       <div style={{ display:'flex', borderBottom:'1px solid var(--brd)', marginBottom:'14px' }}>
         {(['gap','momentum','themes','fundamentals'] as const).map(t=>(
           <button key={t} onClick={()=>{ setTab(t); setDetail(null); }} style={{
@@ -535,7 +689,7 @@ export function Scanner() {
                 <tbody>
                   {loading.mom ? <tr><td colSpan={12} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading momentum data...</td></tr>
                   : filteredMom.map(r=>(
-                    <tr key={r.ticker} style={{ cursor:'default' }} {...ROW_HOVER}>
+                    <tr key={r.ticker} onClick={()=>setChartStock(r)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
                       <td style={{ ...TD, overflow:'hidden' }}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'11px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.ticker}</div><div style={{ fontSize:'9px', color:'var(--txt3)', overflow:'hidden', textOverflow:'ellipsis' }}>{r.name}</div></td>
                       <td style={{ ...TD, color:pctColor(r.m1), fontWeight:600 }}>{pct(r.m1)}</td>
                       <td style={{ ...TD, color:pctColor(r.m3), fontWeight:600 }}>{pct(r.m3)}</td>
