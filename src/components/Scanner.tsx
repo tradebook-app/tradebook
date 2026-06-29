@@ -30,7 +30,8 @@ type Theme      = { name:string; etf:string; sector:string; pct:number; pct1d:nu
 type ThemeResponse = { sectors: SectorData[]; themes: Theme[] };
 type FundaStock = { ticker:string; name:string; price:number; epsQoQ:number|null; epsYoY:number|null; revGrowth:number|null; epsRank:number|null; revRank:number|null; instRank:number|null; floatM:number|null; shortPct:number|null };
 
-const INPUT: React.CSSProperties = { width:'100%', height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none' };
+const INPUT: React.CSSProperties = { width:'100%', height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none', boxSizing:'border-box' };
+const INPUT_HALF: React.CSSProperties = { flex:1, minWidth:0, height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none', boxSizing:'border-box' };
 const LBL: React.CSSProperties   = { fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase' as const, color:'var(--txt3)', marginBottom:'3px', display:'block' };
 const GRP: React.CSSProperties   = { marginBottom:'9px' };
 const TH: React.CSSProperties    = { fontSize:'9px', fontWeight:600, letterSpacing:'.04em', textTransform:'uppercase' as const, color:'var(--txt3)', padding:'6px 6px', textAlign:'left' as const, borderBottom:'1px solid var(--brd)', whiteSpace:'nowrap' as const, cursor:'pointer', userSelect:'none' as const };
@@ -304,8 +305,8 @@ export function Scanner() {
             ] as any[]).map(([label,type,minV,minS,maxV,maxS])=>(
               <div key={label} style={GRP}><label style={LBL}>{label}</label>
                 <div style={{display:'flex',gap:'4px'}}>
-                  <input style={INPUT} type={type} value={minV||''} onChange={(e:any)=>minS(+e.target.value)} placeholder="Min"/>
-                  <input style={INPUT} type={type} value={maxV||''} onChange={(e:any)=>maxS(+e.target.value)} placeholder="Max"/>
+                  <input style={INPUT_HALF} type={type} value={minV||''} onChange={(e:any)=>minS(+e.target.value)} placeholder="Min"/>
+                  <input style={INPUT_HALF} type={type} value={maxV||''} onChange={(e:any)=>maxS(+e.target.value)} placeholder="Max"/>
                 </div>
               </div>
             ))}
@@ -316,8 +317,8 @@ export function Scanner() {
             ] as any[]).map(([label,minV,minS,maxV,maxS])=>(
               <div key={label} style={GRP}><label style={LBL}>{label}</label>
                 <div style={{display:'flex',gap:'4px'}}>
-                  <input style={INPUT} type="text" value={minV} onChange={(e:any)=>minS(e.target.value)} placeholder="Min"/>
-                  <input style={INPUT} type="text" value={maxV} onChange={(e:any)=>maxS(e.target.value)} placeholder="Max"/>
+                  <input style={INPUT_HALF} type="text" value={minV} onChange={(e:any)=>minS(e.target.value)} placeholder="Min"/>
+                  <input style={INPUT_HALF} type="text" value={maxV} onChange={(e:any)=>maxS(e.target.value)} placeholder="Max"/>
                 </div>
               </div>
             ))}
@@ -390,7 +391,7 @@ export function Scanner() {
               <div key={l} style={GRP}><label style={LBL}>{l}</label><input style={INPUT} type="number" value={v} onChange={e=>s(+e.target.value)}/></div>
             ))}
             <div style={GRP}><label style={LBL}>Price $</label>
-              <div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={mPMin} onChange={e=>setMPMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={mPMax} onChange={e=>setMPMax(+e.target.value)} placeholder="Max"/></div>
+              <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="number" value={mPMin} onChange={e=>setMPMin(+e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="number" value={mPMax} onChange={e=>setMPMax(+e.target.value)} placeholder="Max"/></div>
             </div>
             {SB_BTN(loading.mom?'Loading...':'Refresh',()=>load('mom',`${BASE}/momentum`,setMomData),loading.mom)}
           </div>
