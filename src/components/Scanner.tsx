@@ -28,7 +28,7 @@ type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:numb
 type SectorData = { name:string; etf:string; price:number; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number };
 type Theme      = { name:string; etf:string; sector:string; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number; price:number; stocks:any[] };
 type ThemeResponse = { sectors: SectorData[]; themes: Theme[] };
-type FundaStock = { ticker:string; name:string; price:number; epsQoQ:number|null; epsYoY:number|null; revGrowth:number|null; epsRank:number|null; revRank:number|null; instRank:number|null; floatM:number|null; shortPct:number|null };
+type FundaStock = { ticker:string; name:string; price:number; sector:string|null; industry:string|null; theme:string|null; mktCap:number|null; rs:number|null; epsRank:number|null; revRank:number|null; epsQ0:number|null; epsQ1:number|null; epsAnn:number|null; epsCombined:number|null; revGrowth:number|null; adr:number|null };
 
 const INPUT: React.CSSProperties = { display:'block', width:'100%', height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none', boxSizing:'border-box' };
 const INPUT_HALF: React.CSSProperties = { display:'block', flex:1, minWidth:0, width:'auto', height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none', boxSizing:'border-box' };
@@ -130,8 +130,12 @@ export function Scanner() {
   const [mAtrMin,setMAtrMin]=useState<number|''>(''); const [mAtrMax,setMAtrMax]=useState<number|''>('');
   const [mPresets,setMPresets]=useState<{name:string;filters:any}[]>([]);
   const [mPresetName,setMPresetName]=useState('');
-  const [fEps,setFEps]=useState(1); const [fRev,setFRev]=useState(1); const [fInst,setFInst]=useState(1);
-  const [fFloat,setFFloat]=useState(1000); const [fShort,setFShort]=useState(0);
+  const [fEpsRank,setFEpsRank]=useState<number|''>('');
+  const [fRevRank,setFRevRank]=useState<number|''>('');
+  const [fRs,setFRs]=useState<number|''>('');
+  const [fEpsQ0Min,setFEpsQ0Min]=useState<number|''>('');
+  const [fRevMin,setFRevMin]=useState<number|''>('');
+  const [fSector,setFSector]=useState('');
 
   const load = useCallback(async (key: string, url: string, setter: (d:any)=>void) => {
     setLoading(l=>({...l,[key]:true})); setError(e=>({...e,[key]:''}));
@@ -249,7 +253,14 @@ export function Scanner() {
       return b.rs-a.rs;
     });
 
-  const filteredFunda = fundaData.filter(r=>(r.epsRank||0)>=fEps&&(r.revRank||0)>=fRev&&(r.instRank||0)>=fInst&&(!r.floatM||r.floatM<=fFloat)&&(!r.shortPct||r.shortPct>=fShort));
+  const filteredFunda = fundaData.filter((r:any)=>
+    (fEpsRank===''||( r.epsRank!=null && r.epsRank>=fEpsRank)) &&
+    (fRevRank===''||( r.revRank!=null && r.revRank>=fRevRank)) &&
+    (fRs===''     ||( r.rs!=null      && r.rs>=fRs)) &&
+    (fEpsQ0Min===''||(r.epsQ0!=null   && r.epsQ0>=fEpsQ0Min)) &&
+    (fRevMin==='' ||(r.revGrowth!=null && r.revGrowth>=fRevMin)) &&
+    (fSector==='' || (r.sector||'').toLowerCase().includes(fSector.toLowerCase()))
+  );
 
   function openDetail(row: any, type: string, t: string) { setDetail(row); setDetailType(type); setTicker(t); }
 
@@ -803,38 +814,69 @@ export function Scanner() {
       {/* ── FUNDAMENTALS ── */}
       {tab==='fundamentals' && (
         <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1 }}>
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start' }}>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start', position:'sticky', top:0, maxHeight:'calc(100vh - 120px)', overflowY:'auto' }}>
             <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'9px', paddingBottom:'7px', borderBottom:'1px solid var(--brd)' }}>Filters</div>
-            {([['Min EPS rank',fEps,setFEps],['Min rev rank',fRev,setFRev],['Min inst rank',fInst,setFInst],['Max float M',fFloat,setFFloat],['Min short %',fShort,setFShort]] as any[]).map(([l,v,s])=>(
-              <div key={l} style={GRP}><label style={LBL}>{l}</label><input style={INPUT} type="number" value={v} onChange={e=>s(+e.target.value)}/></div>
+            {([
+              ['Min EPS Rank', fEpsRank, setFEpsRank],
+              ['Min Rev Rank', fRevRank, setFRevRank],
+              ['Min RS Rank',  fRs,      setFRs],
+              ['Min EPS Q0 %', fEpsQ0Min,setFEpsQ0Min],
+              ['Min Rev Growth %', fRevMin, setFRevMin],
+            ] as any[]).map(([l,v,s])=>(
+              <div key={l} style={GRP}><label style={LBL}>{l}</label>
+                <input style={INPUT} type="number" value={v} onChange={e=>s(e.target.value===''?'':+e.target.value)} placeholder="Min"/>
+              </div>
             ))}
-            {SB_BTN(loading.funda?'Loading...':'Refresh',()=>load('funda',`${BASE}/fundamentals`,setFundaData),loading.funda)}
+            <div style={GRP}><label style={LBL}>Sector</label>
+              <input style={INPUT} type="text" value={fSector} onChange={e=>setFSector(e.target.value)} placeholder="e.g. Technology"/>
+            </div>
+            <div style={{ display:'flex', gap:'4px', marginTop:'4px' }}>
+              <button onClick={()=>{ setFEpsRank(''); setFRevRank(''); setFRs(''); setFEpsQ0Min(''); setFRevMin(''); setFSector(''); }}
+                style={{ flex:1, height:'28px', background:'none', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'11px', cursor:'pointer', fontFamily:'var(--sans)' }}>Reset</button>
+              {SB_BTN(loading.funda?'Loading...':'Refresh',()=>load('funda',`${BASE}/fundamentals`,setFundaData),loading.funda)}
+            </div>
           </div>
           <div>
-            <div style={{ marginBottom:'7px' }}><span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.funda?'Loading fundamentals (20-30 sec)...':`${filteredFunda.length} results · live`}</span></div>
+            <div style={{ marginBottom:'7px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.funda?'Loading...':`${filteredFunda.length} results`}</span>
+              <button
+                onClick={()=>{
+                  const text = filteredFunda.slice(0,500).map((r:any)=>r.ticker).join('\n');
+                  const blob = new Blob([text], { type:'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a'); a.href=url; a.download='sleektrade-fundamentals.txt'; a.click(); URL.revokeObjectURL(url);
+                }}
+                style={{ height:'26px', padding:'0 10px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'10px', fontWeight:600, cursor:'pointer', fontFamily:'var(--sans)' }}>
+                ↓ Export {Math.min(filteredFunda.length,500)} tickers
+              </button>
+            </div>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflowX:'auto' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                <thead><tr>{['Ticker','Price','EPS QoQ','EPS YoY','Rev growth','EPS rank','Rev rank','Inst rank','Float','Short %'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Ticker','Price','EPS Q0 YoY','EPS Q1 YoY','Annual EPS','Rev Growth','EPS Rank','Rev Rank','RS Rank','Sector','Theme'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
                 <tbody>
-                  {loading.funda ? <tr><td colSpan={10} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading fundamentals... (~30 seconds)</td></tr>
-                  : filteredFunda.map(r=>(
-                    <tr key={r.ticker} onClick={()=>openDetail(r,'funda',r.ticker)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
-                      <td style={TD}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px' }}>{r.ticker}</div><div style={{ fontSize:'10px', color:'var(--txt3)' }}>{r.name}</div></td>
-                      <td style={{ ...TD, fontFamily:'var(--mono)' }}>{fmt$(r.price)}</td>
-                      <td style={{ ...TD, color:pctColor(r.epsQoQ), fontWeight:600 }}>{pct(r.epsQoQ)}</td>
-                      <td style={{ ...TD, color:pctColor(r.epsYoY), fontWeight:600 }}>{pct(r.epsYoY)}</td>
-                      <td style={{ ...TD, color:pctColor(r.revGrowth), fontWeight:600 }}>{pct(r.revGrowth)}</td>
-                      <td style={TD}><RkBadge v={r.epsRank}/></td>
-                      <td style={TD}><RkBadge v={r.revRank}/></td>
-                      <td style={TD}><RkBadge v={r.instRank}/></td>
-                      <td style={{ ...TD, color:'var(--txt2)' }}>{r.floatM?r.floatM+'M':'—'}</td>
-                      <td style={{ ...TD, color:r.shortPct&&r.shortPct>10?'var(--orange)':'var(--txt2)', fontWeight:r.shortPct&&r.shortPct>10?600:400 }}>{r.shortPct!=null?r.shortPct.toFixed(1)+'%':'—'}</td>
-                    </tr>
-                  ))}
+                  {loading.funda
+                    ? <tr><td colSpan={11} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading fundamentals...</td></tr>
+                    : filteredFunda.length===0
+                    ? <tr><td colSpan={11} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>No results — adjust filters</td></tr>
+                    : filteredFunda.map((r:any)=>(
+                      <tr key={r.ticker} onClick={()=>setChartStock(r)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
+                        <td style={TD}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px' }}>{r.ticker}</div><div style={{ fontSize:'10px', color:'var(--txt3)' }}>{r.name}</div></td>
+                        <td style={{ ...TD, fontFamily:'var(--mono)' }}>{fmt$(r.price)}</td>
+                        <td style={{ ...TD, color:pctColor(r.epsQ0), fontWeight:600 }}>{pct(r.epsQ0)}</td>
+                        <td style={{ ...TD, color:pctColor(r.epsQ1), fontWeight:600 }}>{pct(r.epsQ1)}</td>
+                        <td style={{ ...TD, color:pctColor(r.epsAnn), fontWeight:600 }}>{pct(r.epsAnn)}</td>
+                        <td style={{ ...TD, color:pctColor(r.revGrowth), fontWeight:600 }}>{pct(r.revGrowth)}</td>
+                        <td style={TD}><RkBadge v={r.epsRank}/></td>
+                        <td style={TD}><RkBadge v={r.revRank}/></td>
+                        <td style={TD}><RkBadge v={r.rs}/></td>
+                        <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.sector||'—'}</td>
+                        <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.theme||'—'}</td>
+                      </tr>
+                    ))
+                  }
                 </tbody>
               </table>
             </div>
-            <DetailPanel/>
           </div>
         </div>
       )}
