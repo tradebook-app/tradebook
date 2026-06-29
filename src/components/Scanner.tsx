@@ -119,6 +119,10 @@ export function Scanner() {
   const [mM1,setMM1]=useState<number|''>(''); const [mM3,setMM3]=useState<number|''>(''); const [mM6,setMM6]=useState<number|''>('');
   const [mAdr,setMAdr]=useState<number|''>(''); const [mPMin,setMPMin]=useState<number|''>(''); const [mPMax,setMPMax]=useState<number|''>('');
   const [mRs,setMRs]=useState<number|''>(''); const [mEps,setMEps]=useState<number|''>(''); const [mRev,setMRevR]=useState<number|''>('');
+  const [mAvgVolMin,setMAvgVolMin]=useState(''); const [mAvgVolMax,setMAvgVolMax]=useState('');
+  const [mDolVolMin,setMDolVolMin]=useState(''); const [mDolVolMax,setMDolVolMax]=useState('');
+  const [mMktCapMin,setMMktCapMin]=useState(''); const [mMktCapMax,setMMktCapMax]=useState('');
+  const [mAtrMin,setMAtrMin]=useState<number|''>(''); const [mAtrMax,setMAtrMax]=useState<number|''>('');
   const [fEps,setFEps]=useState(1); const [fRev,setFRev]=useState(1); const [fInst,setFInst]=useState(1);
   const [fFloat,setFFloat]=useState(1000); const [fShort,setFShort]=useState(0);
 
@@ -170,6 +174,10 @@ export function Scanner() {
   function handleMomSort(col: string) { if (mSortCol===col) setMSortAsc(a=>!a); else { setMSortCol(col); setMSortAsc(false); } }
   function momSortIcon(col: string) { if (mSortCol!==col) return ' ↕'; return mSortAsc?' ↑':' ↓'; }
 
+  const mAvgVolMinN = parseKMB(mAvgVolMin); const mAvgVolMaxN = parseKMB(mAvgVolMax);
+  const mDolVolMinN = parseKMB(mDolVolMin); const mDolVolMaxN = parseKMB(mDolVolMax);
+  const mMktCapMinN = parseKMB(mMktCapMin); const mMktCapMaxN = parseKMB(mMktCapMax);
+
   const filteredMom = momData
     .filter(r=>
       (mM1===''||r.m1>=mM1) &&
@@ -180,7 +188,15 @@ export function Scanner() {
       (mPMax===''||r.price<=mPMax) &&
       (mRs===''||r.rs>=mRs) &&
       (mEps===''||r.epsRank==null||r.epsRank>=mEps) &&
-      (mRev===''||r.revRank==null||r.revRank>=mRev)
+      (mRev===''||r.revRank==null||r.revRank>=mRev) &&
+      (mAtrMin===''||r.atrPct>=mAtrMin) &&
+      (mAtrMax===''||r.atrPct<=mAtrMax) &&
+      (mAvgVolMinN===0||!r.avgVol||r.avgVol>=mAvgVolMinN) &&
+      (mAvgVolMaxN===0||!r.avgVol||r.avgVol<=mAvgVolMaxN) &&
+      (mDolVolMinN===0||(r.price*r.avgVol)>=mDolVolMinN) &&
+      (mDolVolMaxN===0||(r.price*r.avgVol)<=mDolVolMaxN) &&
+      (mMktCapMinN===0||!r.mktCap||r.mktCap>=mMktCapMinN) &&
+      (mMktCapMaxN===0||!r.mktCap||r.mktCap<=mMktCapMaxN)
     )
     .sort((a:any,b:any) => {
       const dir=mSortAsc?1:-1;
@@ -402,6 +418,18 @@ export function Scanner() {
             ))}
             <div style={GRP}><label style={LBL}>Price $</label>
               <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="number" value={mPMin} onChange={e=>setMPMin(e.target.value===''?'':+e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="number" value={mPMax} onChange={e=>setMPMax(e.target.value===''?'':+e.target.value)} placeholder="Max"/></div>
+            </div>
+            <div style={GRP}><label style={LBL}>ATR %</label>
+              <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="number" value={mAtrMin} onChange={e=>setMAtrMin(e.target.value===''?'':+e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="number" value={mAtrMax} onChange={e=>setMAtrMax(e.target.value===''?'':+e.target.value)} placeholder="Max"/></div>
+            </div>
+            <div style={GRP}><label style={LBL}>Avg Vol 30D</label>
+              <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="text" value={mAvgVolMin} onChange={e=>setMAvgVolMin(e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="text" value={mAvgVolMax} onChange={e=>setMAvgVolMax(e.target.value)} placeholder="Max"/></div>
+            </div>
+            <div style={GRP}><label style={LBL}>Dollar Vol</label>
+              <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="text" value={mDolVolMin} onChange={e=>setMDolVolMin(e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="text" value={mDolVolMax} onChange={e=>setMDolVolMax(e.target.value)} placeholder="Max"/></div>
+            </div>
+            <div style={GRP}><label style={LBL}>Mkt Cap</label>
+              <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="text" value={mMktCapMin} onChange={e=>setMMktCapMin(e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="text" value={mMktCapMax} onChange={e=>setMMktCapMax(e.target.value)} placeholder="Max"/></div>
             </div>
             {SB_BTN(loading.mom?'Loading...':'Refresh',()=>load('mom',`${BASE}/momentum`,setMomData),loading.mom)}
           </div>
