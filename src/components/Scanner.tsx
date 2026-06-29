@@ -813,15 +813,15 @@ export function Scanner() {
 
       {/* ── FUNDAMENTALS ── */}
       {tab==='fundamentals' && (
-        <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1, minWidth:0 }}>
           <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start', position:'sticky', top:0, maxHeight:'calc(100vh - 120px)', overflowY:'auto' }}>
             <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'9px', paddingBottom:'7px', borderBottom:'1px solid var(--brd)' }}>Filters</div>
             {([
-              ['Min EPS Rank', fEpsRank, setFEpsRank],
-              ['Min Rev Rank', fRevRank, setFRevRank],
-              ['Min RS Rank',  fRs,      setFRs],
-              ['Min EPS Q0 %', fEpsQ0Min,setFEpsQ0Min],
-              ['Min Rev Growth %', fRevMin, setFRevMin],
+              ['EPS Rank (1-99)', fEpsRank, setFEpsRank],
+              ['Rev Rank (1-99)', fRevRank, setFRevRank],
+              ['RS Rank (1-99)',  fRs,      setFRs],
+              ['Curr Q EPS Growth %', fEpsQ0Min, setFEpsQ0Min],
+              ['Revenue Growth %',    fRevMin,   setFRevMin],
             ] as any[]).map(([l,v,s])=>(
               <div key={l} style={GRP}><label style={LBL}>{l}</label>
                 <input style={INPUT} type="number" value={v} onChange={e=>s(e.target.value===''?'':+e.target.value)} placeholder="Min"/>
