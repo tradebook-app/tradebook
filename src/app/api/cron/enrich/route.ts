@@ -130,9 +130,17 @@ export async function GET(request: Request) {
     const stocks: any[] = cached.data;
     console.log(`[enrich] Loaded ${stocks.length} stocks from cache`);
 
-    // Only enrich top 2000 by RS — covers all meaningful stocks
-    const toEnrich = [...stocks].sort((a, b) => (b.rs || 0) - (a.rs || 0)).slice(0, 2000);
-    const rest     = stocks.filter(s => !toEnrich.find(t => t.ticker === s.ticker));
+    // Process ALL stocks but skip already enriched ones
+    // This way each cron run picks up where it left off
+    const toEnrich = stocks.filter(s => !s.sector); // only unenriched
+    const alreadyDone = stocks.filter(s => s.sector); // already have data
+
+    console.log(`[enrich] ${alreadyDone.length} already enriched, ${toEnrich.length} remaining`);
+
+    if (toEnrich.length === 0) {
+      console.log('[enrich] All stocks already enriched!');
+      return NextResponse.json({ success: true, enriched: 0, message: 'All stocks already enriched' });
+    }
 
     const BATCH = 5;
     const enriched = [...toEnrich];
@@ -141,9 +149,6 @@ export async function GET(request: Request) {
       const batch = enriched.slice(i, i + BATCH);
 
       await Promise.all(batch.map(async (stock, idx) => {
-        // Skip if already enriched recently (has sector data)
-        if (stock.sector && stock.adr > 0 && stock.epsCombined !== undefined) return;
-
         try {
           const [profileRes, incomeRes, annualRes] = await Promise.all([
             fetch(`${FMP_BASE}/profile?symbol=${stock.ticker}&apikey=${FMP_KEY}`, { cache: 'no-store' }),
@@ -221,7 +226,7 @@ export async function GET(request: Request) {
 
       // Save progress every 200 stocks
       if (i % 200 === 0 && i > 0) {
-        await saveRanked([...enriched, ...rest], supabase);
+        await saveRanked([...enriched, ...alreadyDone], supabase);
         console.log(`[enrich] Progress: ${i}/${enriched.length}`);
       }
 
@@ -229,12 +234,16 @@ export async function GET(request: Request) {
     }
 
     // Final save
-    await saveRanked([...enriched, ...rest], supabase);
+    await saveRanked([...enriched, ...alreadyDone], supabase);
     console.log(`[enrich] Done! Enriched ${enriched.length} stocks.`);
 
     return NextResponse.json({
-      success:    true,
-      enriched:   enriched.length,
+      success:         true,
+      newlyEnriched:   enriched.length,
+      alreadyEnriched: alreadyDone.length,
+      total:           stocks.length,
+      updated_at:      new Date().toISOString(),
+    });
       updated_at: new Date().toISOString(),
     });
 
