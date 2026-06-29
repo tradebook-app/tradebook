@@ -408,7 +408,18 @@ export function Scanner() {
           </div>
           <div>
             {error.gap && <div style={{ marginBottom:'8px', padding:'9px 12px', background:'var(--red-d)', border:'1px solid rgba(239,68,68,.2)', borderRadius:'var(--r)', fontSize:'11px', color:'var(--red)' }}>{error.gap}</div>}
-            <div style={{ marginBottom:'7px' }}><span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.gap?'Loading live data...':`${filteredGaps.length} results · live`}</span></div>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'7px' }}>
+              <span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.gap?'Loading live data...':`${filteredGaps.length} results · live`}</span>
+              <button
+                onClick={()=>{
+                  const text = filteredGaps.map(r => r.ticker).join('\n');
+                  navigator.clipboard.writeText(text).then(()=>alert(`${filteredGaps.length} tickers copied! Paste in TradingView watchlist.`));
+                }}
+                style={{ height:'26px', padding:'0 10px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'10px', fontWeight:600, cursor:'pointer', fontFamily:'var(--sans)', display:'flex', alignItems:'center', gap:'5px' }}
+              >
+                ↓ Export to TradingView
+              </button>
+            </div>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflow:'hidden' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
                 <thead><tr>
@@ -491,7 +502,18 @@ export function Scanner() {
             </div>
           </div>
           <div style={{ minWidth:0 }}>
-            <div style={{ marginBottom:'7px' }}><span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.mom?'Loading...':`${filteredMom.length} results · live`}</span></div>
+            <div style={{ marginBottom:'7px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.mom?'Loading...':`${filteredMom.length} results · live`}</span>
+              <button
+                onClick={()=>{
+                  const text = filteredMom.map(r => r.ticker).join('\n');
+                  navigator.clipboard.writeText(text).then(()=>alert(`${filteredMom.length} tickers copied! Paste in TradingView watchlist.`));
+                }}
+                style={{ height:'26px', padding:'0 10px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'10px', fontWeight:600, cursor:'pointer', fontFamily:'var(--sans)', display:'flex', alignItems:'center', gap:'5px' }}
+              >
+                ↓ Export to TradingView
+              </button>
+            </div>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', width:'100%', overflowX:'hidden' }}>
               <table style={{ width:'100%', borderCollapse:'collapse', tableLayout:'fixed' }}>
                 <colgroup>
