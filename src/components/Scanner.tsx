@@ -496,10 +496,11 @@ export function Scanner() {
                     {openTheme===i && (
                       <div style={{ background:'var(--bg)', borderBottom:'1px solid var(--brd)', padding:'8px 20px' }}>
                         {(d.stocks||[]).length>0?(d.stocks||[]).map((s:any)=>(
-                          <div key={s.t} style={{ display:'flex', alignItems:'center', padding:'4px 0', borderBottom:'1px solid var(--brd)' }}>
+                          <div key={s.t} style={{ display:'flex', alignItems:'center', padding:'5px 0', borderBottom:'1px solid var(--brd)' }}>
                             <span style={{ fontSize:'11px', fontWeight:600, color:'var(--ac2)', width:'48px', flexShrink:0 }}>{s.t}</span>
                             <span style={{ fontSize:'10px', color:'var(--txt3)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', padding:'0 8px' }}>{s.n}</span>
-                            <span style={{ fontSize:'11px', fontWeight:600, color:pctColor(parseFloat(s.p)) }}>{s.p}</span>
+                            <RkBadge v={s.rs}/>
+                            <span style={{ fontSize:'11px', fontWeight:600, color:pctColor(parseFloat(s.p)), marginLeft:'10px', width:'60px', textAlign:'right' }}>{s.p}</span>
                           </div>
                         )):(
                           <div style={{ fontSize:'10px', color:'var(--txt3)', padding:'4px 0' }}>ETF: {d.etf} · Sector: {d.sector}</div>
