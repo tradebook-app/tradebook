@@ -407,10 +407,19 @@ export function Scanner() {
               </div>
               <div style={{ fontSize:'16px', fontWeight:700 }}>${chartStock.price.toFixed(2)}</div>
               <div style={{ fontSize:'13px', fontWeight:600, color:pctColor(chartStock.m1) }}>{pct(chartStock.m1)} 1M</div>
-              <div style={{ display:'flex', gap:'6px' }}>
-                <RkBadge v={chartStock.rs}/>
-                {chartStock.epsRank && <RkBadge v={chartStock.epsRank}/>}
-                {chartStock.revRank && <RkBadge v={chartStock.revRank}/>}
+              <div style={{ display:'flex', gap:'6px', alignItems:'center' }}>
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' }}>
+                  <span style={{ fontSize:'8px', color:'var(--txt3)', letterSpacing:'.04em', textTransform:'uppercase' }}>RS</span>
+                  <RkBadge v={chartStock.rs}/>
+                </div>
+                {chartStock.epsRank && <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' }}>
+                  <span style={{ fontSize:'8px', color:'var(--txt3)', letterSpacing:'.04em', textTransform:'uppercase' }}>EPS</span>
+                  <RkBadge v={chartStock.epsRank}/>
+                </div>}
+                {chartStock.revRank && <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' }}>
+                  <span style={{ fontSize:'8px', color:'var(--txt3)', letterSpacing:'.04em', textTransform:'uppercase' }}>Rev</span>
+                  <RkBadge v={chartStock.revRank}/>
+                </div>}
               </div>
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
