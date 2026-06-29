@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { THEME_ETF_MAP } from '@/lib/themes';
+import { createClient } from '@supabase/supabase-js';
 
-const POLYGON_KEY = process.env.POLYGON_API_KEY;
+const POLYGON_KEY  = process.env.POLYGON_API_KEY;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 const SECTOR_ETFS = [
@@ -80,6 +83,36 @@ export async function GET(request: Request) {
   const period = searchParams.get('period') || 'today';
 
   try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Load momentum cache and group by theme (free — already in Supabase)
+    const { data: cached } = await supabase
+      .from('scanner_cache')
+      .select('data')
+      .eq('id', 'momentum')
+      .single();
+
+    const themeStocksMap: Record<string, any[]> = {};
+    if (cached?.data) {
+      const stocks: any[] = cached.data;
+      for (const stock of stocks) {
+        if (!stock.theme || stock.rs == null) continue;
+        if (!themeStocksMap[stock.theme]) themeStocksMap[stock.theme] = [];
+        themeStocksMap[stock.theme].push(stock);
+      }
+      for (const theme in themeStocksMap) {
+        themeStocksMap[theme] = themeStocksMap[theme]
+          .sort((a, b) => (b.rs || 0) - (a.rs || 0))
+          .slice(0, 10)
+          .map(s => ({
+            t:  s.ticker,
+            n:  s.name || s.ticker,
+            p:  (s.m6 > 0 ? '+' : '') + (s.m6 || 0).toFixed(1) + '%',
+            rs: s.rs,
+          }));
+      }
+    }
+
     // Fetch sectors and themes concurrently
     const [sectorResults, themeResults] = await Promise.all([
       // Sectors
@@ -101,7 +134,7 @@ export async function GET(request: Request) {
             try {
               const d = await fetchETFData(t.etf);
               const pct = period === '1w' ? d.pct1w : period === '1m' ? d.pct1m : period === '3m' ? d.pct3m : period === '6m' ? d.pct6m : period === 'ytd' ? d.pctYtd : d.pct1d;
-              return { name: t.theme, etf: t.etf, sector: t.sector, ...d, pct, stocks: [] };
+              return { name: t.theme, etf: t.etf, sector: t.sector, ...d, pct, stocks: themeStocksMap[t.theme] || [] };
             } catch { return null; }
           }));
           chunkResults.forEach(r => { if (r) results.push(r); });
