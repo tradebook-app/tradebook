@@ -506,12 +506,16 @@ export function Scanner() {
               <span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.mom?'Loading...':`${filteredMom.length} results · live`}</span>
               <button
                 onClick={()=>{
-                  const text = filteredMom.map(r => r.ticker).join('\n');
-                  navigator.clipboard.writeText(text).then(()=>alert(`${filteredMom.length} tickers copied! Paste in TradingView watchlist.`));
+                  const tickers = filteredMom.slice(0, 500).map(r => r.ticker).join('\n');
+                  const blob = new Blob([tickers], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url; a.download = 'sleektrade-momentum.txt';
+                  a.click(); URL.revokeObjectURL(url);
                 }}
                 style={{ height:'26px', padding:'0 10px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'10px', fontWeight:600, cursor:'pointer', fontFamily:'var(--sans)', display:'flex', alignItems:'center', gap:'5px' }}
               >
-                ↓ Export to TradingView
+                ↓ Export {Math.min(filteredMom.length, 500)} tickers
               </button>
             </div>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', width:'100%', overflowX:'hidden' }}>
@@ -531,7 +535,7 @@ export function Scanner() {
                 <tbody>
                   {loading.mom ? <tr><td colSpan={12} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading momentum data...</td></tr>
                   : filteredMom.map(r=>(
-                    <tr key={r.ticker} onClick={()=>openDetail(r,'mom',r.ticker)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
+                    <tr key={r.ticker} style={{ cursor:'default' }} {...ROW_HOVER}>
                       <td style={{ ...TD, overflow:'hidden' }}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'11px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.ticker}</div><div style={{ fontSize:'9px', color:'var(--txt3)', overflow:'hidden', textOverflow:'ellipsis' }}>{r.name}</div></td>
                       <td style={{ ...TD, color:pctColor(r.m1), fontWeight:600 }}>{pct(r.m1)}</td>
                       <td style={{ ...TD, color:pctColor(r.m3), fontWeight:600 }}>{pct(r.m3)}</td>
@@ -549,7 +553,6 @@ export function Scanner() {
                 </tbody>
               </table>
             </div>
-            <DetailPanel/>
           </div>
         </div>
       )}
