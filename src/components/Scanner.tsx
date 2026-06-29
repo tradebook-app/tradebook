@@ -23,7 +23,7 @@ function RkBadge({ v }: { v: number | null }) {
   return <span style={{ display:'inline-block', minWidth:'24px', textAlign:'center', padding:'1px 4px', borderRadius:'4px', fontSize:'10px', fontWeight:700, background:bg, color, border:`1px solid ${bdr}` }}>{v}</span>;
 }
 
-type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; avgVol:number|null; mktCap:number|null; dollarVol:number|null; sector:string|null; industry:string|null; isPreMarket:boolean; isPostMarket:boolean };
+type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; avgVol:number|null; mktCap:number|null; dollarVol:number|null; sector:string|null; industry:string|null; theme:string|null; isPreMarket:boolean; isPostMarket:boolean };
 type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; rs:number; epsRank:number|null; revRank:number|null; sector:string|null; industry:string|null; theme:string|null; d50:number|null; d200:number|null };
 type SectorData = { name:string; etf:string; price:number; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number };
 type Theme      = { name:string; etf:string; sector:string; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number; price:number; stocks:any[] };
@@ -294,15 +294,33 @@ export function Scanner() {
                 <option value="both">Up + Down</option><option value="up">Gap Up only</option><option value="down">Gap Down only</option>
               </select>
             </div>
-            <div style={GRP}><label style={LBL}>Gap %</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gGapMin||''} onChange={e=>setGGapMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gGapMax||''} onChange={e=>setGGapMax(+e.target.value)} placeholder="Max"/></div></div>
-            <div style={GRP}><label style={LBL}>Price $</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gPriceMin||''} onChange={e=>setGPriceMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gPriceMax||''} onChange={e=>setGPriceMax(+e.target.value)} placeholder="Max"/></div></div>
-            <div style={GRP}><label style={LBL}>Pre-Mkt Vol (K)</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gVolMin||''} onChange={e=>setGVolMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gVolMax||''} onChange={e=>setGVolMax(+e.target.value)} placeholder="Max"/></div></div>
-            <div style={GRP}><label style={LBL}>Float (M)</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gFloatMin||''} onChange={e=>setGFloatMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gFloatMax||''} onChange={e=>setGFloatMax(+e.target.value)} placeholder="Max"/></div></div>
-            <div style={GRP}><label style={LBL}>ADR %</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gAdrMin||''} onChange={e=>setGAdrMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gAdrMax||''} onChange={e=>setGAdrMax(+e.target.value)} placeholder="Max"/></div></div>
-            <div style={GRP}><label style={LBL}>ATR</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gAtrMin||''} onChange={e=>setGAtrMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gAtrMax||''} onChange={e=>setGAtrMax(+e.target.value)} placeholder="Max"/></div></div>
-            <div style={GRP}><label style={LBL}>Avg Vol 30D</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="text" value={gAvgVolMin} onChange={e=>setGAvgVolMin(e.target.value)} placeholder="Min"/><input style={INPUT} type="text" value={gAvgVolMax} onChange={e=>setGAvgVolMax(e.target.value)} placeholder="Max"/></div></div>
-            <div style={GRP}><label style={LBL}>Dollar Vol</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="text" value={gDolVolMin} onChange={e=>setGDolVolMin(e.target.value)} placeholder="Min"/><input style={INPUT} type="text" value={gDolVolMax} onChange={e=>setGDolVolMax(e.target.value)} placeholder="Max"/></div></div>
-            <div style={GRP}><label style={LBL}>Mkt Cap</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="text" value={gMktCapMin} onChange={e=>setGMktCapMin(e.target.value)} placeholder="Min"/><input style={INPUT} type="text" value={gMktCapMax} onChange={e=>setGMktCapMax(e.target.value)} placeholder="Max"/></div></div>
+            {([
+              ['Gap %','number',gGapMin,setGGapMin,gGapMax,setGGapMax],
+              ['Price $','number',gPriceMin,setGPriceMin,gPriceMax,setGPriceMax],
+              ['Pre-Mkt Vol (K)','number',gVolMin,setGVolMin,gVolMax,setGVolMax],
+              ['Float (M)','number',gFloatMin,setGFloatMin,gFloatMax,setGFloatMax],
+              ['ADR %','number',gAdrMin,setGAdrMin,gAdrMax,setGAdrMax],
+              ['ATR','number',gAtrMin,setGAtrMin,gAtrMax,setGAtrMax],
+            ] as any[]).map(([label,type,minV,minS,maxV,maxS])=>(
+              <div key={label} style={GRP}><label style={LBL}>{label}</label>
+                <div style={{display:'flex',gap:'4px'}}>
+                  <input style={INPUT} type={type} value={minV||''} onChange={(e:any)=>minS(+e.target.value)} placeholder="Min"/>
+                  <input style={INPUT} type={type} value={maxV||''} onChange={(e:any)=>maxS(+e.target.value)} placeholder="Max"/>
+                </div>
+              </div>
+            ))}
+            {([
+              ['Avg Vol 30D',gAvgVolMin,setGAvgVolMin,gAvgVolMax,setGAvgVolMax],
+              ['Dollar Vol',gDolVolMin,setGDolVolMin,gDolVolMax,setGDolVolMax],
+              ['Mkt Cap',gMktCapMin,setGMktCapMin,gMktCapMax,setGMktCapMax],
+            ] as any[]).map(([label,minV,minS,maxV,maxS])=>(
+              <div key={label} style={GRP}><label style={LBL}>{label}</label>
+                <div style={{display:'flex',gap:'4px'}}>
+                  <input style={INPUT} type="text" value={minV} onChange={(e:any)=>minS(e.target.value)} placeholder="Min"/>
+                  <input style={INPUT} type="text" value={maxV} onChange={(e:any)=>maxS(e.target.value)} placeholder="Max"/>
+                </div>
+              </div>
+            ))}
             <div style={{ borderTop:'1px solid var(--brd)', marginTop:'8px', paddingTop:'8px' }}>
               <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'6px' }}>Saved Screens</div>
               <div style={{ display:'flex', gap:'4px', marginBottom:'6px' }}>
@@ -332,15 +350,15 @@ export function Scanner() {
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflow:'hidden' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
                 <thead><tr>
-                  {[['ticker','Ticker'],['gap','Gap %'],['preVol','Pre-Mkt Vol'],['prevClose','Prev Close'],['float','Float'],['adr','ADR %'],['atr','ATR'],['industry','Industry'],['sector','Sector']].map(([col,label])=>(
+                  {[['ticker','Ticker'],['gap','Gap %'],['preVol','Pre-Mkt Vol'],['prevClose','Prev Close'],['float','Float'],['adr','ADR %'],['atr','ATR'],['sector','Sector'],['industry','Industry'],['theme','Theme']].map(([col,label])=>(
                     <th key={col} style={TH} onClick={()=>{setGSortCol(col);setGSortAsc(a=>gSortCol===col?!a:false);}}>
                       {label}{gSortCol===col?(gSortAsc?' ↑':' ↓'):' ↕'}
                     </th>
                   ))}
                 </tr></thead>
                 <tbody>
-                  {loading.gap ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Fetching live data...</td></tr>
-                  : filteredGaps.length===0 ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>{gapData.length===0?'No pre-market gaps detected — Gap Scanner is live Monday–Friday 4:00 AM to 9:30 AM ET':'No results — adjust your filters'}</td></tr>
+                  {loading.gap ? <tr><td colSpan={10} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Fetching live data...</td></tr>
+                  : filteredGaps.length===0 ? <tr><td colSpan={10} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>{gapData.length===0?'No pre-market gaps detected — Gap Scanner is live Monday–Friday 4:00 AM to 9:30 AM ET':'No results — adjust your filters'}</td></tr>
                   : filteredGaps.map(r=>(
                     <tr key={r.ticker} onClick={()=>openDetail(r,'gap',r.ticker)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
                       <td style={TD}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px' }}>{r.ticker}</div><div style={{ fontSize:'10px', color:'var(--txt3)' }}>{r.name}</div></td>
@@ -350,8 +368,9 @@ export function Scanner() {
                       <td style={{ ...TD, color:'var(--txt2)' }}>{r.float?r.float+'M':'—'}</td>
                       <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.adr?r.adr.toFixed(1)+'%':'—'}</td>
                       <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.atr?r.atr.toFixed(1):'—'}</td>
-                      <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.industry||'—'}</td>
                       <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.sector||'—'}</td>
+                      <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.industry||'—'}</td>
+                      <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.theme||'—'}</td>
                     </tr>
                   ))}
                 </tbody>
