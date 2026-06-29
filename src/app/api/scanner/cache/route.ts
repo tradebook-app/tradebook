@@ -156,6 +156,8 @@ export async function GET(request: Request) {
       const m1     = perf(bars, 21);
       const m3     = perf(bars, 63);
       const m6     = perf(bars, 126);
+      // Weighted RS score: 40% 1M + 35% 3M + 25% 6M (favors recent momentum)
+      const rsScore = (m1 * 0.40) + (m3 * 0.35) + (m6 * 0.25);
       const atrPct = price > 0 && high && low ? ((high - low) / price) * 100 : 0;
 
       const closes = bars.map((b: any) => b.c).filter(Boolean);
@@ -174,6 +176,7 @@ export async function GET(request: Request) {
         m1:          parseFloat(m1.toFixed(1)),
         m3:          parseFloat(m3.toFixed(1)),
         m6:          parseFloat(m6.toFixed(1)),
+        rsScore:     parseFloat(rsScore.toFixed(2)),
         adr:         0,
         atrPct:      parseFloat(atrPct.toFixed(2)),
         d50:         sma(50)  ? parseFloat(sma(50)!.toFixed(2))  : null,
@@ -194,10 +197,10 @@ export async function GET(request: Request) {
       });
     }
 
-    const allM6 = results.map(r => r.m6);
+    const allRsScores = results.map(r => r.rsScore);
     const ranked = results.map(r => ({
       ...r,
-      rs:      rank99(r.m6, allM6, true),
+      rs:      rank99(r.rsScore, allRsScores, true),
       epsRank: null,
       revRank: null,
     })).sort((a, b) => b.rs - a.rs);
