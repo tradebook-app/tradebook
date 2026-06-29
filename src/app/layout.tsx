@@ -32,20 +32,21 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Apply saved theme before paint to prevent flash */}
         <Script id="theme-init" strategy="beforeInteractive">{`
           try {
             var t = localStorage.getItem('sleek-theme') || 'dark';
             document.documentElement.setAttribute('data-theme', t);
           } catch(e) {}
         `}</Script>
-        {/* TradingView Lightweight Charts — loaded globally for chart modal */}
+      </head>
+      <body>
+        {children}
+        {/* TradingView Lightweight Charts */}
         <Script
           src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
-      </head>
-      <body>{children}</body>
+      </body>
     </html>
   )
 }

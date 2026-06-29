@@ -328,8 +328,15 @@ export function Scanner() {
     useEffect(() => {
       if (!containerRef.current || !bars.length || loading) return;
       containerRef.current.innerHTML = '';
-      const LWC = (window as any).LightweightCharts;
-      if (!LWC) return;
+
+      // Wait for LightweightCharts to be available
+      let attempts = 0;
+      const tryRender = () => {
+        const LWC = (window as any).LightweightCharts;
+        if (!LWC) {
+          if (attempts++ < 20) setTimeout(tryRender, 200);
+          return;
+        }
 
       const chart = LWC.createChart(containerRef.current, {
         width:  containerRef.current.clientWidth,
@@ -380,7 +387,9 @@ export function Scanner() {
 
       chart.timeScale().fitContent();
 
-      return () => { try { chart.remove(); } catch {} };
+        return () => { try { chart.remove(); } catch {} };
+      };
+      tryRender();
     }, [bars, loading]);
 
     if (!chartStock) return null;
