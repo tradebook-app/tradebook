@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { THEME_ETF_MAP, assignTheme } from '@/lib/themes';
 
 const POLYGON_KEY  = process.env.POLYGON_API_KEY;
 const FMP_BASE     = 'https://financialmodelingprep.com/stable';
@@ -9,11 +10,9 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-// ─── Fetch all active US stock tickers from Polygon ──────────────────────────
 async function fetchAllTickers(): Promise<string[]> {
   const tickers: string[] = [];
   let url = `https://api.polygon.io/v3/reference/tickers?market=stocks&active=true&limit=1000&apiKey=${POLYGON_KEY}`;
-
   while (url) {
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) break;
@@ -28,15 +27,12 @@ async function fetchAllTickers(): Promise<string[]> {
     }
     url = data.next_url ? `${data.next_url}&apiKey=${POLYGON_KEY}` : '';
   }
-
   return tickers;
 }
 
-// ─── Fetch snapshots in batches of 250 (Polygon max) ─────────────────────────
 async function fetchSnapshots(symbols: string[]): Promise<any[]> {
   const BATCH = 250;
   const results: any[] = [];
-
   for (let i = 0; i < symbols.length; i += BATCH) {
     const chunk = symbols.slice(i, i + BATCH).join(',');
     let retries = 3;
@@ -48,27 +44,22 @@ async function fetchSnapshots(symbols: string[]): Promise<any[]> {
       if (res.status === 429) { await sleep(2000); retries--; continue; }
       if (!res.ok) break;
       const data = await res.json();
-      if (Array.isArray(data.tickers)) {
-        results.push(...data.tickers);
-      }
+      if (Array.isArray(data.tickers)) results.push(...data.tickers);
       break;
     }
     if (i % 5000 === 0 && i > 0) await sleep(500);
   }
-
   return results;
 }
 
-// ─── Fetch historical daily bars for a batch of tickers ──────────────────────
 async function fetchBarsMulti(symbols: string[], days: number): Promise<Record<string, any[]>> {
   const from = new Date();
   from.setDate(from.getDate() - days);
   const fromStr = from.toISOString().split('T')[0];
   const toStr   = new Date().toISOString().split('T')[0];
   const result: Record<string, any[]> = {};
-
-  // Polygon bars are per-ticker — fetch concurrently in batches of 20
   const CONCURRENCY = 20;
+
   for (let i = 0; i < symbols.length; i += CONCURRENCY) {
     const chunk = symbols.slice(i, i + CONCURRENCY);
     await Promise.all(chunk.map(async (ticker) => {
@@ -82,17 +73,13 @@ async function fetchBarsMulti(symbols: string[], days: number): Promise<Record<s
         if (!res.ok) break;
         const data = await res.json();
         if (Array.isArray(data.results) && data.results.length > 0) {
-          // Polygon returns {o,h,l,c,v,vw,t} — normalize to {c,h,l,o,v}
-          result[ticker] = data.results.map((b: any) => ({
-            c: b.c, h: b.h, l: b.l, o: b.o, v: b.v, vw: b.vw,
-          }));
+          result[ticker] = data.results.map((b: any) => ({ c: b.c, h: b.h, l: b.l, o: b.o, v: b.v, vw: b.vw }));
         }
         break;
       }
     }));
     if (i % 1000 === 0 && i > 0) await sleep(300);
   }
-
   return result;
 }
 
@@ -132,16 +119,13 @@ export async function GET(request: Request) {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     console.log('[cache] Starting full market scan with Polygon...');
 
-    // Step 1: Tickers
     const allTickers = await fetchAllTickers();
     if (!allTickers.length) return NextResponse.json({ error: 'Failed to fetch tickers' }, { status: 500 });
     console.log(`[cache] Universe: ${allTickers.length} tickers`);
 
-    // Step 2: Snapshots
     const snapshots = await fetchSnapshots(allTickers);
     console.log(`[cache] Snapshots: ${snapshots.length}`);
 
-    // Step 3: Filter — price > 0, volume > 1000
     const filtered = snapshots.filter(s => {
       const price  = s.day?.c || s.prevDay?.c || 0;
       const volume = s.day?.v || 0;
@@ -151,22 +135,20 @@ export async function GET(request: Request) {
 
     const filteredTickers = filtered.map(s => s.ticker);
 
-    // Step 4: Historical bars
     console.log('[cache] Fetching historical bars...');
     const allBars = await fetchBarsMulti(filteredTickers, 210);
     console.log(`[cache] Got bars for ${Object.keys(allBars).length} stocks`);
 
-    // Step 5: Build results
     const results: any[] = [];
 
     for (const snap of filtered) {
       const ticker    = snap.ticker;
-      const price     = snap.day?.c    || snap.prevDay?.c || 0;
-      const open      = snap.day?.o    || snap.prevDay?.o || 0;
-      const high      = snap.day?.h    || snap.prevDay?.h || 0;
-      const low       = snap.day?.l    || snap.prevDay?.l || 0;
-      const volume    = snap.day?.v    || 0;
-      const vwap      = snap.day?.vw   || 0;
+      const price     = snap.day?.c  || snap.prevDay?.c || 0;
+      const open      = snap.day?.o  || snap.prevDay?.o || 0;
+      const high      = snap.day?.h  || snap.prevDay?.h || 0;
+      const low       = snap.day?.l  || snap.prevDay?.l || 0;
+      const volume    = snap.day?.v  || 0;
+      const vwap      = snap.day?.vw || 0;
       const prevClose = snap.prevDay?.c || 0;
       const changeP   = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
 
@@ -203,6 +185,7 @@ export async function GET(request: Request) {
         mktCap:      null,
         sector:      null,
         industry:    null,
+        theme:       null,
         epsQ0:       null,
         epsQ1:       null,
         epsAnn:      null,
@@ -211,7 +194,6 @@ export async function GET(request: Request) {
       });
     }
 
-    // Step 6: Rank by 6M performance
     const allM6 = results.map(r => r.m6);
     const ranked = results.map(r => ({
       ...r,
@@ -220,7 +202,6 @@ export async function GET(request: Request) {
       revRank: null,
     })).sort((a, b) => b.rs - a.rs);
 
-    // Step 7: Save base data immediately
     const { error } = await supabase
       .from('scanner_cache')
       .upsert({ id: 'momentum', data: ranked, updated_at: new Date().toISOString() });
@@ -231,8 +212,6 @@ export async function GET(request: Request) {
     }
 
     console.log(`[cache] Saved ${ranked.length} stocks to Supabase`);
-
-    // Step 8: FMP enrichment in background
     enrichWithFMP(ranked, supabase).catch(e => console.error('[cache] FMP enrichment error:', e));
 
     return NextResponse.json({
@@ -247,12 +226,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
-
-// ─── EPS Rank formula ─────────────────────────────────────────────────────────
-// epsQ0  = current Q vs same Q last year  (stmts[0] vs stmts[4])
-// epsQ1  = prev Q vs same Q last year     (stmts[1] vs stmts[5])
-// epsAnn = current annual vs prev annual  (annual[0] vs annual[1])
-// epsCombined = average of available components → used for EPS Rank
 
 async function enrichWithFMP(stocks: any[], supabase: any) {
   console.log('[cache:fmp] Starting FMP enrichment...');
@@ -270,18 +243,20 @@ async function enrichWithFMP(stocks: any[], supabase: any) {
           fetch(`${FMP_BASE}/income-statement?symbol=${stock.ticker}&period=annual&limit=2&apikey=${FMP_KEY}`, { cache: 'no-store' }),
         ]);
 
-        // Profile
         if (profileRes.ok) {
           const pd = await profileRes.json();
           const p  = Array.isArray(pd) ? pd[0] : pd;
           if (p) {
             const { low: yearLow, high: yearHigh } = parseRange(p.range);
+            const sector   = p.sector   || null;
+            const industry = p.industry || null;
             enriched[i + idx] = {
               ...enriched[i + idx],
               name:     p.companyName || stock.ticker,
               mktCap:   p.marketCap   || null,
-              sector:   p.sector      || null,
-              industry: p.industry    || null,
+              sector,
+              industry,
+              theme:    assignTheme(sector, industry),
               h52:      yearHigh,
               l52:      yearLow,
               adr:      yearHigh && yearLow
@@ -291,7 +266,6 @@ async function enrichWithFMP(stocks: any[], supabase: any) {
           }
         }
 
-        // EPS + Revenue
         if (incomeRes.ok) {
           const stmts = await incomeRes.json();
           if (Array.isArray(stmts) && stmts.length >= 5) {
