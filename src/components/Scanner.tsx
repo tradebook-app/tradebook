@@ -327,73 +327,60 @@ export function Scanner() {
 
     useEffect(() => {
       if (!containerRef.current || !bars.length || loading) return;
+      containerRef.current.innerHTML = '';
+      const LWC = (window as any).LightweightCharts;
+      if (!LWC) return;
 
-      // Dynamically load TradingView Lightweight Charts
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js';
-      script.onload = () => {
-        if (!containerRef.current) return;
-        containerRef.current.innerHTML = '';
-        const LWC = (window as any).LightweightCharts;
-        if (!LWC) return;
+      const chart = LWC.createChart(containerRef.current, {
+        width:  containerRef.current.clientWidth,
+        height: 380,
+        layout: { background: { color: '#131318' }, textColor: '#9999AA' },
+        grid:   { vertLines: { color: '#252530' }, horzLines: { color: '#252530' } },
+        crosshair: { mode: 1 },
+        rightPriceScale: { borderColor: '#252530' },
+        timeScale: { borderColor: '#252530', timeVisible: true },
+      });
 
-        const chart = LWC.createChart(containerRef.current, {
-          width:  containerRef.current.clientWidth,
-          height: 380,
-          layout: { background: { color: '#131318' }, textColor: '#9999AA' },
-          grid:   { vertLines: { color: '#252530' }, horzLines: { color: '#252530' } },
-          crosshair: { mode: 1 },
-          rightPriceScale: { borderColor: '#252530' },
-          timeScale: { borderColor: '#252530', timeVisible: true },
-        });
+      const candleSeries = chart.addCandlestickSeries({
+        upColor: '#10B981', downColor: '#EF4444',
+        borderUpColor: '#10B981', borderDownColor: '#EF4444',
+        wickUpColor: '#10B981', wickDownColor: '#EF4444',
+      });
+      candleSeries.setData(bars);
 
-        // Candlestick series
-        const candleSeries = chart.addCandlestickSeries({
-          upColor:   '#10B981', downColor: '#EF4444',
-          borderUpColor: '#10B981', borderDownColor: '#EF4444',
-          wickUpColor: '#10B981', wickDownColor: '#EF4444',
-        });
-        candleSeries.setData(bars);
+      const volSeries = chart.addHistogramSeries({
+        color: 'rgba(16,185,129,0.3)',
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'volume',
+      });
+      chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
+      volSeries.setData(bars.map(b => ({
+        time:  b.time,
+        value: b.volume,
+        color: b.close >= b.open ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)',
+      })));
 
-        // Volume series
-        const volSeries = chart.addHistogramSeries({
-          color: 'rgba(16,185,129,0.3)',
-          priceFormat: { type: 'volume' },
-          priceScaleId: 'volume',
-        });
-        chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
-        volSeries.setData(bars.map(b => ({
-          time:  b.time,
-          value: b.volume,
-          color: b.close >= b.open ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)',
-        })));
+      // 50MA
+      const ma50data = bars.map((b, i) => {
+        const slice = bars.slice(Math.max(0, i - 49), i + 1);
+        const avg = slice.reduce((s, x) => s + x.close, 0) / slice.length;
+        return { time: b.time, value: parseFloat(avg.toFixed(2)) };
+      }).filter((_, i) => i >= 49);
+      const ma50Series = chart.addLineSeries({ color: '#F59E0B', lineWidth: 1, priceLineVisible: false });
+      ma50Series.setData(ma50data);
 
-        // 50MA
-        if (chartStock?.d50) {
-          const ma50 = bars.slice(-50).map((b,i,arr) => {
-            const slice = bars.slice(Math.max(0, bars.length - 50 + i - 49), bars.length - 50 + i + 1);
-            const avg = slice.reduce((s,x) => s + x.close, 0) / slice.length;
-            return { time: b.time, value: parseFloat(avg.toFixed(2)) };
-          });
-          const ma50Series = chart.addLineSeries({ color: '#F59E0B', lineWidth: 1, priceLineVisible: false });
-          ma50Series.setData(ma50.filter(x => x.value > 0));
-        }
+      // 200MA
+      const ma200data = bars.map((b, i) => {
+        const slice = bars.slice(Math.max(0, i - 199), i + 1);
+        const avg = slice.reduce((s, x) => s + x.close, 0) / slice.length;
+        return { time: b.time, value: parseFloat(avg.toFixed(2)) };
+      }).filter((_, i) => i >= 199);
+      const ma200Series = chart.addLineSeries({ color: '#3B82F6', lineWidth: 1, priceLineVisible: false });
+      ma200Series.setData(ma200data);
 
-        // 200MA
-        if (chartStock?.d200) {
-          const ma200 = bars.map((b,i) => {
-            const slice = bars.slice(Math.max(0, i - 199), i + 1);
-            const avg = slice.reduce((s,x) => s + x.close, 0) / slice.length;
-            return { time: b.time, value: parseFloat(avg.toFixed(2)) };
-          }).filter((_,i) => i >= 199);
-          const ma200Series = chart.addLineSeries({ color: '#3B82F6', lineWidth: 1, priceLineVisible: false });
-          ma200Series.setData(ma200);
-        }
+      chart.timeScale().fitContent();
 
-        chart.timeScale().fitContent();
-      };
-      document.head.appendChild(script);
-      return () => { try { document.head.removeChild(script); } catch {} };
+      return () => { try { chart.remove(); } catch {} };
     }, [bars, loading]);
 
     if (!chartStock) return null;

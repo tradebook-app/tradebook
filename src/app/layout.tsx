@@ -39,6 +39,11 @@ export default function RootLayout({
             document.documentElement.setAttribute('data-theme', t);
           } catch(e) {}
         `}</Script>
+        {/* TradingView Lightweight Charts — loaded globally for chart modal */}
+        <Script
+          src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"
+          strategy="beforeInteractive"
+        />
       </head>
       <body>{children}</body>
     </html>
