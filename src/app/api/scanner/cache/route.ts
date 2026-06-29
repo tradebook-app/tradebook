@@ -1,90 +1,98 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const ALPACA_KEY    = process.env.ALPACA_API_KEY;
-const ALPACA_SECRET = process.env.ALPACA_SECRET_KEY;
-const FMP_BASE      = 'https://financialmodelingprep.com/stable';
-const FMP_KEY       = process.env.FMP_API_KEY;
-const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const ALPACA_HEADERS = () => ({
-  'APCA-API-KEY-ID':     ALPACA_KEY!,
-  'APCA-API-SECRET-KEY': ALPACA_SECRET!,
-});
+const POLYGON_KEY  = process.env.POLYGON_API_KEY;
+const FMP_BASE     = 'https://financialmodelingprep.com/stable';
+const FMP_KEY      = process.env.FMP_API_KEY;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
+// ─── Fetch all active US stock tickers from Polygon ──────────────────────────
 async function fetchAllTickers(): Promise<string[]> {
-  const res = await fetch(
-    'https://paper-api.alpaca.markets/v2/assets?status=active&asset_class=us_equity',
-    { headers: ALPACA_HEADERS(), cache: 'no-store' }
-  );
-  if (!res.ok) return [];
-  const assets = await res.json();
-  return Array.isArray(assets)
-    ? assets
-        .filter((a: any) =>
-          a.tradable &&
-          !a.symbol.includes('.') &&
-          !a.symbol.includes('/') &&
-          a.symbol.length <= 5
-        )
-        .map((a: any) => a.symbol)
-    : [];
+  const tickers: string[] = [];
+  let url = `https://api.polygon.io/v3/reference/tickers?market=stocks&active=true&limit=1000&apiKey=${POLYGON_KEY}`;
+
+  while (url) {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) break;
+    const data = await res.json();
+    if (Array.isArray(data.results)) {
+      data.results.forEach((t: any) => {
+        const sym = t.ticker;
+        if (sym && !sym.includes('.') && !sym.includes('/') && sym.length <= 5) {
+          tickers.push(sym);
+        }
+      });
+    }
+    url = data.next_url ? `${data.next_url}&apiKey=${POLYGON_KEY}` : '';
+  }
+
+  return tickers;
 }
 
+// ─── Fetch snapshots in batches of 250 (Polygon max) ─────────────────────────
 async function fetchSnapshots(symbols: string[]): Promise<any[]> {
-  const BATCH   = 100;
+  const BATCH = 250;
   const results: any[] = [];
+
   for (let i = 0; i < symbols.length; i += BATCH) {
     const chunk = symbols.slice(i, i + BATCH).join(',');
     let retries = 3;
     while (retries > 0) {
       const res = await fetch(
-        `https://data.alpaca.markets/v2/stocks/snapshots?symbols=${chunk}&feed=iex`,
-        { headers: ALPACA_HEADERS(), cache: 'no-store' }
+        `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${chunk}&apiKey=${POLYGON_KEY}`,
+        { cache: 'no-store' }
       );
       if (res.status === 429) { await sleep(2000); retries--; continue; }
       if (!res.ok) break;
       const data = await res.json();
-      Object.entries(data).forEach(([ticker, snap]: [string, any]) => {
-        results.push({ ticker, ...snap });
-      });
+      if (Array.isArray(data.tickers)) {
+        results.push(...data.tickers);
+      }
       break;
     }
-    if (i % 1000 === 0 && i > 0) await sleep(300);
+    if (i % 5000 === 0 && i > 0) await sleep(500);
   }
+
   return results;
 }
 
+// ─── Fetch historical daily bars for a batch of tickers ──────────────────────
 async function fetchBarsMulti(symbols: string[], days: number): Promise<Record<string, any[]>> {
   const from = new Date();
   from.setDate(from.getDate() - days);
   const fromStr = from.toISOString().split('T')[0];
-  const BATCH   = 100;
+  const toStr   = new Date().toISOString().split('T')[0];
   const result: Record<string, any[]> = {};
 
-  for (let i = 0; i < symbols.length; i += BATCH) {
-    const chunk = symbols.slice(i, i + BATCH).join(',');
-    let retries = 3;
-    while (retries > 0) {
-      const res = await fetch(
-        `https://data.alpaca.markets/v2/stocks/bars?symbols=${chunk}&timeframe=1Day&start=${fromStr}&limit=200&feed=iex&sort=desc`,
-        { headers: ALPACA_HEADERS(), cache: 'no-store' }
-      );
-      if (res.status === 429) { await sleep(2000); retries--; continue; }
-      if (!res.ok) break;
-      const data = await res.json();
-      if (data.bars) {
-        Object.entries(data.bars).forEach(([ticker, bars]: [string, any]) => {
-          result[ticker] = bars;
-        });
+  // Polygon bars are per-ticker — fetch concurrently in batches of 20
+  const CONCURRENCY = 20;
+  for (let i = 0; i < symbols.length; i += CONCURRENCY) {
+    const chunk = symbols.slice(i, i + CONCURRENCY);
+    await Promise.all(chunk.map(async (ticker) => {
+      let retries = 3;
+      while (retries > 0) {
+        const res = await fetch(
+          `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/day/${fromStr}/${toStr}?adjusted=true&sort=desc&limit=210&apiKey=${POLYGON_KEY}`,
+          { cache: 'no-store' }
+        );
+        if (res.status === 429) { await sleep(2000); retries--; continue; }
+        if (!res.ok) break;
+        const data = await res.json();
+        if (Array.isArray(data.results) && data.results.length > 0) {
+          // Polygon returns {o,h,l,c,v,vw,t} — normalize to {c,h,l,o,v}
+          result[ticker] = data.results.map((b: any) => ({
+            c: b.c, h: b.h, l: b.l, o: b.o, v: b.v, vw: b.vw,
+          }));
+        }
+        break;
       }
-      break;
-    }
-    if (i % 500 === 0 && i > 0) await sleep(300);
+    }));
+    if (i % 1000 === 0 && i > 0) await sleep(300);
   }
+
   return result;
 }
 
@@ -122,7 +130,7 @@ export async function GET(request: Request) {
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    console.log('[cache] Starting full market scan...');
+    console.log('[cache] Starting full market scan with Polygon...');
 
     // Step 1: Tickers
     const allTickers = await fetchAllTickers();
@@ -133,18 +141,18 @@ export async function GET(request: Request) {
     const snapshots = await fetchSnapshots(allTickers);
     console.log(`[cache] Snapshots: ${snapshots.length}`);
 
-    // Step 3: Filter
+    // Step 3: Filter — price > 0, volume > 1000
     const filtered = snapshots.filter(s => {
-      const price  = s.dailyBar?.c || s.prevDailyBar?.c || 0;
-      const volume = s.dailyBar?.v || 0;
+      const price  = s.day?.c || s.prevDay?.c || 0;
+      const volume = s.day?.v || 0;
       return price > 0 && volume > 1000;
     });
     console.log(`[cache] After filter: ${filtered.length}`);
 
     const filteredTickers = filtered.map(s => s.ticker);
 
-    // Step 4: Fetch ALL historical bars in bulk
-    console.log('[cache] Fetching historical bars in bulk...');
+    // Step 4: Historical bars
+    console.log('[cache] Fetching historical bars...');
     const allBars = await fetchBarsMulti(filteredTickers, 210);
     console.log(`[cache] Got bars for ${Object.keys(allBars).length} stocks`);
 
@@ -153,13 +161,13 @@ export async function GET(request: Request) {
 
     for (const snap of filtered) {
       const ticker    = snap.ticker;
-      const price     = snap.dailyBar?.c  || snap.prevDailyBar?.c  || 0;
-      const open      = snap.dailyBar?.o  || snap.prevDailyBar?.o  || 0;
-      const high      = snap.dailyBar?.h  || snap.prevDailyBar?.h  || 0;
-      const low       = snap.dailyBar?.l  || snap.prevDailyBar?.l  || 0;
-      const volume    = snap.dailyBar?.v  || 0;
-      const vwap      = snap.dailyBar?.vw || 0;
-      const prevClose = snap.prevDailyBar?.c || 0;
+      const price     = snap.day?.c    || snap.prevDay?.c || 0;
+      const open      = snap.day?.o    || snap.prevDay?.o || 0;
+      const high      = snap.day?.h    || snap.prevDay?.h || 0;
+      const low       = snap.day?.l    || snap.prevDay?.l || 0;
+      const volume    = snap.day?.v    || 0;
+      const vwap      = snap.day?.vw   || 0;
+      const prevClose = snap.prevDay?.c || 0;
       const changeP   = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
 
       const bars   = allBars[ticker] || [];
@@ -191,15 +199,14 @@ export async function GET(request: Request) {
         h52:         null,
         l52:         null,
         volume,
-        avgVol:      snap.prevDailyBar?.v || 0,
+        avgVol:      snap.prevDay?.v || 0,
         mktCap:      null,
         sector:      null,
         industry:    null,
-        // EPS components (set by FMP enrichment)
-        epsQ0:       null, // Current Q vs same Q last year
-        epsQ1:       null, // Previous Q vs same Q last year
-        epsAnn:      null, // Annual EPS growth
-        epsCombined: null, // Average of above 3 — used for EPS Rank
+        epsQ0:       null,
+        epsQ1:       null,
+        epsAnn:      null,
+        epsCombined: null,
         revGrowth:   null,
       });
     }
@@ -213,14 +220,10 @@ export async function GET(request: Request) {
       revRank: null,
     })).sort((a, b) => b.rs - a.rs);
 
-    // Step 7: Save base data to Supabase immediately
+    // Step 7: Save base data immediately
     const { error } = await supabase
       .from('scanner_cache')
-      .upsert({
-        id:         'momentum',
-        data:       ranked,
-        updated_at: new Date().toISOString(),
-      });
+      .upsert({ id: 'momentum', data: ranked, updated_at: new Date().toISOString() });
 
     if (error) {
       console.error('[cache] Supabase error:', error);
@@ -245,14 +248,11 @@ export async function GET(request: Request) {
   }
 }
 
-// ─── EPS Rank helper ────────────────────────────────────────────────────────
-//
-// EPS Rank is based on 3 YoY comparisons:
-//   epsQ0  = current quarter  vs same quarter last year  (stmts[0] vs stmts[4])
-//   epsQ1  = previous quarter vs same quarter last year  (stmts[1] vs stmts[5])
-//   epsAnn = current annual EPS vs previous annual EPS   (annual[0] vs annual[1])
-//
-// epsCombined = average of whichever components are available → used for ranking
+// ─── EPS Rank formula ─────────────────────────────────────────────────────────
+// epsQ0  = current Q vs same Q last year  (stmts[0] vs stmts[4])
+// epsQ1  = prev Q vs same Q last year     (stmts[1] vs stmts[5])
+// epsAnn = current annual vs prev annual  (annual[0] vs annual[1])
+// epsCombined = average of available components → used for EPS Rank
 
 async function enrichWithFMP(stocks: any[], supabase: any) {
   console.log('[cache:fmp] Starting FMP enrichment...');
@@ -270,7 +270,7 @@ async function enrichWithFMP(stocks: any[], supabase: any) {
           fetch(`${FMP_BASE}/income-statement?symbol=${stock.ticker}&period=annual&limit=2&apikey=${FMP_KEY}`, { cache: 'no-store' }),
         ]);
 
-        // ── Profile ──────────────────────────────────────────────────────────
+        // Profile
         if (profileRes.ok) {
           const pd = await profileRes.json();
           const p  = Array.isArray(pd) ? pd[0] : pd;
@@ -291,32 +291,22 @@ async function enrichWithFMP(stocks: any[], supabase: any) {
           }
         }
 
-        // ── EPS & Revenue ─────────────────────────────────────────────────────
+        // EPS + Revenue
         if (incomeRes.ok) {
           const stmts = await incomeRes.json();
-
           if (Array.isArray(stmts) && stmts.length >= 5) {
-            // Quarterly EPS values
-            const eps0 = stmts[0]?.eps ?? null; // Current Q
-            const eps1 = stmts[1]?.eps ?? null; // Previous Q
-            const eps4 = stmts[4]?.eps ?? null; // Same Q last year (for current Q)
-            const eps5 = stmts[5]?.eps ?? null; // Same Q last year (for previous Q)
-
-            // Revenue (current Q vs same Q last year)
+            const eps0 = stmts[0]?.eps ?? null;
+            const eps1 = stmts[1]?.eps ?? null;
+            const eps4 = stmts[4]?.eps ?? null;
+            const eps5 = stmts[5]?.eps ?? null;
             const rev0 = stmts[0]?.revenue ?? null;
             const rev4 = stmts[4]?.revenue ?? null;
 
-            // epsQ0: current Q YoY
             const epsQ0 = eps0 != null && eps4 != null && eps4 !== 0
-              ? parseFloat(((eps0 - eps4) / Math.abs(eps4) * 100).toFixed(2))
-              : null;
-
-            // epsQ1: previous Q YoY
+              ? parseFloat(((eps0 - eps4) / Math.abs(eps4) * 100).toFixed(2)) : null;
             const epsQ1 = eps1 != null && eps5 != null && eps5 !== 0
-              ? parseFloat(((eps1 - eps5) / Math.abs(eps5) * 100).toFixed(2))
-              : null;
+              ? parseFloat(((eps1 - eps5) / Math.abs(eps5) * 100).toFixed(2)) : null;
 
-            // Annual EPS growth (from annual endpoint)
             let epsAnn: number | null = null;
             if (annualRes.ok) {
               const annual = await annualRes.json();
@@ -324,39 +314,29 @@ async function enrichWithFMP(stocks: any[], supabase: any) {
                 const ann0 = annual[0]?.eps ?? null;
                 const ann1 = annual[1]?.eps ?? null;
                 epsAnn = ann0 != null && ann1 != null && ann1 !== 0
-                  ? parseFloat(((ann0 - ann1) / Math.abs(ann1) * 100).toFixed(2))
-                  : null;
+                  ? parseFloat(((ann0 - ann1) / Math.abs(ann1) * 100).toFixed(2)) : null;
               }
             }
 
-            // Combined EPS score = average of all available components
             const epsComponents = [epsQ0, epsQ1, epsAnn].filter((v): v is number => v !== null);
             const epsCombined   = epsComponents.length > 0
               ? parseFloat((epsComponents.reduce((a, b) => a + b, 0) / epsComponents.length).toFixed(2))
               : null;
 
-            // Revenue growth: current Q vs same Q last year
             const revGrowth = rev0 != null && rev4 != null && rev4 !== 0
-              ? parseFloat(((rev0 - rev4) / Math.abs(rev4) * 100).toFixed(2))
-              : null;
+              ? parseFloat(((rev0 - rev4) / Math.abs(rev4) * 100).toFixed(2)) : null;
 
             enriched[i + idx] = {
               ...enriched[i + idx],
-              epsQ0,
-              epsQ1,
-              epsAnn,
-              epsCombined,
-              revGrowth,
+              epsQ0, epsQ1, epsAnn, epsCombined, revGrowth,
             };
           }
         }
-
       } catch (e) {
-        // Skip failed enrichments silently
+        // skip
       }
     }));
 
-    // Progress save every 500 stocks
     if (i % 500 === 0 && i > 0) {
       await saveRanked(enriched, supabase);
       console.log(`[cache:fmp] Progress saved: ${i}/${enriched.length}`);
@@ -364,12 +344,10 @@ async function enrichWithFMP(stocks: any[], supabase: any) {
     }
   }
 
-  // Final save with all FMP data
   await saveRanked(enriched, supabase);
-  console.log(`[cache:fmp] FMP enrichment complete! ${enriched.length} stocks fully enriched.`);
+  console.log(`[cache:fmp] Complete! ${enriched.length} stocks enriched.`);
 }
 
-// ─── Rank + save helper ──────────────────────────────────────────────────────
 async function saveRanked(enriched: any[], supabase: any) {
   const allEps = enriched.map(r => r.epsCombined).filter((v): v is number => v !== null);
   const allRev = enriched.map(r => r.revGrowth).filter((v): v is number => v !== null);
@@ -383,8 +361,6 @@ async function saveRanked(enriched: any[], supabase: any) {
   })).sort((a, b) => b.rs - a.rs);
 
   await supabase.from('scanner_cache').upsert({
-    id:         'momentum',
-    data:       reranked,
-    updated_at: new Date().toISOString(),
+    id: 'momentum', data: reranked, updated_at: new Date().toISOString(),
   });
 }
