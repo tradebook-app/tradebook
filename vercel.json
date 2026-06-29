@@ -1,8 +1,12 @@
 {
   "crons": [
     {
-      "path": "/api/scanner/cache?token=REPLACE_WITH_YOUR_CRON_SECRET",
-      "schedule": "0 */2 * * *"
+      "path": "/api/scanner/cache?token=sleektrade123",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/scanner/cache/gaps?token=sleektrade123",
+      "schedule": "35 13 * * *"
     }
   ]
 }
