@@ -116,9 +116,9 @@ export function Scanner() {
     setGDolVolMin(''); setGDolVolMax('');
   }
 
-  const [mM1,setMM1]=useState(-100); const [mM3,setMM3]=useState(-100); const [mM6,setMM6]=useState(-100);
-  const [mAdr,setMAdr]=useState(0); const [mPMin,setMPMin]=useState(5); const [mPMax,setMPMax]=useState(5000);
-  const [mRs,setMRs]=useState(1); const [mEps,setMEps]=useState(1); const [mRev,setMRevR]=useState(1);
+  const [mM1,setMM1]=useState<number|''>(''); const [mM3,setMM3]=useState<number|''>(''); const [mM6,setMM6]=useState<number|''>('');
+  const [mAdr,setMAdr]=useState<number|''>(''); const [mPMin,setMPMin]=useState<number|''>(''); const [mPMax,setMPMax]=useState<number|''>('');
+  const [mRs,setMRs]=useState<number|''>(''); const [mEps,setMEps]=useState<number|''>(''); const [mRev,setMRevR]=useState<number|''>('');
   const [fEps,setFEps]=useState(1); const [fRev,setFRev]=useState(1); const [fInst,setFInst]=useState(1);
   const [fFloat,setFFloat]=useState(1000); const [fShort,setFShort]=useState(0);
 
@@ -171,7 +171,17 @@ export function Scanner() {
   function momSortIcon(col: string) { if (mSortCol!==col) return ' ↕'; return mSortAsc?' ↑':' ↓'; }
 
   const filteredMom = momData
-    .filter(r=>r.m1>=mM1&&r.m3>=mM3&&r.m6>=mM6&&r.adr>=mAdr&&r.price>=mPMin&&r.price<=mPMax&&r.rs>=mRs&&(r.epsRank==null||r.epsRank>=mEps)&&(r.revRank==null||r.revRank>=mRev))
+    .filter(r=>
+      (mM1===''||r.m1>=mM1) &&
+      (mM3===''||r.m3>=mM3) &&
+      (mM6===''||r.m6>=mM6) &&
+      (mAdr===''||r.adr>=mAdr) &&
+      (mPMin===''||r.price>=mPMin) &&
+      (mPMax===''||r.price<=mPMax) &&
+      (mRs===''||r.rs>=mRs) &&
+      (mEps===''||r.epsRank==null||r.epsRank>=mEps) &&
+      (mRev===''||r.revRank==null||r.revRank>=mRev)
+    )
     .sort((a:any,b:any) => {
       const dir=mSortAsc?1:-1;
       if (mSortCol==='ticker') return dir*a.ticker.localeCompare(b.ticker);
@@ -388,10 +398,10 @@ export function Scanner() {
           <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start' }}>
             <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'9px', paddingBottom:'7px', borderBottom:'1px solid var(--brd)' }}>Filters</div>
             {([['Min 1M %',mM1,setMM1],['Min 3M %',mM3,setMM3],['Min 6M %',mM6,setMM6],['Min ADR %',mAdr,setMAdr],['Min RS rank',mRs,setMRs],['Min EPS rank',mEps,setMEps],['Min Rev rank',mRev,setMRevR]] as any[]).map(([l,v,s])=>(
-              <div key={l} style={GRP}><label style={LBL}>{l}</label><input style={INPUT} type="number" value={v} onChange={e=>s(+e.target.value)}/></div>
+              <div key={l} style={GRP}><label style={LBL}>{l}</label><input style={INPUT} type="number" value={v} onChange={e=>s(e.target.value===''?'':+e.target.value)} placeholder="Min"/></div>
             ))}
             <div style={GRP}><label style={LBL}>Price $</label>
-              <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="number" value={mPMin} onChange={e=>setMPMin(+e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="number" value={mPMax} onChange={e=>setMPMax(+e.target.value)} placeholder="Max"/></div>
+              <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="number" value={mPMin} onChange={e=>setMPMin(e.target.value===''?'':+e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="number" value={mPMax} onChange={e=>setMPMax(e.target.value===''?'':+e.target.value)} placeholder="Max"/></div>
             </div>
             {SB_BTN(loading.mom?'Loading...':'Refresh',()=>load('mom',`${BASE}/momentum`,setMomData),loading.mom)}
           </div>
