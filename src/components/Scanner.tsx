@@ -46,7 +46,9 @@ function parseKMB(val: string): number {
 }
 
 export function Scanner() {
-  const [tab,       setTab]       = useState<'gap'|'momentum'|'themes'|'fundamentals'>('gap');
+  // NOTE: Gap scanner is hidden (deferred until a paid real-time data feed).
+  // To re-enable: add 'gap' back to the tabs array below and set the default tab to 'gap'.
+  const [tab,       setTab]       = useState<'gap'|'momentum'|'themes'|'fundamentals'>('momentum');
   const [gapData,   setGapData]   = useState<GapStock[]>([]);
   const [momData,   setMomData]   = useState<MomStock[]>([]);
   const [themeData, setThemeData] = useState<Theme[]>([]);
@@ -148,7 +150,8 @@ export function Scanner() {
     finally { setLoading(l=>({...l,[key]:false})); }
   }, []);
 
-  useEffect(() => { load('gap',`${BASE}/gaps`,setGapData); load('mom',`${BASE}/momentum`,setMomData); }, []);
+  // Gap auto-load disabled while the gap tab is hidden. Only momentum loads on mount.
+  useEffect(() => { load('mom',`${BASE}/momentum`,setMomData); }, []);
   useEffect(() => { if (tab==='themes'&&!themeLoaded) { setThemeLoaded(true); load('themes',`${BASE}/themes?period=today`,setThemeData); } }, [tab]);
   useEffect(() => { if (tab==='fundamentals'&&!fundaLoaded) { setFundaLoaded(true); load('funda',`${BASE}/fundamentals`,setFundaData); } }, [tab]);
   useEffect(() => { if (themeLoaded) load('themes',`${BASE}/themes?period=${themeTime}`,d=>{ setThemeData(d); setOpenTheme(-1); }); }, [themeTime]);
@@ -266,9 +269,9 @@ export function Scanner() {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
-      {/* Tabs */}
+      {/* Tabs — 'gap' hidden until paid data feed. Re-add 'gap', to the array to restore. */}
       <div style={{ display:'flex', borderBottom:'1px solid var(--brd)', marginBottom:'14px' }}>
-        {(['gap','momentum','themes','fundamentals'] as const).map(t=>(
+        {(['momentum','themes','fundamentals'] as const).map(t=>(
           <button key={t} onClick={()=>{ setTab(t); setDetail(null); }} style={{
             padding:'8px 14px', fontSize:'12px', fontWeight:600, cursor:'pointer',
             background:'none', border:'none', borderBottom: tab===t ? '2px solid var(--ac)' : '2px solid transparent',
@@ -279,7 +282,7 @@ export function Scanner() {
         ))}
       </div>
 
-      {/* ── GAP SCANNER ── */}
+      {/* ── GAP SCANNER (hidden — tab removed above, code kept for re-enable) ── */}
       {tab==='gap' && (
         <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1 }}>
           <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start', position:'sticky', top:0, maxHeight:'calc(100vh - 120px)', overflowY:'auto' }}>
