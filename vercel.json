@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/enrich?token=sleektrade123",
-      "schedule": "*/30 * * * 1-5"
+      "schedule": "0 2 * * 1-5"
     }
   ]
 }
