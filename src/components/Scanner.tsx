@@ -348,41 +348,41 @@ export function Scanner() {
         timeScale: { borderColor: '#252530', timeVisible: true },
       });
 
-      const candleSeries = chart.addCandlestickSeries({
-        upColor: '#10B981', downColor: '#EF4444',
-        borderUpColor: '#10B981', borderDownColor: '#EF4444',
-        wickUpColor: '#10B981', wickDownColor: '#EF4444',
-      });
+      // Support both v3 (addCandlestickSeries) and v4 (addSeries) API
+      const candleSeries = chart.addCandlestickSeries
+        ? chart.addCandlestickSeries({ upColor:'#10B981', downColor:'#EF4444', borderUpColor:'#10B981', borderDownColor:'#EF4444', wickUpColor:'#10B981', wickDownColor:'#EF4444' })
+        : chart.addSeries(LWC.CandlestickSeries, { upColor:'#10B981', downColor:'#EF4444', borderUpColor:'#10B981', borderDownColor:'#EF4444', wickUpColor:'#10B981', wickDownColor:'#EF4444' });
       candleSeries.setData(bars);
 
-      const volSeries = chart.addHistogramSeries({
-        color: 'rgba(16,185,129,0.3)',
-        priceFormat: { type: 'volume' },
-        priceScaleId: 'volume',
-      });
+      const volSeries = chart.addHistogramSeries
+        ? chart.addHistogramSeries({ color:'rgba(16,185,129,0.3)', priceFormat:{ type:'volume' }, priceScaleId:'volume' })
+        : chart.addSeries(LWC.HistogramSeries, { color:'rgba(16,185,129,0.3)', priceFormat:{ type:'volume' }, priceScaleId:'volume' });
       chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
-      volSeries.setData(bars.map(b => ({
-        time:  b.time,
-        value: b.volume,
+      volSeries.setData(bars.map((b:any) => ({
+        time: b.time, value: b.volume,
         color: b.close >= b.open ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)',
       })));
 
       // 50MA
-      const ma50data = bars.map((b, i) => {
+      const ma50data = bars.map((b:any, i:number) => {
         const slice = bars.slice(Math.max(0, i - 49), i + 1);
-        const avg = slice.reduce((s, x) => s + x.close, 0) / slice.length;
+        const avg = slice.reduce((s:number, x:any) => s + x.close, 0) / slice.length;
         return { time: b.time, value: parseFloat(avg.toFixed(2)) };
-      }).filter((_, i) => i >= 49);
-      const ma50Series = chart.addLineSeries({ color: '#F59E0B', lineWidth: 1, priceLineVisible: false });
+      }).filter((_:any, i:number) => i >= 49);
+      const ma50Series = chart.addLineSeries
+        ? chart.addLineSeries({ color:'#F59E0B', lineWidth:1, priceLineVisible:false })
+        : chart.addSeries(LWC.LineSeries, { color:'#F59E0B', lineWidth:1, priceLineVisible:false });
       ma50Series.setData(ma50data);
 
       // 200MA
-      const ma200data = bars.map((b, i) => {
+      const ma200data = bars.map((b:any, i:number) => {
         const slice = bars.slice(Math.max(0, i - 199), i + 1);
-        const avg = slice.reduce((s, x) => s + x.close, 0) / slice.length;
+        const avg = slice.reduce((s:number, x:any) => s + x.close, 0) / slice.length;
         return { time: b.time, value: parseFloat(avg.toFixed(2)) };
-      }).filter((_, i) => i >= 199);
-      const ma200Series = chart.addLineSeries({ color: '#3B82F6', lineWidth: 1, priceLineVisible: false });
+      }).filter((_:any, i:number) => i >= 199);
+      const ma200Series = chart.addLineSeries
+        ? chart.addLineSeries({ color:'#3B82F6', lineWidth:1, priceLineVisible:false })
+        : chart.addSeries(LWC.LineSeries, { color:'#3B82F6', lineWidth:1, priceLineVisible:false });
       ma200Series.setData(ma200data);
 
       chart.timeScale().fitContent();
