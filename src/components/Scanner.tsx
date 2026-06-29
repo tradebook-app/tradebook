@@ -25,7 +25,7 @@ function RkBadge({ v }: { v: number | null }) {
 
 type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; avgVol:number|null; mktCap:number|null; dollarVol:number|null; sector:string|null; industry:string|null; isPreMarket:boolean; isPostMarket:boolean };
 type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; rs:number; epsRank:number|null; revRank:number|null; sector:string|null; industry:string|null; theme:string|null; d50:number|null; d200:number|null };
-type Theme      = { name:string; pct:number; stocks:{t:string;n:string;p:string;pctVal:number}[] };
+type Theme      = { name:string; etf:string; sector:string; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number; price:number; stocks:{t:string;n:string;p:string;pctVal:number}[] };
 type FundaStock = { ticker:string; name:string; price:number; epsQoQ:number|null; epsYoY:number|null; revGrowth:number|null; epsRank:number|null; revRank:number|null; instRank:number|null; floatM:number|null; shortPct:number|null };
 
 const INPUT: React.CSSProperties = { width:'100%', height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none' };
@@ -53,7 +53,7 @@ export function Scanner() {
   const [fundaData, setFundaData] = useState<FundaStock[]>([]);
   const [loading,   setLoading]   = useState<Record<string,boolean>>({ gap:true, mom:true, themes:false, funda:false });
   const [error,     setError]     = useState<Record<string,string>>({});
-  const [themeTime, setThemeTime] = useState<'today'|'1w'|'1m'|'ytd'>('today');
+  const [themeTime, setThemeTime] = useState<'today'|'1w'|'1m'|'3m'|'6m'|'ytd'>('today');
   const [openTheme, setOpenTheme] = useState(-1);
   const [detail,    setDetail]    = useState<any>(null);
   const [detailType,setDetailType]= useState('');
@@ -283,6 +283,18 @@ export function Scanner() {
 
   const ROW_HOVER = { onMouseEnter:(e:any)=>e.currentTarget.style.background='rgba(255,255,255,.025)', onMouseLeave:(e:any)=>e.currentTarget.style.background='transparent' };
 
+  // Theme period pct selector
+  function getThemePct(d: Theme): number {
+    switch(themeTime) {
+      case '1w':  return d.pct1w;
+      case '1m':  return d.pct1m;
+      case '3m':  return d.pct3m;
+      case '6m':  return d.pct6m;
+      case 'ytd': return d.pctYtd;
+      default:    return d.pct1d;
+    }
+  }
+
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
       <div style={{ display:'flex', borderBottom:'1px solid var(--brd)', marginBottom:'14px' }}>
@@ -292,12 +304,12 @@ export function Scanner() {
             background:'none', border:'none', borderBottom: tab===t ? '2px solid var(--ac)' : '2px solid transparent',
             color: tab===t ? 'var(--ac2)' : 'var(--txt2)', fontFamily:'var(--sans)', transition:'.1s',
           }}>
-            {t==='gap'?'Gap scanner':t==='fundamentals'?'Fundamentals':t.charAt(0).toUpperCase()+t.slice(1)}
+            {t==='gap'?'Gap Scanner':t==='fundamentals'?'Fundamentals':t.charAt(0).toUpperCase()+t.slice(1)}
           </button>
         ))}
       </div>
 
-      {/* ── GAP SCANNER (hidden) ── */}
+      {/* ── GAP SCANNER ── */}
       {tab==='gap' && (
         <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1 }}>
           <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start', position:'sticky', top:0, maxHeight:'calc(100vh - 120px)', overflowY:'auto' }}>
@@ -355,7 +367,7 @@ export function Scanner() {
                 </tr></thead>
                 <tbody>
                   {loading.gap ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Fetching live data...</td></tr>
-                  : filteredGaps.length===0 ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>{gapData.length===0 ? 'No pre-market activity detected — gap scanner is live Monday–Friday 4:00 AM to 9:30 AM ET' : 'No results — adjust your filters'}</td></tr>
+                  : filteredGaps.length===0 ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>{gapData.length===0 ? 'No pre-market gaps detected — Gap Scanner is live Monday–Friday 4:00 AM to 9:30 AM ET' : 'No results — adjust your filters'}</td></tr>
                   : filteredGaps.map(r=>(
                     <tr key={r.ticker} onClick={()=>openDetail(r,'gap',r.ticker)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
                       <td style={TD}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px' }}>{r.ticker}</div><div style={{ fontSize:'10px', color:'var(--txt3)' }}>{r.name}</div></td>
@@ -395,18 +407,18 @@ export function Scanner() {
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', width:'100%', overflowX:'hidden' }}>
               <table style={{ width:'100%', borderCollapse:'collapse', tableLayout:'fixed' }}>
                 <colgroup>
-                  <col style={{width:'8%'}}/>  {/* Ticker */}
-                  <col style={{width:'7%'}}/>  {/* 1M */}
-                  <col style={{width:'7%'}}/>  {/* 3M */}
-                  <col style={{width:'7%'}}/>  {/* 6M */}
-                  <col style={{width:'6%'}}/>  {/* ADR */}
-                  <col style={{width:'6%'}}/>  {/* ATR */}
-                  <col style={{width:'7%'}}/>  {/* RS */}
-                  <col style={{width:'7%'}}/>  {/* EPS */}
-                  <col style={{width:'7%'}}/>  {/* Rev */}
-                  <col style={{width:'10%'}}/> {/* Sector */}
-                  <col style={{width:'13%'}}/> {/* Industry */}
-                  <col style={{width:'15%'}}/> {/* Theme */}
+                  <col style={{width:'8%'}}/>
+                  <col style={{width:'7%'}}/>
+                  <col style={{width:'7%'}}/>
+                  <col style={{width:'7%'}}/>
+                  <col style={{width:'6%'}}/>
+                  <col style={{width:'6%'}}/>
+                  <col style={{width:'7%'}}/>
+                  <col style={{width:'7%'}}/>
+                  <col style={{width:'7%'}}/>
+                  <col style={{width:'10%'}}/>
+                  <col style={{width:'13%'}}/>
+                  <col style={{width:'15%'}}/>
                 </colgroup>
                 <thead><tr>
                   {([['ticker','Ticker'],['m1','1M %'],['m3','3M %'],['m6','6M %'],['adr','ADR %'],['atrPct','ATR'],['rs','RS'],['epsRank','EPS'],['revRank','Rev'],['sector','Sector'],['industry','Industry'],['theme','Theme']] as [string,string][]).map(([col,label])=>(
@@ -445,46 +457,66 @@ export function Scanner() {
       {tab==='themes' && (
         <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1 }}>
           <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start' }}>
-            <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'9px', paddingBottom:'7px', borderBottom:'1px solid var(--brd)' }}>Time period</div>
-            {(['today','1w','1m','ytd'] as const).map(p=>(
+            <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'9px', paddingBottom:'7px', borderBottom:'1px solid var(--brd)' }}>Sort by</div>
+            {(['today','1w','1m','3m','6m','ytd'] as const).map(p=>(
               <button key={p} onClick={()=>setThemeTime(p)} style={{ width:'100%', height:'27px', marginBottom:'4px', background:themeTime===p?'var(--ac)':'var(--bg4)', color:themeTime===p?'#000':'var(--txt2)', border:themeTime===p?'none':'1px solid var(--brd2)', borderRadius:'var(--r)', fontSize:'11px', fontWeight:600, cursor:'pointer', fontFamily:'var(--sans)' }}>
-                {p==='today'?'Today':p==='1w'?'1 week':p==='1m'?'1 month':'YTD'}
+                {p==='today'?'Today':p==='1w'?'1 Week':p==='1m'?'1 Month':p==='3m'?'3 Months':p==='6m'?'6 Months':'YTD'}
               </button>
             ))}
-            <div style={{ marginTop:'10px', paddingTop:'9px', borderTop:'1px solid var(--brd)', fontSize:'10px', color:'var(--txt3)', lineHeight:1.6 }}>Click any theme to see top stocks.</div>
+            <div style={{ marginTop:'10px', paddingTop:'9px', borderTop:'1px solid var(--brd)', fontSize:'10px', color:'var(--txt3)', lineHeight:1.6 }}>Click any theme to expand.</div>
           </div>
           <div>
             {error.themes && <div style={{ marginBottom:'8px', padding:'9px 12px', background:'var(--red-d)', border:'1px solid rgba(239,68,68,.2)', borderRadius:'var(--r)', fontSize:'11px', color:'var(--red)' }}>{error.themes}</div>}
-            <div style={{ marginBottom:'7px' }}><span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.themes?'Loading...':`${themeData.length} themes · sorted strongest → weakest`}</span></div>
+            <div style={{ marginBottom:'7px' }}><span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.themes?'Loading...':`${themeData.length} themes`}</span></div>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflow:'hidden' }}>
+              {/* Header row */}
+              <div style={{ display:'grid', gridTemplateColumns:'160px 1fr 70px 70px 70px 70px 70px 70px', gap:'0', padding:'6px 12px', borderBottom:'2px solid var(--brd)', background:'var(--bg3)' }}>
+                {['Theme','','1D%','1W%','1M%','3M%','6M%','YTD%'].map((h,i)=>(
+                  <div key={i} style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', textAlign: i >= 2 ? 'right' : 'left' }}>{h}</div>
+                ))}
+              </div>
+
               {loading.themes ? <div style={{ padding:'32px', textAlign:'center', color:'var(--txt3)', fontSize:'11px' }}>Loading theme data...</div>
               : themeData.map((d,i)=>{
-                const maxAbs = Math.max(...themeData.map(t=>Math.abs(t.pct)));
-                const barW   = Math.round((Math.abs(d.pct)/maxAbs)*44);
-                const isPos  = d.pct >= 0;
+                const maxAbs  = Math.max(...themeData.map(t=>Math.abs(getThemePct(t))));
+                const barPct  = getThemePct(d);
+                const barW    = maxAbs > 0 ? Math.round((Math.abs(barPct)/maxAbs)*44) : 0;
+                const isPos   = barPct >= 0;
                 return (
                   <div key={d.name}>
                     <div onClick={()=>setOpenTheme(openTheme===i?-1:i)}
-                      style={{ display:'flex', alignItems:'center', gap:'10px', padding:'6px 12px', borderBottom:'1px solid var(--brd)', cursor:'pointer', background:openTheme===i?'var(--bg3)':'transparent', transition:'.1s' }}
+                      style={{ display:'grid', gridTemplateColumns:'160px 1fr 70px 70px 70px 70px 70px 70px', gap:'0', alignItems:'center', padding:'5px 12px', borderBottom:'1px solid var(--brd)', cursor:'pointer', background:openTheme===i?'var(--bg3)':'transparent', transition:'.1s' }}
                       onMouseEnter={e=>{ if(openTheme!==i)(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,.02)'; }}
                       onMouseLeave={e=>{ if(openTheme!==i)(e.currentTarget as HTMLElement).style.background='transparent'; }}>
-                      <span style={{ fontSize:'12px', color:'var(--txt)', width:'155px', flexShrink:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.name}</span>
-                      <div style={{ flex:1, position:'relative', height:'14px', display:'flex', alignItems:'center' }}>
+                      {/* Theme name + ETF */}
+                      <div>
+                        <div style={{ fontSize:'11px', color:'var(--txt)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.name}</div>
+                        <div style={{ fontSize:'9px', color:'var(--txt3)' }}>{d.etf}</div>
+                      </div>
+                      {/* Bar chart */}
+                      <div style={{ position:'relative', height:'14px', display:'flex', alignItems:'center', marginRight:'8px' }}>
                         <div style={{ position:'absolute', left:'50%', width:'1px', height:'14px', background:'var(--brd2)' }}></div>
                         <div style={{ position:'absolute', height:'7px', borderRadius:'1px', ...(isPos?{left:'50%'}:{right:'50%'}), width:`${barW}%`, background:isPos?'var(--ac)':'var(--red)' }}></div>
                       </div>
-                      <span style={{ fontSize:'12px', fontWeight:600, width:'52px', textAlign:'right', flexShrink:0, color:pctColor(d.pct) }}>{pct(d.pct)}</span>
-                      <span style={{ color:'var(--txt3)', fontSize:'10px', flexShrink:0 }}>{openTheme===i?'▲':'▼'}</span>
+                      {/* Pct columns */}
+                      <div style={{ fontSize:'11px', fontWeight:600, color:pctColor(d.pct1d), textAlign:'right' }}>{pct(d.pct1d)}</div>
+                      <div style={{ fontSize:'11px', fontWeight:600, color:pctColor(d.pct1w), textAlign:'right' }}>{pct(d.pct1w)}</div>
+                      <div style={{ fontSize:'11px', fontWeight:600, color:pctColor(d.pct1m), textAlign:'right' }}>{pct(d.pct1m)}</div>
+                      <div style={{ fontSize:'11px', fontWeight:600, color:pctColor(d.pct3m), textAlign:'right' }}>{pct(d.pct3m)}</div>
+                      <div style={{ fontSize:'11px', fontWeight:600, color:pctColor(d.pct6m), textAlign:'right' }}>{pct(d.pct6m)}</div>
+                      <div style={{ fontSize:'11px', fontWeight:600, color:pctColor(d.pctYtd), textAlign:'right' }}>{pct(d.pctYtd)}</div>
                     </div>
                     {openTheme===i && (
-                      <div style={{ background:'var(--bg)', borderBottom:'1px solid var(--brd)' }}>
-                        {(d.stocks||[]).map(s=>(
-                          <div key={s.t} style={{ display:'flex', alignItems:'center', padding:'5px 20px', borderBottom:'1px solid var(--brd)' }}>
+                      <div style={{ background:'var(--bg)', borderBottom:'1px solid var(--brd)', padding:'8px 20px' }}>
+                        {(d.stocks||[]).length > 0 ? (d.stocks||[]).map(s=>(
+                          <div key={s.t} style={{ display:'flex', alignItems:'center', padding:'4px 0', borderBottom:'1px solid var(--brd)' }}>
                             <span style={{ fontSize:'11px', fontWeight:600, color:'var(--ac2)', width:'48px', flexShrink:0 }}>{s.t}</span>
                             <span style={{ fontSize:'10px', color:'var(--txt3)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', padding:'0 8px' }}>{s.n}</span>
                             <span style={{ fontSize:'11px', fontWeight:600, color:pctColor(parseFloat(s.p)) }}>{s.p}</span>
                           </div>
-                        ))}
+                        )) : (
+                          <div style={{ fontSize:'10px', color:'var(--txt3)', padding:'4px 0' }}>ETF: {d.etf} · Sector: {d.sector}</div>
+                        )}
                       </div>
                     )}
                   </div>
