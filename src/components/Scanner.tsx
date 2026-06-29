@@ -850,8 +850,21 @@ export function Scanner() {
                 ↓ Export {Math.min(filteredFunda.length,500)} tickers
               </button>
             </div>
-            <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflowX:'auto' }}>
-              <table style={{ width:'100%', borderCollapse:'collapse' }}>
+            <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', width:'100%', overflowX:'hidden' }}>
+              <table style={{ width:'100%', borderCollapse:'collapse', tableLayout:'fixed' }}>
+                <colgroup>
+                  <col style={{width:'10%'}}/> {/* Ticker */}
+                  <col style={{width:'7%'}}/>  {/* Price */}
+                  <col style={{width:'9%'}}/>  {/* EPS Q0 */}
+                  <col style={{width:'9%'}}/>  {/* EPS Q1 */}
+                  <col style={{width:'9%'}}/>  {/* Annual EPS */}
+                  <col style={{width:'9%'}}/>  {/* Rev Growth */}
+                  <col style={{width:'7%'}}/>  {/* EPS Rank */}
+                  <col style={{width:'7%'}}/>  {/* Rev Rank */}
+                  <col style={{width:'7%'}}/>  {/* RS Rank */}
+                  <col style={{width:'13%'}}/> {/* Sector */}
+                  <col style={{width:'13%'}}/> {/* Theme */}
+                </colgroup>
                 <thead><tr>{['Ticker','Price','EPS Q0 YoY','EPS Q1 YoY','Annual EPS','Rev Growth','EPS Rank','Rev Rank','RS Rank','Sector','Theme'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
                 <tbody>
                   {loading.funda
@@ -860,7 +873,7 @@ export function Scanner() {
                     ? <tr><td colSpan={11} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>No results — adjust filters</td></tr>
                     : filteredFunda.map((r:any)=>(
                       <tr key={r.ticker} onClick={()=>setChartStock(r)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
-                        <td style={TD}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px' }}>{r.ticker}</div><div style={{ fontSize:'10px', color:'var(--txt3)' }}>{r.name}</div></td>
+                        <td style={{ ...TD, overflow:'hidden' }}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.ticker}</div><div style={{ fontSize:'9px', color:'var(--txt3)', overflow:'hidden', textOverflow:'ellipsis' }}>{r.name}</div></td>
                         <td style={{ ...TD, fontFamily:'var(--mono)' }}>{fmt$(r.price)}</td>
                         <td style={{ ...TD, color:pctColor(r.epsQ0), fontWeight:600 }}>{pct(r.epsQ0)}</td>
                         <td style={{ ...TD, color:pctColor(r.epsQ1), fontWeight:600 }}>{pct(r.epsQ1)}</td>
@@ -869,8 +882,8 @@ export function Scanner() {
                         <td style={TD}><RkBadge v={r.epsRank}/></td>
                         <td style={TD}><RkBadge v={r.revRank}/></td>
                         <td style={TD}><RkBadge v={r.rs}/></td>
-                        <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.sector||'—'}</td>
-                        <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.theme||'—'}</td>
+                        <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.sector||'—'}</td>
+                        <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.theme||'—'}</td>
                       </tr>
                     ))
                   }
