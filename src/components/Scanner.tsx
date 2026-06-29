@@ -20,7 +20,7 @@ function RkBadge({ v }: { v: number | null }) {
   const bg    = v >= 80 ? 'rgba(16,185,129,.18)' : v >= 50 ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.18)';
   const color = v >= 80 ? '#10B981' : v >= 50 ? '#F59E0B' : '#EF4444';
   const bdr   = v >= 80 ? 'rgba(16,185,129,.35)' : v >= 50 ? 'rgba(245,158,11,.3)' : 'rgba(239,68,68,.35)';
-  return <span style={{ display:'inline-block', minWidth:'26px', textAlign:'center', padding:'2px 5px', borderRadius:'4px', fontSize:'10px', fontWeight:700, background:bg, color, border:`1px solid ${bdr}` }}>{v}</span>;
+  return <span style={{ display:'inline-block', minWidth:'24px', textAlign:'center', padding:'1px 4px', borderRadius:'4px', fontSize:'10px', fontWeight:700, background:bg, color, border:`1px solid ${bdr}` }}>{v}</span>;
 }
 
 type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; avgVol:number|null; mktCap:number|null; dollarVol:number|null; sector:string|null; industry:string|null; isPreMarket:boolean; isPostMarket:boolean };
@@ -31,8 +31,8 @@ type FundaStock = { ticker:string; name:string; price:number; epsQoQ:number|null
 const INPUT: React.CSSProperties = { width:'100%', height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none' };
 const LBL: React.CSSProperties   = { fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase' as const, color:'var(--txt3)', marginBottom:'3px', display:'block' };
 const GRP: React.CSSProperties   = { marginBottom:'9px' };
-const TH: React.CSSProperties    = { fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase' as const, color:'var(--txt3)', padding:'7px 10px', textAlign:'left' as const, borderBottom:'1px solid var(--brd)', whiteSpace:'nowrap' as const, cursor:'pointer', userSelect:'none' as const };
-const TD: React.CSSProperties    = { padding:'7px 10px', fontSize:'11px', borderBottom:'1px solid var(--brd)', whiteSpace:'nowrap' as const };
+const TH: React.CSSProperties    = { fontSize:'9px', fontWeight:600, letterSpacing:'.04em', textTransform:'uppercase' as const, color:'var(--txt3)', padding:'6px 6px', textAlign:'left' as const, borderBottom:'1px solid var(--brd)', whiteSpace:'nowrap' as const, cursor:'pointer', userSelect:'none' as const };
+const TD: React.CSSProperties    = { padding:'5px 6px', fontSize:'11px', borderBottom:'1px solid var(--brd)', whiteSpace:'nowrap' as const };
 
 function parseKMB(val: string): number {
   const s = val.trim().toUpperCase();
@@ -251,12 +251,12 @@ export function Scanner() {
           ['Gap %',<span style={{color:pctColor(detail.gap)}}>{pct(detail.gap)}</span>],
           ['Prev close',fmt$(detail.prevClose)],['Pre-mkt vol',detail.preVol?detail.preVol.toLocaleString()+'K':'—'],
           ['Float',detail.float?detail.float+'M':'—'],['ADR %',detail.adr?detail.adr.toFixed(1)+'%':'—'],
-          ['ATR %',detail.atr?detail.atr.toFixed(1)+'%':'—'],['Sector',detail.sector||'—'],['Industry',detail.industry||'—'],
+          ['ATR',detail.atr?detail.atr.toFixed(1):'—'],['Sector',detail.sector||'—'],['Industry',detail.industry||'—'],
         ] : detailType==='mom' ? [
           ['1M',<span style={{color:pctColor(detail.m1)}}>{pct(detail.m1)}</span>],
           ['3M',<span style={{color:pctColor(detail.m3)}}>{pct(detail.m3)}</span>],
           ['6M',<span style={{color:pctColor(detail.m6)}}>{pct(detail.m6)}</span>],
-          ['ADR %',detail.adr.toFixed(1)+'%'],['ATR %',detail.atrPct.toFixed(1)+'%'],
+          ['ADR %',detail.adr.toFixed(1)+'%'],['ATR',detail.atrPct.toFixed(1)],
           ['RS rank',<RkBadge v={detail.rs}/>],['EPS rank',<RkBadge v={detail.epsRank}/>],['Rev rank',<RkBadge v={detail.revRank}/>],
           ['50D MA',fmt$(detail.d50)],['200D MA',fmt$(detail.d200)],
           ['Sector',detail.sector||'—'],['Industry',detail.industry||'—'],['Theme',detail.theme||'—'],
@@ -379,7 +379,7 @@ export function Scanner() {
 
       {/* ── MOMENTUM ── */}
       {tab==='momentum' && (
-        <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1, minWidth:0 }}>
           <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start' }}>
             <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'9px', paddingBottom:'7px', borderBottom:'1px solid var(--brd)' }}>Filters</div>
             {([['Min 1M %',mM1,setMM1],['Min 3M %',mM3,setMM3],['Min 6M %',mM6,setMM6],['Min ADR %',mAdr,setMAdr],['Min RS rank',mRs,setMRs],['Min EPS rank',mEps,setMEps],['Min Rev rank',mRev,setMRevR]] as any[]).map(([l,v,s])=>(
@@ -390,13 +390,27 @@ export function Scanner() {
             </div>
             {SB_BTN(loading.mom?'Loading...':'Refresh',()=>load('mom',`${BASE}/momentum`,setMomData),loading.mom)}
           </div>
-          <div>
+          <div style={{ minWidth:0 }}>
             <div style={{ marginBottom:'7px' }}><span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.mom?'Loading...':`${filteredMom.length} results · live`}</span></div>
-            <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflow:'auto' }}>
-              <table style={{ width:'100%', borderCollapse:'collapse' }}>
+            <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', width:'100%', overflowX:'hidden' }}>
+              <table style={{ width:'100%', borderCollapse:'collapse', tableLayout:'fixed' }}>
+                <colgroup>
+                  <col style={{width:'8%'}}/>  {/* Ticker */}
+                  <col style={{width:'7%'}}/>  {/* 1M */}
+                  <col style={{width:'7%'}}/>  {/* 3M */}
+                  <col style={{width:'7%'}}/>  {/* 6M */}
+                  <col style={{width:'6%'}}/>  {/* ADR */}
+                  <col style={{width:'6%'}}/>  {/* ATR */}
+                  <col style={{width:'7%'}}/>  {/* RS */}
+                  <col style={{width:'7%'}}/>  {/* EPS */}
+                  <col style={{width:'7%'}}/>  {/* Rev */}
+                  <col style={{width:'10%'}}/> {/* Sector */}
+                  <col style={{width:'13%'}}/> {/* Industry */}
+                  <col style={{width:'15%'}}/> {/* Theme */}
+                </colgroup>
                 <thead><tr>
-                  {([['ticker','Ticker'],['m1','1M %'],['m3','3M %'],['m6','6M %'],['adr','ADR %'],['atrPct','ATR %'],['rs','RS Rank'],['epsRank','EPS Rank'],['revRank','Rev Rank'],['sector','Sector'],['industry','Industry'],['theme','Theme']] as [string,string][]).map(([col,label])=>(
-                    <th key={col} style={TH} onClick={()=>handleMomSort(col)}>
+                  {([['ticker','Ticker'],['m1','1M %'],['m3','3M %'],['m6','6M %'],['adr','ADR %'],['atrPct','ATR'],['rs','RS'],['epsRank','EPS'],['revRank','Rev'],['sector','Sector'],['industry','Industry'],['theme','Theme']] as [string,string][]).map(([col,label])=>(
+                    <th key={col} style={{ ...TH, overflow:'hidden', textOverflow:'ellipsis' }} onClick={()=>handleMomSort(col)}>
                       {label}{momSortIcon(col)}
                     </th>
                   ))}
@@ -405,18 +419,18 @@ export function Scanner() {
                   {loading.mom ? <tr><td colSpan={12} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading momentum data...</td></tr>
                   : filteredMom.map(r=>(
                     <tr key={r.ticker} onClick={()=>openDetail(r,'mom',r.ticker)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
-                      <td style={TD}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px' }}>{r.ticker}</div><div style={{ fontSize:'10px', color:'var(--txt3)' }}>{r.name}</div></td>
+                      <td style={{ ...TD, overflow:'hidden' }}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'11px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.ticker}</div><div style={{ fontSize:'9px', color:'var(--txt3)', overflow:'hidden', textOverflow:'ellipsis' }}>{r.name}</div></td>
                       <td style={{ ...TD, color:pctColor(r.m1), fontWeight:600 }}>{pct(r.m1)}</td>
                       <td style={{ ...TD, color:pctColor(r.m3), fontWeight:600 }}>{pct(r.m3)}</td>
                       <td style={{ ...TD, color:pctColor(r.m6), fontWeight:600 }}>{pct(r.m6)}</td>
                       <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.adr.toFixed(1)}%</td>
-                      <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.atrPct.toFixed(1)}%</td>
+                      <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.atrPct.toFixed(1)}</td>
                       <td style={TD}><RkBadge v={r.rs}/></td>
                       <td style={TD}><RkBadge v={r.epsRank}/></td>
                       <td style={TD}><RkBadge v={r.revRank}/></td>
-                      <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.sector||'—'}</td>
-                      <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.industry||'—'}</td>
-                      <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.theme||'—'}</td>
+                      <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.sector||'—'}</td>
+                      <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.industry||'—'}</td>
+                      <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.theme||'—'}</td>
                     </tr>
                   ))}
                 </tbody>
