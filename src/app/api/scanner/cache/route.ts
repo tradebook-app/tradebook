@@ -58,7 +58,6 @@ async function fetchSnapshots(symbols: string[]): Promise<any[]> {
   return results;
 }
 
-// Fetch multi-timeframe bars for ALL symbols in one batch call
 async function fetchBarsMulti(symbols: string[], days: number): Promise<Record<string, any[]>> {
   const from = new Date();
   from.setDate(from.getDate() - days);
@@ -144,12 +143,12 @@ export async function GET(request: Request) {
 
     const filteredTickers = filtered.map(s => s.ticker);
 
-    // Step 4: Fetch ALL historical bars in bulk (batches of 100 symbols at once)
+    // Step 4: Fetch ALL historical bars in bulk
     console.log('[cache] Fetching historical bars in bulk...');
     const allBars = await fetchBarsMulti(filteredTickers, 210);
     console.log(`[cache] Got bars for ${Object.keys(allBars).length} stocks`);
 
-    // Step 5: Build results from snapshots + bars (no individual API calls)
+    // Step 5: Build results
     const results: any[] = [];
 
     for (const snap of filtered) {
@@ -175,30 +174,33 @@ export async function GET(request: Request) {
 
       results.push({
         ticker,
-        name:   ticker, // Will be enriched by FMP separately
-        price:  parseFloat(price.toFixed(2)),
-        change: parseFloat(changeP.toFixed(2)),
-        open:   parseFloat(open.toFixed(2)),
-        high:   parseFloat(high.toFixed(2)),
-        low:    parseFloat(low.toFixed(2)),
-        vwap:   parseFloat(vwap.toFixed(2)),
-        m1:     parseFloat(m1.toFixed(1)),
-        m3:     parseFloat(m3.toFixed(1)),
-        m6:     parseFloat(m6.toFixed(1)),
-        adr:    0,    // FMP enrichment
-        atrPct: parseFloat(atrPct.toFixed(2)),
-        d50:    sma(50)  ? parseFloat(sma(50)!.toFixed(2))  : null,
-        d200:   sma(200) ? parseFloat(sma(200)!.toFixed(2)) : null,
-        h52:    null, // FMP enrichment
-        l52:    null, // FMP enrichment
+        name:        ticker,
+        price:       parseFloat(price.toFixed(2)),
+        change:      parseFloat(changeP.toFixed(2)),
+        open:        parseFloat(open.toFixed(2)),
+        high:        parseFloat(high.toFixed(2)),
+        low:         parseFloat(low.toFixed(2)),
+        vwap:        parseFloat(vwap.toFixed(2)),
+        m1:          parseFloat(m1.toFixed(1)),
+        m3:          parseFloat(m3.toFixed(1)),
+        m6:          parseFloat(m6.toFixed(1)),
+        adr:         0,
+        atrPct:      parseFloat(atrPct.toFixed(2)),
+        d50:         sma(50)  ? parseFloat(sma(50)!.toFixed(2))  : null,
+        d200:        sma(200) ? parseFloat(sma(200)!.toFixed(2)) : null,
+        h52:         null,
+        l52:         null,
         volume,
-        avgVol:   snap.prevDailyBar?.v || 0,
-        mktCap:   null, // FMP enrichment
-        sector:   null, // FMP enrichment
-        industry: null, // FMP enrichment
-        epsQoQ:   null, // FMP enrichment
-        epsYoY:   null, // FMP enrichment
-        revGrowth: null, // FMP enrichment
+        avgVol:      snap.prevDailyBar?.v || 0,
+        mktCap:      null,
+        sector:      null,
+        industry:    null,
+        // EPS components (set by FMP enrichment)
+        epsQ0:       null, // Current Q vs same Q last year
+        epsQ1:       null, // Previous Q vs same Q last year
+        epsAnn:      null, // Annual EPS growth
+        epsCombined: null, // Average of above 3 — used for EPS Rank
+        revGrowth:   null,
       });
     }
 
@@ -211,7 +213,7 @@ export async function GET(request: Request) {
       revRank: null,
     })).sort((a, b) => b.rs - a.rs);
 
-    // Step 7: Save to Supabase immediately
+    // Step 7: Save base data to Supabase immediately
     const { error } = await supabase
       .from('scanner_cache')
       .upsert({
@@ -227,14 +229,14 @@ export async function GET(request: Request) {
 
     console.log(`[cache] Saved ${ranked.length} stocks to Supabase`);
 
-    // Step 8: Now enrich with FMP in background (fire and forget)
+    // Step 8: FMP enrichment in background
     enrichWithFMP(ranked, supabase).catch(e => console.error('[cache] FMP enrichment error:', e));
 
     return NextResponse.json({
-      success: true,
-      count: ranked.length,
+      success:    true,
+      count:      ranked.length,
       updated_at: new Date().toISOString(),
-      note: 'Base data saved. FMP enrichment running in background.'
+      note:       'Base data saved. FMP enrichment running in background.',
     });
 
   } catch (err: any) {
@@ -243,10 +245,18 @@ export async function GET(request: Request) {
   }
 }
 
-// FMP enrichment runs AFTER we've already responded to the client
+// ─── EPS Rank helper ────────────────────────────────────────────────────────
+//
+// EPS Rank is based on 3 YoY comparisons:
+//   epsQ0  = current quarter  vs same quarter last year  (stmts[0] vs stmts[4])
+//   epsQ1  = previous quarter vs same quarter last year  (stmts[1] vs stmts[5])
+//   epsAnn = current annual EPS vs previous annual EPS   (annual[0] vs annual[1])
+//
+// epsCombined = average of whichever components are available → used for ranking
+
 async function enrichWithFMP(stocks: any[], supabase: any) {
   console.log('[cache:fmp] Starting FMP enrichment...');
-  const BATCH = 5;
+  const BATCH    = 5;
   const enriched = [...stocks];
 
   for (let i = 0; i < enriched.length; i += BATCH) {
@@ -254,11 +264,13 @@ async function enrichWithFMP(stocks: any[], supabase: any) {
 
     await Promise.all(batch.map(async (stock, idx) => {
       try {
-        const [profileRes, incomeRes] = await Promise.all([
+        const [profileRes, incomeRes, annualRes] = await Promise.all([
           fetch(`${FMP_BASE}/profile?symbol=${stock.ticker}&apikey=${FMP_KEY}`, { cache: 'no-store' }),
           fetch(`${FMP_BASE}/income-statement?symbol=${stock.ticker}&period=quarter&limit=8&apikey=${FMP_KEY}`, { cache: 'no-store' }),
+          fetch(`${FMP_BASE}/income-statement?symbol=${stock.ticker}&period=annual&limit=2&apikey=${FMP_KEY}`, { cache: 'no-store' }),
         ]);
 
+        // ── Profile ──────────────────────────────────────────────────────────
         if (profileRes.ok) {
           const pd = await profileRes.json();
           const p  = Array.isArray(pd) ? pd[0] : pd;
@@ -279,67 +291,100 @@ async function enrichWithFMP(stocks: any[], supabase: any) {
           }
         }
 
+        // ── EPS & Revenue ─────────────────────────────────────────────────────
         if (incomeRes.ok) {
           const stmts = await incomeRes.json();
-          if (Array.isArray(stmts) && stmts.length > 0) {
-            const eps0  = stmts[0]?.eps ?? null;
-            const eps1  = stmts[1]?.eps ?? null;
-            const eps4  = stmts[4]?.eps ?? null;
-            const rev0  = stmts[0]?.revenue ?? null;
-            const rev4  = stmts[4]?.revenue ?? null;
+
+          if (Array.isArray(stmts) && stmts.length >= 5) {
+            // Quarterly EPS values
+            const eps0 = stmts[0]?.eps ?? null; // Current Q
+            const eps1 = stmts[1]?.eps ?? null; // Previous Q
+            const eps4 = stmts[4]?.eps ?? null; // Same Q last year (for current Q)
+            const eps5 = stmts[5]?.eps ?? null; // Same Q last year (for previous Q)
+
+            // Revenue (current Q vs same Q last year)
+            const rev0 = stmts[0]?.revenue ?? null;
+            const rev4 = stmts[4]?.revenue ?? null;
+
+            // epsQ0: current Q YoY
+            const epsQ0 = eps0 != null && eps4 != null && eps4 !== 0
+              ? parseFloat(((eps0 - eps4) / Math.abs(eps4) * 100).toFixed(2))
+              : null;
+
+            // epsQ1: previous Q YoY
+            const epsQ1 = eps1 != null && eps5 != null && eps5 !== 0
+              ? parseFloat(((eps1 - eps5) / Math.abs(eps5) * 100).toFixed(2))
+              : null;
+
+            // Annual EPS growth (from annual endpoint)
+            let epsAnn: number | null = null;
+            if (annualRes.ok) {
+              const annual = await annualRes.json();
+              if (Array.isArray(annual) && annual.length >= 2) {
+                const ann0 = annual[0]?.eps ?? null;
+                const ann1 = annual[1]?.eps ?? null;
+                epsAnn = ann0 != null && ann1 != null && ann1 !== 0
+                  ? parseFloat(((ann0 - ann1) / Math.abs(ann1) * 100).toFixed(2))
+                  : null;
+              }
+            }
+
+            // Combined EPS score = average of all available components
+            const epsComponents = [epsQ0, epsQ1, epsAnn].filter((v): v is number => v !== null);
+            const epsCombined   = epsComponents.length > 0
+              ? parseFloat((epsComponents.reduce((a, b) => a + b, 0) / epsComponents.length).toFixed(2))
+              : null;
+
+            // Revenue growth: current Q vs same Q last year
+            const revGrowth = rev0 != null && rev4 != null && rev4 !== 0
+              ? parseFloat(((rev0 - rev4) / Math.abs(rev4) * 100).toFixed(2))
+              : null;
+
             enriched[i + idx] = {
               ...enriched[i + idx],
-              epsQoQ:    eps0 != null && eps1 != null && eps1 !== 0 ? (eps0 - eps1) / Math.abs(eps1) * 100 : null,
-              epsYoY:    eps0 != null && eps4 != null && eps4 !== 0 ? (eps0 - eps4) / Math.abs(eps4) * 100 : null,
-              revGrowth: rev0 != null && rev4 != null && rev4 !== 0 ? (rev0 - rev4) / Math.abs(rev4) * 100 : null,
+              epsQ0,
+              epsQ1,
+              epsAnn,
+              epsCombined,
+              revGrowth,
             };
           }
         }
+
       } catch (e) {
-        // Skip failed enrichments
+        // Skip failed enrichments silently
       }
     }));
 
-    // Re-rank after every 500 stocks enriched and save progress
+    // Progress save every 500 stocks
     if (i % 500 === 0 && i > 0) {
-      const allEps = enriched.map(r => r.epsQoQ).filter((v): v is number => v !== null);
-      const allRev = enriched.map(r => r.revGrowth).filter((v): v is number => v !== null);
-      const allM6  = enriched.map(r => r.m6);
-
-      const reranked = enriched.map(r => ({
-        ...r,
-        rs:      rank99(r.m6, allM6, true),
-        epsRank: r.epsQoQ    != null ? rank99(r.epsQoQ,    allEps, true) : null,
-        revRank: r.revGrowth != null ? rank99(r.revGrowth, allRev, true) : null,
-      })).sort((a, b) => b.rs - a.rs);
-
-      await supabase.from('scanner_cache').upsert({
-        id:         'momentum',
-        data:       reranked,
-        updated_at: new Date().toISOString(),
-      });
+      await saveRanked(enriched, supabase);
       console.log(`[cache:fmp] Progress saved: ${i}/${enriched.length}`);
       await sleep(500);
     }
   }
 
   // Final save with all FMP data
-  const allEps = enriched.map(r => r.epsQoQ).filter((v): v is number => v !== null);
+  await saveRanked(enriched, supabase);
+  console.log(`[cache:fmp] FMP enrichment complete! ${enriched.length} stocks fully enriched.`);
+}
+
+// ─── Rank + save helper ──────────────────────────────────────────────────────
+async function saveRanked(enriched: any[], supabase: any) {
+  const allEps = enriched.map(r => r.epsCombined).filter((v): v is number => v !== null);
   const allRev = enriched.map(r => r.revGrowth).filter((v): v is number => v !== null);
   const allM6  = enriched.map(r => r.m6);
 
-  const final = enriched.map(r => ({
+  const reranked = enriched.map(r => ({
     ...r,
-    rs:      rank99(r.m6, allM6, true),
-    epsRank: r.epsQoQ    != null ? rank99(r.epsQoQ,    allEps, true) : null,
-    revRank: r.revGrowth != null ? rank99(r.revGrowth, allRev, true) : null,
+    rs:      rank99(r.m6,          allM6,   true),
+    epsRank: r.epsCombined != null ? rank99(r.epsCombined, allEps, true) : null,
+    revRank: r.revGrowth   != null ? rank99(r.revGrowth,   allRev, true) : null,
   })).sort((a, b) => b.rs - a.rs);
 
   await supabase.from('scanner_cache').upsert({
     id:         'momentum',
-    data:       final,
+    data:       reranked,
     updated_at: new Date().toISOString(),
   });
-
-  console.log(`[cache:fmp] FMP enrichment complete! ${final.length} stocks fully enriched.`);
 }

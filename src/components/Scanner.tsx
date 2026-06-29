@@ -17,21 +17,21 @@ function fmt$(v: number | null) {
 }
 function RkBadge({ v }: { v: number | null }) {
   if (v == null) return <span style={{ color: 'var(--txt3)' }}>—</span>;
-  const bg    = v >= 75 ? 'rgba(16,185,129,.18)' : v >= 40 ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.18)';
-  const color = v >= 75 ? '#10B981' : v >= 40 ? '#F59E0B' : '#EF4444';
-  const bdr   = v >= 75 ? 'rgba(16,185,129,.35)' : v >= 40 ? 'rgba(245,158,11,.3)' : 'rgba(239,68,68,.35)';
+  const bg    = v >= 80 ? 'rgba(16,185,129,.18)' : v >= 50 ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.18)';
+  const color = v >= 80 ? '#10B981' : v >= 50 ? '#F59E0B' : '#EF4444';
+  const bdr   = v >= 80 ? 'rgba(16,185,129,.35)' : v >= 50 ? 'rgba(245,158,11,.3)' : 'rgba(239,68,68,.35)';
   return <span style={{ display:'inline-block', minWidth:'26px', textAlign:'center', padding:'2px 5px', borderRadius:'4px', fontSize:'10px', fontWeight:700, background:bg, color, border:`1px solid ${bdr}` }}>{v}</span>;
 }
 
 type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; avgVol:number|null; mktCap:number|null; dollarVol:number|null; sector:string|null; industry:string|null; isPreMarket:boolean; isPostMarket:boolean };
-type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; rs:number; epsRank:number|null; revRank:number|null; sector:string|null; d50:number|null; d200:number|null };
+type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; rs:number; epsRank:number|null; revRank:number|null; sector:string|null; industry:string|null; theme:string|null; d50:number|null; d200:number|null };
 type Theme      = { name:string; pct:number; stocks:{t:string;n:string;p:string;pctVal:number}[] };
 type FundaStock = { ticker:string; name:string; price:number; epsQoQ:number|null; epsYoY:number|null; revGrowth:number|null; epsRank:number|null; revRank:number|null; instRank:number|null; floatM:number|null; shortPct:number|null };
 
 const INPUT: React.CSSProperties = { width:'100%', height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none' };
 const LBL: React.CSSProperties   = { fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase' as const, color:'var(--txt3)', marginBottom:'3px', display:'block' };
 const GRP: React.CSSProperties   = { marginBottom:'9px' };
-const TH: React.CSSProperties    = { fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase' as const, color:'var(--txt3)', padding:'7px 10px', textAlign:'left' as const, borderBottom:'1px solid var(--brd)', whiteSpace:'nowrap' as const };
+const TH: React.CSSProperties    = { fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase' as const, color:'var(--txt3)', padding:'7px 10px', textAlign:'left' as const, borderBottom:'1px solid var(--brd)', whiteSpace:'nowrap' as const, cursor:'pointer', userSelect:'none' as const };
 const TD: React.CSSProperties    = { padding:'7px 10px', fontSize:'11px', borderBottom:'1px solid var(--brd)', whiteSpace:'nowrap' as const };
 
 function parseKMB(val: string): number {
@@ -46,8 +46,6 @@ function parseKMB(val: string): number {
 }
 
 export function Scanner() {
-  // NOTE: Gap scanner is hidden (deferred until a paid real-time data feed).
-  // To re-enable: add 'gap' back to the tabs array below and set the default tab to 'gap'.
   const [tab,       setTab]       = useState<'gap'|'momentum'|'themes'|'fundamentals'>('momentum');
   const [gapData,   setGapData]   = useState<GapStock[]>([]);
   const [momData,   setMomData]   = useState<MomStock[]>([]);
@@ -64,9 +62,9 @@ export function Scanner() {
   const [fundaLoaded, setFundaLoaded] = useState(false);
   const [clock, setClock] = useState("");
 
-
-
-
+  // Mom sort
+  const [mSortCol, setMSortCol] = useState('rs');
+  const [mSortAsc, setMSortAsc] = useState(false);
 
   // Gap filters
   const [gDir,setGDir]=useState('both');
@@ -84,7 +82,6 @@ export function Scanner() {
   const [presetName,setPresetName]=useState('');
   const [showPresets,setShowPresets]=useState(false);
 
-  // Load presets from localStorage on mount
   useEffect(()=>{
     try { const s=localStorage.getItem('st-scanner-presets'); if(s) setPresets(JSON.parse(s)); } catch {}
   },[]);
@@ -131,6 +128,7 @@ export function Scanner() {
     setGAvgVolMin(''); setGAvgVolMax(''); setGMktCapMin(''); setGMktCapMax('');
     setGDolVolMin(''); setGDolVolMax('');
   }
+
   // Mom filters
   const [mM1,setMM1]=useState(-100); const [mM3,setMM3]=useState(-100); const [mM6,setMM6]=useState(-100);
   const [mAdr,setMAdr]=useState(0); const [mPMin,setMPMin]=useState(5); const [mPMax,setMPMax]=useState(5000);
@@ -150,7 +148,6 @@ export function Scanner() {
     finally { setLoading(l=>({...l,[key]:false})); }
   }, []);
 
-  // Gap auto-load disabled while the gap tab is hidden. Only momentum loads on mount.
   useEffect(() => { load('mom',`${BASE}/momentum`,setMomData); }, []);
   useEffect(() => { if (tab==='themes'&&!themeLoaded) { setThemeLoaded(true); load('themes',`${BASE}/themes?period=today`,setThemeData); } }, [tab]);
   useEffect(() => { if (tab==='fundamentals'&&!fundaLoaded) { setFundaLoaded(true); load('funda',`${BASE}/fundamentals`,setFundaData); } }, [tab]);
@@ -160,34 +157,24 @@ export function Scanner() {
   const mktCapMinN = parseKMB(gMktCapMin); const mktCapMaxN = parseKMB(gMktCapMax);
 
   const filteredGaps = gapData.filter(r => {
-    // Direction
-    if (gDir==='up'  && r.gap <= 0) return false;
+    if (gDir==='up'   && r.gap <= 0) return false;
     if (gDir==='down' && r.gap >= 0) return false;
-    // Gap % — Min means "at least this gap up", Max means "no more than this"
     if (gGapMin > 0 && r.gap < gGapMin) return false;
     if (gGapMax > 0 && r.gap > gGapMax) return false;
-    // Price
     if (gPriceMin > 0 && r.prevClose < gPriceMin) return false;
     if (gPriceMax > 0 && r.prevClose > gPriceMax) return false;
-    // Pre-mkt Vol (K)
     if (gVolMin > 0 && (r.preVol||0) < gVolMin) return false;
     if (gVolMax > 0 && (r.preVol||0) > gVolMax) return false;
-    // Float (M)
     if (gFloatMin > 0 && r.float && r.float < gFloatMin) return false;
     if (gFloatMax > 0 && r.float && r.float > gFloatMax) return false;
-    // ADR %
     if (gAdrMin > 0 && r.adr < gAdrMin) return false;
     if (gAdrMax > 0 && r.adr > gAdrMax) return false;
-    // ATR
     if (gAtrMin > 0 && r.atr < gAtrMin) return false;
     if (gAtrMax > 0 && r.atr > gAtrMax) return false;
-    // Avg Vol 30D
     if (avgVolMinN > 0 && r.avgVol && r.avgVol < avgVolMinN) return false;
     if (avgVolMaxN > 0 && r.avgVol && r.avgVol > avgVolMaxN) return false;
-    // Mkt Cap
     if (mktCapMinN > 0 && r.mktCap && r.mktCap < mktCapMinN) return false;
     if (mktCapMaxN > 0 && r.mktCap && r.mktCap > mktCapMaxN) return false;
-    // Dollar Volume = price × avgVol
     const dolVolMinN = parseKMB(gDolVolMin); const dolVolMaxN = parseKMB(gDolVolMax);
     if (dolVolMinN > 0 && r.dollarVol && r.dollarVol < dolVolMinN) return false;
     if (dolVolMaxN > 0 && r.dollarVol && r.dollarVol > dolVolMaxN) return false;
@@ -206,7 +193,34 @@ export function Scanner() {
     return Math.abs(b.gap) - Math.abs(a.gap);
   });
 
-  const filteredMom   = momData.filter(r=>r.m1>=mM1&&r.m3>=mM3&&r.m6>=mM6&&r.adr>=mAdr&&r.price>=mPMin&&r.price<=mPMax&&r.rs>=mRs&&(r.epsRank==null||r.epsRank>=mEps)&&(r.revRank==null||r.revRank>=mRev)).sort((a,b)=>b.rs-a.rs);
+  function handleMomSort(col: string) {
+    if (mSortCol === col) setMSortAsc(a => !a);
+    else { setMSortCol(col); setMSortAsc(false); }
+  }
+  function momSortIcon(col: string) {
+    if (mSortCol !== col) return ' ↕';
+    return mSortAsc ? ' ↑' : ' ↓';
+  }
+
+  const filteredMom = momData
+    .filter(r=>r.m1>=mM1&&r.m3>=mM3&&r.m6>=mM6&&r.adr>=mAdr&&r.price>=mPMin&&r.price<=mPMax&&r.rs>=mRs&&(r.epsRank==null||r.epsRank>=mEps)&&(r.revRank==null||r.revRank>=mRev))
+    .sort((a:any, b:any) => {
+      const dir = mSortAsc ? 1 : -1;
+      if (mSortCol==='ticker')   return dir * a.ticker.localeCompare(b.ticker);
+      if (mSortCol==='m1')       return dir * (a.m1 - b.m1);
+      if (mSortCol==='m3')       return dir * (a.m3 - b.m3);
+      if (mSortCol==='m6')       return dir * (a.m6 - b.m6);
+      if (mSortCol==='adr')      return dir * (a.adr - b.adr);
+      if (mSortCol==='atrPct')   return dir * (a.atrPct - b.atrPct);
+      if (mSortCol==='rs')       return dir * (a.rs - b.rs);
+      if (mSortCol==='epsRank')  return dir * ((a.epsRank??-1) - (b.epsRank??-1));
+      if (mSortCol==='revRank')  return dir * ((a.revRank??-1) - (b.revRank??-1));
+      if (mSortCol==='sector')   return dir * ((a.sector||'').localeCompare(b.sector||''));
+      if (mSortCol==='industry') return dir * ((a.industry||'').localeCompare(b.industry||''));
+      if (mSortCol==='theme')    return dir * ((a.theme||'').localeCompare(b.theme||''));
+      return b.rs - a.rs;
+    });
+
   const filteredFunda = fundaData.filter(r=>(r.epsRank||0)>=fEps&&(r.revRank||0)>=fRev&&(r.instRank||0)>=fInst&&(!r.floatM||r.floatM<=fFloat)&&(!r.shortPct||r.shortPct>=fShort));
 
   function openDetail(row: any, type: string, t: string) { setDetail(row); setDetailType(type); setTicker(t); }
@@ -243,7 +257,9 @@ export function Scanner() {
           ['3M',<span style={{color:pctColor(detail.m3)}}>{pct(detail.m3)}</span>],
           ['6M',<span style={{color:pctColor(detail.m6)}}>{pct(detail.m6)}</span>],
           ['ADR %',detail.adr.toFixed(1)+'%'],['ATR %',detail.atrPct.toFixed(1)+'%'],
-          ['RS rank',<RkBadge v={detail.rs}/>],['EPS rank',<RkBadge v={detail.epsRank}/>],['Rev rank',<RkBadge v={detail.revRank}/>],['50D MA',fmt$(detail.d50)],['200D MA',fmt$(detail.d200)],
+          ['RS rank',<RkBadge v={detail.rs}/>],['EPS rank',<RkBadge v={detail.epsRank}/>],['Rev rank',<RkBadge v={detail.revRank}/>],
+          ['50D MA',fmt$(detail.d50)],['200D MA',fmt$(detail.d200)],
+          ['Sector',detail.sector||'—'],['Industry',detail.industry||'—'],['Theme',detail.theme||'—'],
         ] : [
           ['EPS QoQ',<span style={{color:pctColor(detail.epsQoQ)}}>{pct(detail.epsQoQ)}</span>],
           ['EPS YoY',<span style={{color:pctColor(detail.epsYoY)}}>{pct(detail.epsYoY)}</span>],
@@ -269,7 +285,6 @@ export function Scanner() {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
-      {/* Tabs — 'gap' hidden until paid data feed. Re-add 'gap', to the array to restore. */}
       <div style={{ display:'flex', borderBottom:'1px solid var(--brd)', marginBottom:'14px' }}>
         {(['momentum','themes','fundamentals'] as const).map(t=>(
           <button key={t} onClick={()=>{ setTab(t); setDetail(null); }} style={{
@@ -282,7 +297,7 @@ export function Scanner() {
         ))}
       </div>
 
-      {/* ── GAP SCANNER (hidden — tab removed above, code kept for re-enable) ── */}
+      {/* ── GAP SCANNER (hidden) ── */}
       {tab==='gap' && (
         <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1 }}>
           <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start', position:'sticky', top:0, maxHeight:'calc(100vh - 120px)', overflowY:'auto' }}>
@@ -292,81 +307,26 @@ export function Scanner() {
                 <option value="both">Up + Down</option><option value="up">Gap Up only</option><option value="down">Gap Down only</option>
               </select>
             </div>
-            <div style={GRP}><label style={LBL}>Gap %</label>
-              <div style={{display:'flex',gap:'4px'}}>
-                <input style={INPUT} type="number" value={gGapMin||''} onChange={e=>setGGapMin(+e.target.value)} placeholder="Min"/>
-                <input style={INPUT} type="number" value={gGapMax||''} onChange={e=>setGGapMax(+e.target.value)} placeholder="Max"/>
-              </div>
-            </div>
-            <div style={GRP}><label style={LBL}>Price $</label>
-              <div style={{display:'flex',gap:'4px'}}>
-                <input style={INPUT} type="number" value={gPriceMin||''} onChange={e=>setGPriceMin(+e.target.value)} placeholder="Min"/>
-                <input style={INPUT} type="number" value={gPriceMax||''} onChange={e=>setGPriceMax(+e.target.value)} placeholder="Max"/>
-              </div>
-            </div>
-            <div style={GRP}><label style={LBL}>Pre-Mkt Vol (K)</label>
-              <div style={{display:'flex',gap:'4px'}}>
-                <input style={INPUT} type="number" value={gVolMin||''} onChange={e=>setGVolMin(+e.target.value)} placeholder="Min"/>
-                <input style={INPUT} type="number" value={gVolMax||''} onChange={e=>setGVolMax(+e.target.value)} placeholder="Max"/>
-              </div>
-            </div>
-            <div style={GRP}><label style={LBL}>Float (M)</label>
-              <div style={{display:'flex',gap:'4px'}}>
-                <input style={INPUT} type="number" value={gFloatMin||''} onChange={e=>setGFloatMin(+e.target.value)} placeholder="Min"/>
-                <input style={INPUT} type="number" value={gFloatMax||''} onChange={e=>setGFloatMax(+e.target.value)} placeholder="Max"/>
-              </div>
-            </div>
-            <div style={GRP}><label style={LBL}>ADR %</label>
-              <div style={{display:'flex',gap:'4px'}}>
-                <input style={INPUT} type="number" value={gAdrMin||''} onChange={e=>setGAdrMin(+e.target.value)} placeholder="Min"/>
-                <input style={INPUT} type="number" value={gAdrMax||''} onChange={e=>setGAdrMax(+e.target.value)} placeholder="Max"/>
-              </div>
-            </div>
-            <div style={GRP}><label style={LBL}>ATR</label>
-              <div style={{display:'flex',gap:'4px'}}>
-                <input style={INPUT} type="number" value={gAtrMin||''} onChange={e=>setGAtrMin(+e.target.value)} placeholder="Min"/>
-                <input style={INPUT} type="number" value={gAtrMax||''} onChange={e=>setGAtrMax(+e.target.value)} placeholder="Max"/>
-              </div>
-            </div>
-            <div style={GRP}><label style={LBL}>Avg Vol 30D</label>
-              <div style={{display:'flex',gap:'4px'}}>
-                <input style={INPUT} type="text" value={gAvgVolMin} onChange={e=>setGAvgVolMin(e.target.value)} placeholder="Min"/>
-                <input style={INPUT} type="text" value={gAvgVolMax} onChange={e=>setGAvgVolMax(e.target.value)} placeholder="Max"/>
-              </div>
-            </div>
-            <div style={GRP}><label style={LBL}>Dollar Vol</label>
-              <div style={{display:'flex',gap:'4px'}}>
-                <input style={INPUT} type="text" value={gDolVolMin} onChange={e=>setGDolVolMin(e.target.value)} placeholder="Min"/>
-                <input style={INPUT} type="text" value={gDolVolMax} onChange={e=>setGDolVolMax(e.target.value)} placeholder="Max"/>
-              </div>
-            </div>
-            <div style={GRP}><label style={LBL}>Mkt Cap</label>
-              <div style={{display:'flex',gap:'4px'}}>
-                <input style={INPUT} type="text" value={gMktCapMin} onChange={e=>setGMktCapMin(e.target.value)} placeholder="Min"/>
-                <input style={INPUT} type="text" value={gMktCapMax} onChange={e=>setGMktCapMax(e.target.value)} placeholder="Max"/>
-              </div>
-            </div>
-            {/* ── Preset save/load ── */}
+            <div style={GRP}><label style={LBL}>Gap %</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gGapMin||''} onChange={e=>setGGapMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gGapMax||''} onChange={e=>setGGapMax(+e.target.value)} placeholder="Max"/></div></div>
+            <div style={GRP}><label style={LBL}>Price $</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gPriceMin||''} onChange={e=>setGPriceMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gPriceMax||''} onChange={e=>setGPriceMax(+e.target.value)} placeholder="Max"/></div></div>
+            <div style={GRP}><label style={LBL}>Pre-Mkt Vol (K)</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gVolMin||''} onChange={e=>setGVolMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gVolMax||''} onChange={e=>setGVolMax(+e.target.value)} placeholder="Max"/></div></div>
+            <div style={GRP}><label style={LBL}>Float (M)</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gFloatMin||''} onChange={e=>setGFloatMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gFloatMax||''} onChange={e=>setGFloatMax(+e.target.value)} placeholder="Max"/></div></div>
+            <div style={GRP}><label style={LBL}>ADR %</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gAdrMin||''} onChange={e=>setGAdrMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gAdrMax||''} onChange={e=>setGAdrMax(+e.target.value)} placeholder="Max"/></div></div>
+            <div style={GRP}><label style={LBL}>ATR</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="number" value={gAtrMin||''} onChange={e=>setGAtrMin(+e.target.value)} placeholder="Min"/><input style={INPUT} type="number" value={gAtrMax||''} onChange={e=>setGAtrMax(+e.target.value)} placeholder="Max"/></div></div>
+            <div style={GRP}><label style={LBL}>Avg Vol 30D</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="text" value={gAvgVolMin} onChange={e=>setGAvgVolMin(e.target.value)} placeholder="Min"/><input style={INPUT} type="text" value={gAvgVolMax} onChange={e=>setGAvgVolMax(e.target.value)} placeholder="Max"/></div></div>
+            <div style={GRP}><label style={LBL}>Dollar Vol</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="text" value={gDolVolMin} onChange={e=>setGDolVolMin(e.target.value)} placeholder="Min"/><input style={INPUT} type="text" value={gDolVolMax} onChange={e=>setGDolVolMax(e.target.value)} placeholder="Max"/></div></div>
+            <div style={GRP}><label style={LBL}>Mkt Cap</label><div style={{display:'flex',gap:'4px'}}><input style={INPUT} type="text" value={gMktCapMin} onChange={e=>setGMktCapMin(e.target.value)} placeholder="Min"/><input style={INPUT} type="text" value={gMktCapMax} onChange={e=>setGMktCapMax(e.target.value)} placeholder="Max"/></div></div>
             <div style={{ borderTop:'1px solid var(--brd)', marginTop:'8px', paddingTop:'8px' }}>
               <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'6px' }}>Saved Screens</div>
               <div style={{ display:'flex', gap:'4px', marginBottom:'6px' }}>
-                <input
-                  style={{ ...INPUT, flex:1 }}
-                  type="text"
-                  value={presetName}
-                  onChange={e=>setPresetName(e.target.value)}
-                  placeholder="Screen name"
-                  onKeyDown={e=>e.key==='Enter'&&savePreset()}
-                />
+                <input style={{ ...INPUT, flex:1 }} type="text" value={presetName} onChange={e=>setPresetName(e.target.value)} placeholder="Screen name" onKeyDown={e=>e.key==='Enter'&&savePreset()}/>
                 <button onClick={savePreset} style={{ height:'28px', padding:'0 8px', background:'var(--ac)', color:'#000', border:'none', borderRadius:'var(--r)', fontSize:'11px', fontWeight:700, cursor:'pointer', flexShrink:0 }}>Save</button>
               </div>
               {presets.length > 0 && (
                 <div style={{ maxHeight:'100px', overflowY:'auto', display:'flex', flexDirection:'column', gap:'2px', paddingRight:'2px' }}>
                   {presets.map(p=>(
                     <div key={p.name} style={{ display:'flex', alignItems:'center', gap:'4px', flexShrink:0 }}>
-                      <button onClick={()=>loadPreset(p)} style={{ flex:1, height:'24px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'10px', cursor:'pointer', textAlign:'left', padding:'0 6px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                        {p.name}
-                      </button>
+                      <button onClick={()=>loadPreset(p)} style={{ flex:1, height:'24px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'10px', cursor:'pointer', textAlign:'left', padding:'0 6px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</button>
                       <button onClick={()=>deletePreset(p.name)} style={{ width:'24px', height:'24px', background:'none', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt3)', fontSize:'12px', cursor:'pointer', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
                     </div>
                   ))}
@@ -383,17 +343,16 @@ export function Scanner() {
             {error.gap && <div style={{ marginBottom:'8px', padding:'9px 12px', background:'var(--red-d)', border:'1px solid rgba(239,68,68,.2)', borderRadius:'var(--r)', fontSize:'11px', color:'var(--red)' }}>{error.gap}</div>}
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'7px' }}>
               <span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.gap?'Loading live data...':`${filteredGaps.length} results · live`}</span>
-              
             </div>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflow:'hidden' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
                 <thead><tr>
-                    {[['ticker','Ticker'],['gap','Gap %'],['preVol','Pre-Mkt Vol'],['prevClose','Prev Close'],['float','Float'],['adr','ADR %'],['atr','ATR'],['industry','Industry'],['sector','Sector']].map(([col,label])=>(
-                      <th key={col} style={{...TH,cursor:'pointer'}} onClick={()=>{setGSortCol(col);setGSortAsc(a=>gSortCol===col?!a:false);}}>
-                        {label}{gSortCol===col?(gSortAsc?' ↑':' ↓'):''}
-                      </th>
-                    ))}
-                  </tr></thead>
+                  {[['ticker','Ticker'],['gap','Gap %'],['preVol','Pre-Mkt Vol'],['prevClose','Prev Close'],['float','Float'],['adr','ADR %'],['atr','ATR'],['industry','Industry'],['sector','Sector']].map(([col,label])=>(
+                    <th key={col} style={TH} onClick={()=>{setGSortCol(col);setGSortAsc(a=>gSortCol===col?!a:false);}}>
+                      {label}{gSortCol===col?(gSortAsc?' ↑':' ↓'):' ↕'}
+                    </th>
+                  ))}
+                </tr></thead>
                 <tbody>
                   {loading.gap ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Fetching live data...</td></tr>
                   : filteredGaps.length===0 ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>{gapData.length===0 ? 'No pre-market activity detected — gap scanner is live Monday–Friday 4:00 AM to 9:30 AM ET' : 'No results — adjust your filters'}</td></tr>
@@ -433,11 +392,17 @@ export function Scanner() {
           </div>
           <div>
             <div style={{ marginBottom:'7px' }}><span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.mom?'Loading...':`${filteredMom.length} results · live`}</span></div>
-            <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflow:'hidden' }}>
+            <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflow:'auto' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                <thead><tr>{['Ticker','1M %','3M %','6M %','ADR %','ATR %','RS rank','EPS rank','Rev rank','Sector'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <thead><tr>
+                  {([['ticker','Ticker'],['m1','1M %'],['m3','3M %'],['m6','6M %'],['adr','ADR %'],['atrPct','ATR %'],['rs','RS Rank'],['epsRank','EPS Rank'],['revRank','Rev Rank'],['sector','Sector'],['industry','Industry'],['theme','Theme']] as [string,string][]).map(([col,label])=>(
+                    <th key={col} style={TH} onClick={()=>handleMomSort(col)}>
+                      {label}{momSortIcon(col)}
+                    </th>
+                  ))}
+                </tr></thead>
                 <tbody>
-                  {loading.mom ? <tr><td colSpan={10} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading momentum data...</td></tr>
+                  {loading.mom ? <tr><td colSpan={12} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading momentum data...</td></tr>
                   : filteredMom.map(r=>(
                     <tr key={r.ticker} onClick={()=>openDetail(r,'mom',r.ticker)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
                       <td style={TD}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px' }}>{r.ticker}</div><div style={{ fontSize:'10px', color:'var(--txt3)' }}>{r.name}</div></td>
@@ -450,6 +415,8 @@ export function Scanner() {
                       <td style={TD}><RkBadge v={r.epsRank}/></td>
                       <td style={TD}><RkBadge v={r.revRank}/></td>
                       <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.sector||'—'}</td>
+                      <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.industry||'—'}</td>
+                      <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px' }}>{r.theme||'—'}</td>
                     </tr>
                   ))}
                 </tbody>
