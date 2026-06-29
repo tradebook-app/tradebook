@@ -63,7 +63,7 @@ export function Scanner() {
   const [ticker,    setTicker]    = useState('');
   const [themeLoaded, setThemeLoaded] = useState(false);
   const [fundaLoaded, setFundaLoaded] = useState(false);
-  const [chartStock, setChartStock] = useState<MomStock|null>(null);
+  const [chartStock, setChartStock] = useState<any|null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
 
   const [mSortCol, setMSortCol] = useState('rs');
@@ -405,18 +405,21 @@ export function Scanner() {
                 <div style={{ fontSize:'18px', fontWeight:700, color:'var(--txt)' }}>{chartStock.ticker}</div>
                 <div style={{ fontSize:'11px', color:'var(--txt3)' }}>{chartStock.name}</div>
               </div>
-              <div style={{ fontSize:'16px', fontWeight:700 }}>${chartStock.price.toFixed(2)}</div>
-              <div style={{ fontSize:'13px', fontWeight:600, color:pctColor(chartStock.m1) }}>{pct(chartStock.m1)} 1M</div>
-              <div style={{ display:'flex', gap:'6px', alignItems:'center' }}>
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' }}>
+              <div style={{ fontSize:'16px', fontWeight:700 }}>
+                ${(chartStock.price || chartStock.prevClose || chartStock.prePrice || 0).toFixed(2)}
+              </div>
+              {chartStock.m1 != null && <div style={{ fontSize:'13px', fontWeight:600, color:pctColor(chartStock.m1) }}>{pct(chartStock.m1)} 1M</div>}
+              {chartStock.gap != null && <div style={{ fontSize:'13px', fontWeight:600, color:pctColor(chartStock.gap) }}>{pct(chartStock.gap)} Gap</div>}
+              <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+                {chartStock.rs != null && <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' }}>
                   <span style={{ fontSize:'8px', color:'var(--txt3)', letterSpacing:'.04em', textTransform:'uppercase' }}>RS</span>
                   <RkBadge v={chartStock.rs}/>
-                </div>
-                {chartStock.epsRank && <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' }}>
+                </div>}
+                {chartStock.epsRank != null && <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' }}>
                   <span style={{ fontSize:'8px', color:'var(--txt3)', letterSpacing:'.04em', textTransform:'uppercase' }}>EPS</span>
                   <RkBadge v={chartStock.epsRank}/>
                 </div>}
-                {chartStock.revRank && <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' }}>
+                {chartStock.revRank != null && <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' }}>
                   <span style={{ fontSize:'8px', color:'var(--txt3)', letterSpacing:'.04em', textTransform:'uppercase' }}>Rev</span>
                   <RkBadge v={chartStock.revRank}/>
                 </div>}
@@ -450,7 +453,7 @@ export function Scanner() {
               ['1M', pct(chartStock.m1), pctColor(chartStock.m1)],
               ['3M', pct(chartStock.m3), pctColor(chartStock.m3)],
               ['6M', pct(chartStock.m6), pctColor(chartStock.m6)],
-              ['ADR%', chartStock.adr.toFixed(1)+'%', 'var(--ac)'],
+              ['ADR%', chartStock.adr!=null ? chartStock.adr.toFixed(1)+'%' : '—', 'var(--ac)'],
               ['50 MA', chartStock.d50 ? '$'+chartStock.d50.toFixed(2) : '—', 'var(--txt2)'],
               ['200 MA', chartStock.d200 ? '$'+chartStock.d200.toFixed(2) : '—', 'var(--txt2)'],
             ].map(([l,v,c]:any)=>(
@@ -592,7 +595,7 @@ export function Scanner() {
                   {loading.gap ? <tr><td colSpan={10} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Fetching live data...</td></tr>
                   : filteredGaps.length===0 ? <tr><td colSpan={10} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>{gapData.length===0?'No pre-market gaps detected — Gap Scanner is live Monday–Friday 4:00 AM to 9:30 AM ET':'No results — adjust your filters'}</td></tr>
                   : filteredGaps.map(r=>(
-                    <tr key={r.ticker} onClick={()=>openDetail(r,'gap',r.ticker)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
+                    <tr key={r.ticker} onClick={()=>setChartStock(r)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
                       <td style={TD}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px' }}>{r.ticker}</div><div style={{ fontSize:'10px', color:'var(--txt3)' }}>{r.name}</div></td>
                       <td style={{ ...TD, color:pctColor(r.gap), fontWeight:600 }}>{pct(r.gap)}</td>
                       <td style={{ ...TD, color:'var(--txt2)' }}>{r.preVol?r.preVol.toLocaleString()+'K':'—'}</td>
@@ -775,7 +778,10 @@ export function Scanner() {
                     {openTheme===i && (
                       <div style={{ background:'var(--bg)', borderBottom:'1px solid var(--brd)', padding:'8px 20px' }}>
                         {(d.stocks||[]).length>0?(d.stocks||[]).map((s:any)=>(
-                          <div key={s.t} style={{ display:'flex', alignItems:'center', padding:'5px 0', borderBottom:'1px solid var(--brd)' }}>
+                          <div key={s.t} onClick={()=>setChartStock({ ticker:s.t, name:s.n, m1:null, m3:null, m6:parseFloat(s.p), rs:s.rs, epsRank:null, revRank:null, adr:null, d50:null, d200:null })}
+                            style={{ display:'flex', alignItems:'center', padding:'5px 0', borderBottom:'1px solid var(--brd)', cursor:'pointer' }}
+                            onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,.025)'}
+                            onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background='transparent'}>
                             <span style={{ fontSize:'11px', fontWeight:600, color:'var(--ac2)', width:'48px', flexShrink:0 }}>{s.t}</span>
                             <span style={{ fontSize:'10px', color:'var(--txt3)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', padding:'0 8px' }}>{s.n}</span>
                             <RkBadge v={s.rs}/>
