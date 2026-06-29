@@ -25,7 +25,9 @@ function RkBadge({ v }: { v: number | null }) {
 
 type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; avgVol:number|null; mktCap:number|null; dollarVol:number|null; sector:string|null; industry:string|null; isPreMarket:boolean; isPostMarket:boolean };
 type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; rs:number; epsRank:number|null; revRank:number|null; sector:string|null; industry:string|null; theme:string|null; d50:number|null; d200:number|null };
-type Theme      = { name:string; etf:string; sector:string; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number; price:number; stocks:{t:string;n:string;p:string;pctVal:number}[] };
+type SectorData = { name:string; etf:string; price:number; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number };
+type Theme      = { name:string; etf:string; sector:string; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number; price:number; stocks:any[] };
+type ThemeResponse = { sectors: SectorData[]; themes: Theme[] };
 type FundaStock = { ticker:string; name:string; price:number; epsQoQ:number|null; epsYoY:number|null; revGrowth:number|null; epsRank:number|null; revRank:number|null; instRank:number|null; floatM:number|null; shortPct:number|null };
 
 const INPUT: React.CSSProperties = { width:'100%', height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none' };
@@ -49,7 +51,7 @@ export function Scanner() {
   const [tab,       setTab]       = useState<'gap'|'momentum'|'themes'|'fundamentals'>('momentum');
   const [gapData,   setGapData]   = useState<GapStock[]>([]);
   const [momData,   setMomData]   = useState<MomStock[]>([]);
-  const [themeData, setThemeData] = useState<Theme[]>([]);
+  const [themeResp, setThemeResp] = useState<ThemeResponse>({ sectors:[], themes:[] });
   const [fundaData, setFundaData] = useState<FundaStock[]>([]);
   const [loading,   setLoading]   = useState<Record<string,boolean>>({ gap:true, mom:true, themes:false, funda:false });
   const [error,     setError]     = useState<Record<string,string>>({});
@@ -60,13 +62,10 @@ export function Scanner() {
   const [ticker,    setTicker]    = useState('');
   const [themeLoaded, setThemeLoaded] = useState(false);
   const [fundaLoaded, setFundaLoaded] = useState(false);
-  const [clock, setClock] = useState("");
 
-  // Mom sort
   const [mSortCol, setMSortCol] = useState('rs');
   const [mSortAsc, setMSortAsc] = useState(false);
 
-  // Gap filters
   const [gDir,setGDir]=useState('both');
   const [gGapMin,setGGapMin]=useState(0); const [gGapMax,setGGapMax]=useState(0);
   const [gPriceMin,setGPriceMin]=useState(0); const [gPriceMax,setGPriceMax]=useState(0);
@@ -80,26 +79,17 @@ export function Scanner() {
   const [gSortCol,setGSortCol]=useState('gap'); const [gSortAsc,setGSortAsc]=useState(false);
   const [presets,setPresets]=useState<{name:string;filters:any}[]>([]);
   const [presetName,setPresetName]=useState('');
-  const [showPresets,setShowPresets]=useState(false);
 
-  useEffect(()=>{
-    try { const s=localStorage.getItem('st-scanner-presets'); if(s) setPresets(JSON.parse(s)); } catch {}
-  },[]);
+  useEffect(()=>{ try { const s=localStorage.getItem('st-scanner-presets'); if(s) setPresets(JSON.parse(s)); } catch {} },[]);
 
-  function currentFilters() {
-    return { gDir,gGapMin,gGapMax,gPriceMin,gPriceMax,gVolMin,gVolMax,gFloatMin,gFloatMax,gAdrMin,gAdrMax,gAtrMin,gAtrMax,gAvgVolMin,gAvgVolMax,gMktCapMin,gMktCapMax,gDolVolMin,gDolVolMax };
-  }
+  function currentFilters() { return { gDir,gGapMin,gGapMax,gPriceMin,gPriceMax,gVolMin,gVolMax,gFloatMin,gFloatMax,gAdrMin,gAdrMax,gAtrMin,gAtrMax,gAvgVolMin,gAvgVolMax,gMktCapMin,gMktCapMax,gDolVolMin,gDolVolMax }; }
 
   function savePreset() {
-    const name = presetName.trim();
-    if (!name) return;
+    const name = presetName.trim(); if (!name) return;
     const updated = [...presets.filter(p=>p.name!==name), { name, filters: currentFilters() }];
-    setPresets(updated);
-    try { localStorage.setItem('st-scanner-presets', JSON.stringify(updated)); } catch {}
+    setPresets(updated); try { localStorage.setItem('st-scanner-presets', JSON.stringify(updated)); } catch {}
     setPresetName('');
-    setShowPresets(true);
   }
-
   function loadPreset(p: {name:string;filters:any}) {
     const f = p.filters;
     if(f.gDir!==undefined) setGDir(f.gDir);
@@ -112,15 +102,11 @@ export function Scanner() {
     if(f.gAvgVolMin!==undefined) setGAvgVolMin(f.gAvgVolMin); if(f.gAvgVolMax!==undefined) setGAvgVolMax(f.gAvgVolMax);
     if(f.gMktCapMin!==undefined) setGMktCapMin(f.gMktCapMin); if(f.gMktCapMax!==undefined) setGMktCapMax(f.gMktCapMax);
     if(f.gDolVolMin!==undefined) setGDolVolMin(f.gDolVolMin); if(f.gDolVolMax!==undefined) setGDolVolMax(f.gDolVolMax);
-    setShowPresets(false);
   }
-
   function deletePreset(name: string) {
-    const updated = presets.filter(p=>p.name!==name);
-    setPresets(updated);
+    const updated = presets.filter(p=>p.name!==name); setPresets(updated);
     try { localStorage.setItem('st-scanner-presets', JSON.stringify(updated)); } catch {}
   }
-
   function resetFilters() {
     setGDir('both'); setGGapMin(0); setGGapMax(0); setGPriceMin(0); setGPriceMax(0);
     setGVolMin(0); setGVolMax(0); setGFloatMin(0); setGFloatMax(0);
@@ -129,19 +115,16 @@ export function Scanner() {
     setGDolVolMin(''); setGDolVolMax('');
   }
 
-  // Mom filters
   const [mM1,setMM1]=useState(-100); const [mM3,setMM3]=useState(-100); const [mM6,setMM6]=useState(-100);
   const [mAdr,setMAdr]=useState(0); const [mPMin,setMPMin]=useState(5); const [mPMax,setMPMax]=useState(5000);
   const [mRs,setMRs]=useState(1); const [mEps,setMEps]=useState(1); const [mRev,setMRevR]=useState(1);
-  // Funda filters
   const [fEps,setFEps]=useState(1); const [fRev,setFRev]=useState(1); const [fInst,setFInst]=useState(1);
   const [fFloat,setFFloat]=useState(1000); const [fShort,setFShort]=useState(0);
 
   const load = useCallback(async (key: string, url: string, setter: (d:any)=>void) => {
     setLoading(l=>({...l,[key]:true})); setError(e=>({...e,[key]:''}));
     try {
-      const res = await fetch(url);
-      const data = await res.json();
+      const res = await fetch(url); const data = await res.json();
       if (data.error) throw new Error(data.error);
       setter(data);
     } catch(e:any) { setError(err=>({...err,[key]:e.message})); }
@@ -149,85 +132,66 @@ export function Scanner() {
   }, []);
 
   useEffect(() => { load('mom',`${BASE}/momentum`,setMomData); }, []);
-  useEffect(() => { if (tab==='themes'&&!themeLoaded) { setThemeLoaded(true); load('themes',`${BASE}/themes?period=today`,setThemeData); } }, [tab]);
+  useEffect(() => { if (tab==='themes'&&!themeLoaded) { setThemeLoaded(true); load('themes',`${BASE}/themes?period=today`,setThemeResp); } }, [tab]);
   useEffect(() => { if (tab==='fundamentals'&&!fundaLoaded) { setFundaLoaded(true); load('funda',`${BASE}/fundamentals`,setFundaData); } }, [tab]);
-  useEffect(() => { if (themeLoaded) load('themes',`${BASE}/themes?period=${themeTime}`,d=>{ setThemeData(d); setOpenTheme(-1); }); }, [themeTime]);
+  useEffect(() => { if (themeLoaded) load('themes',`${BASE}/themes?period=${themeTime}`,d=>{ setThemeResp(d); setOpenTheme(-1); }); }, [themeTime]);
 
   const avgVolMinN = parseKMB(gAvgVolMin); const avgVolMaxN = parseKMB(gAvgVolMax);
   const mktCapMinN = parseKMB(gMktCapMin); const mktCapMaxN = parseKMB(gMktCapMax);
 
   const filteredGaps = gapData.filter(r => {
-    if (gDir==='up'   && r.gap <= 0) return false;
-    if (gDir==='down' && r.gap >= 0) return false;
-    if (gGapMin > 0 && r.gap < gGapMin) return false;
-    if (gGapMax > 0 && r.gap > gGapMax) return false;
-    if (gPriceMin > 0 && r.prevClose < gPriceMin) return false;
-    if (gPriceMax > 0 && r.prevClose > gPriceMax) return false;
-    if (gVolMin > 0 && (r.preVol||0) < gVolMin) return false;
-    if (gVolMax > 0 && (r.preVol||0) > gVolMax) return false;
-    if (gFloatMin > 0 && r.float && r.float < gFloatMin) return false;
-    if (gFloatMax > 0 && r.float && r.float > gFloatMax) return false;
-    if (gAdrMin > 0 && r.adr < gAdrMin) return false;
-    if (gAdrMax > 0 && r.adr > gAdrMax) return false;
-    if (gAtrMin > 0 && r.atr < gAtrMin) return false;
-    if (gAtrMax > 0 && r.atr > gAtrMax) return false;
-    if (avgVolMinN > 0 && r.avgVol && r.avgVol < avgVolMinN) return false;
-    if (avgVolMaxN > 0 && r.avgVol && r.avgVol > avgVolMaxN) return false;
-    if (mktCapMinN > 0 && r.mktCap && r.mktCap < mktCapMinN) return false;
-    if (mktCapMaxN > 0 && r.mktCap && r.mktCap > mktCapMaxN) return false;
-    const dolVolMinN = parseKMB(gDolVolMin); const dolVolMaxN = parseKMB(gDolVolMax);
-    if (dolVolMinN > 0 && r.dollarVol && r.dollarVol < dolVolMinN) return false;
-    if (dolVolMaxN > 0 && r.dollarVol && r.dollarVol > dolVolMaxN) return false;
+    if (gDir==='up' && r.gap<=0) return false; if (gDir==='down' && r.gap>=0) return false;
+    if (gGapMin>0&&r.gap<gGapMin) return false; if (gGapMax>0&&r.gap>gGapMax) return false;
+    if (gPriceMin>0&&r.prevClose<gPriceMin) return false; if (gPriceMax>0&&r.prevClose>gPriceMax) return false;
+    if (gVolMin>0&&(r.preVol||0)<gVolMin) return false; if (gVolMax>0&&(r.preVol||0)>gVolMax) return false;
+    if (gFloatMin>0&&r.float&&r.float<gFloatMin) return false; if (gFloatMax>0&&r.float&&r.float>gFloatMax) return false;
+    if (gAdrMin>0&&r.adr<gAdrMin) return false; if (gAdrMax>0&&r.adr>gAdrMax) return false;
+    if (gAtrMin>0&&r.atr<gAtrMin) return false; if (gAtrMax>0&&r.atr>gAtrMax) return false;
+    if (avgVolMinN>0&&r.avgVol&&r.avgVol<avgVolMinN) return false; if (avgVolMaxN>0&&r.avgVol&&r.avgVol>avgVolMaxN) return false;
+    if (mktCapMinN>0&&r.mktCap&&r.mktCap<mktCapMinN) return false; if (mktCapMaxN>0&&r.mktCap&&r.mktCap>mktCapMaxN) return false;
+    const dMin=parseKMB(gDolVolMin); const dMax=parseKMB(gDolVolMax);
+    if (dMin>0&&r.dollarVol&&r.dollarVol<dMin) return false; if (dMax>0&&r.dollarVol&&r.dollarVol>dMax) return false;
     return true;
   }).sort((a:any,b:any) => {
-    const dir = gSortAsc ? 1 : -1;
-    if (gSortCol==='gap')      return dir * (Math.abs(a.gap) - Math.abs(b.gap));
-    if (gSortCol==='preVol')   return dir * ((a.preVol||0) - (b.preVol||0));
-    if (gSortCol==='prevClose')return dir * ((a.prevClose||0) - (b.prevClose||0));
-    if (gSortCol==='float')    return dir * ((a.float||0) - (b.float||0));
-    if (gSortCol==='adr')      return dir * ((a.adr||0) - (b.adr||0));
-    if (gSortCol==='atr')      return dir * ((a.atr||0) - (b.atr||0));
-    if (gSortCol==='industry') return dir * ((a.industry||'').localeCompare(b.industry||''));
-    if (gSortCol==='sector')   return dir * ((a.sector||'').localeCompare(b.sector||''));
-    if (gSortCol==='ticker')   return dir * a.ticker.localeCompare(b.ticker);
-    return Math.abs(b.gap) - Math.abs(a.gap);
+    const dir = gSortAsc?1:-1;
+    if (gSortCol==='gap') return dir*(Math.abs(a.gap)-Math.abs(b.gap));
+    if (gSortCol==='preVol') return dir*((a.preVol||0)-(b.preVol||0));
+    if (gSortCol==='prevClose') return dir*((a.prevClose||0)-(b.prevClose||0));
+    if (gSortCol==='float') return dir*((a.float||0)-(b.float||0));
+    if (gSortCol==='adr') return dir*((a.adr||0)-(b.adr||0));
+    if (gSortCol==='atr') return dir*((a.atr||0)-(b.atr||0));
+    if (gSortCol==='industry') return dir*((a.industry||'').localeCompare(b.industry||''));
+    if (gSortCol==='sector') return dir*((a.sector||'').localeCompare(b.sector||''));
+    if (gSortCol==='ticker') return dir*a.ticker.localeCompare(b.ticker);
+    return Math.abs(b.gap)-Math.abs(a.gap);
   });
 
-  function handleMomSort(col: string) {
-    if (mSortCol === col) setMSortAsc(a => !a);
-    else { setMSortCol(col); setMSortAsc(false); }
-  }
-  function momSortIcon(col: string) {
-    if (mSortCol !== col) return ' ↕';
-    return mSortAsc ? ' ↑' : ' ↓';
-  }
+  function handleMomSort(col: string) { if (mSortCol===col) setMSortAsc(a=>!a); else { setMSortCol(col); setMSortAsc(false); } }
+  function momSortIcon(col: string) { if (mSortCol!==col) return ' ↕'; return mSortAsc?' ↑':' ↓'; }
 
   const filteredMom = momData
     .filter(r=>r.m1>=mM1&&r.m3>=mM3&&r.m6>=mM6&&r.adr>=mAdr&&r.price>=mPMin&&r.price<=mPMax&&r.rs>=mRs&&(r.epsRank==null||r.epsRank>=mEps)&&(r.revRank==null||r.revRank>=mRev))
-    .sort((a:any, b:any) => {
-      const dir = mSortAsc ? 1 : -1;
-      if (mSortCol==='ticker')   return dir * a.ticker.localeCompare(b.ticker);
-      if (mSortCol==='m1')       return dir * (a.m1 - b.m1);
-      if (mSortCol==='m3')       return dir * (a.m3 - b.m3);
-      if (mSortCol==='m6')       return dir * (a.m6 - b.m6);
-      if (mSortCol==='adr')      return dir * (a.adr - b.adr);
-      if (mSortCol==='atrPct')   return dir * (a.atrPct - b.atrPct);
-      if (mSortCol==='rs')       return dir * (a.rs - b.rs);
-      if (mSortCol==='epsRank')  return dir * ((a.epsRank??-1) - (b.epsRank??-1));
-      if (mSortCol==='revRank')  return dir * ((a.revRank??-1) - (b.revRank??-1));
-      if (mSortCol==='sector')   return dir * ((a.sector||'').localeCompare(b.sector||''));
-      if (mSortCol==='industry') return dir * ((a.industry||'').localeCompare(b.industry||''));
-      if (mSortCol==='theme')    return dir * ((a.theme||'').localeCompare(b.theme||''));
-      return b.rs - a.rs;
+    .sort((a:any,b:any) => {
+      const dir=mSortAsc?1:-1;
+      if (mSortCol==='ticker') return dir*a.ticker.localeCompare(b.ticker);
+      if (mSortCol==='m1') return dir*(a.m1-b.m1); if (mSortCol==='m3') return dir*(a.m3-b.m3); if (mSortCol==='m6') return dir*(a.m6-b.m6);
+      if (mSortCol==='adr') return dir*(a.adr-b.adr); if (mSortCol==='atrPct') return dir*(a.atrPct-b.atrPct);
+      if (mSortCol==='rs') return dir*(a.rs-b.rs);
+      if (mSortCol==='epsRank') return dir*((a.epsRank??-1)-(b.epsRank??-1));
+      if (mSortCol==='revRank') return dir*((a.revRank??-1)-(b.revRank??-1));
+      if (mSortCol==='sector') return dir*((a.sector||'').localeCompare(b.sector||''));
+      if (mSortCol==='industry') return dir*((a.industry||'').localeCompare(b.industry||''));
+      if (mSortCol==='theme') return dir*((a.theme||'').localeCompare(b.theme||''));
+      return b.rs-a.rs;
     });
 
   const filteredFunda = fundaData.filter(r=>(r.epsRank||0)>=fEps&&(r.revRank||0)>=fRev&&(r.instRank||0)>=fInst&&(!r.floatM||r.floatM<=fFloat)&&(!r.shortPct||r.shortPct>=fShort));
 
   function openDetail(row: any, type: string, t: string) { setDetail(row); setDetailType(type); setTicker(t); }
 
-  const SB_BTN = (label: string, action: ()=>void, loading?: boolean) => (
+  const SB_BTN = (label: string, action: ()=>void, load?: boolean) => (
     <button onClick={action} style={{ width:'100%', height:'28px', background:'var(--ac)', color:'#000', border:'none', borderRadius:'var(--r)', fontSize:'11px', fontWeight:700, cursor:'pointer', fontFamily:'var(--sans)', marginTop:'6px' }}>
-      {loading ? 'Loading...' : label}
+      {load ? 'Loading...' : label}
     </button>
   );
 
@@ -283,17 +247,28 @@ export function Scanner() {
 
   const ROW_HOVER = { onMouseEnter:(e:any)=>e.currentTarget.style.background='rgba(255,255,255,.025)', onMouseLeave:(e:any)=>e.currentTarget.style.background='transparent' };
 
-  // Theme period pct selector
-  function getThemePct(d: Theme): number {
-    switch(themeTime) {
-      case '1w':  return d.pct1w;
-      case '1m':  return d.pct1m;
-      case '3m':  return d.pct3m;
-      case '6m':  return d.pct6m;
-      case 'ytd': return d.pctYtd;
-      default:    return d.pct1d;
-    }
-  }
+  // Sector strip component
+  const SectorStrip = () => {
+    const sectors = themeResp.sectors || [];
+    if (!sectors.length) return null;
+    return (
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(11,1fr)', gap:'6px', marginBottom:'12px' }}>
+        {sectors.map(s => {
+          const isPos = s.pct >= 0;
+          const bg    = isPos ? 'rgba(16,185,129,.08)' : 'rgba(239,68,68,.08)';
+          const bdr   = isPos ? 'rgba(16,185,129,.25)' : 'rgba(239,68,68,.25)';
+          return (
+            <div key={s.etf} style={{ background:bg, border:`1px solid ${bdr}`, borderRadius:'var(--r2)', padding:'8px 8px 7px', textAlign:'center' }}>
+              <div style={{ fontSize:'10px', fontWeight:700, color:'var(--txt)', marginBottom:'1px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.name}</div>
+              <div style={{ fontSize:'9px', color:'var(--txt3)', marginBottom:'4px' }}>{s.etf}</div>
+              <div style={{ fontSize:'12px', fontWeight:700, color:pctColor(s.pct) }}>{pct(s.pct)}</div>
+              <div style={{ fontSize:'10px', color:'var(--txt3)', marginTop:'1px' }}>{fmt$(s.price)}</div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
@@ -335,27 +310,25 @@ export function Scanner() {
                 <button onClick={savePreset} style={{ height:'28px', padding:'0 8px', background:'var(--ac)', color:'#000', border:'none', borderRadius:'var(--r)', fontSize:'11px', fontWeight:700, cursor:'pointer', flexShrink:0 }}>Save</button>
               </div>
               {presets.length > 0 && (
-                <div style={{ maxHeight:'100px', overflowY:'auto', display:'flex', flexDirection:'column', gap:'2px', paddingRight:'2px' }}>
+                <div style={{ maxHeight:'100px', overflowY:'auto', display:'flex', flexDirection:'column', gap:'2px' }}>
                   {presets.map(p=>(
-                    <div key={p.name} style={{ display:'flex', alignItems:'center', gap:'4px', flexShrink:0 }}>
+                    <div key={p.name} style={{ display:'flex', alignItems:'center', gap:'4px' }}>
                       <button onClick={()=>loadPreset(p)} style={{ flex:1, height:'24px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'10px', cursor:'pointer', textAlign:'left', padding:'0 6px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</button>
                       <button onClick={()=>deletePreset(p.name)} style={{ width:'24px', height:'24px', background:'none', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt3)', fontSize:'12px', cursor:'pointer', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
                     </div>
                   ))}
                 </div>
               )}
-              {presets.length === 0 && <div style={{ fontSize:'10px', color:'var(--txt4)', textAlign:'center', padding:'4px 0' }}>No saved screens yet</div>}
+              {presets.length===0 && <div style={{ fontSize:'10px', color:'var(--txt4)', textAlign:'center', padding:'4px 0' }}>No saved screens yet</div>}
             </div>
             <div style={{ display:'flex', gap:'4px', marginTop:'8px' }}>
               <button onClick={resetFilters} style={{ flex:1, height:'28px', background:'none', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'11px', cursor:'pointer', fontFamily:'var(--sans)' }}>Reset</button>
-              {SB_BTN(loading.gap?'Loading...':'Refresh', ()=>load('gap',`${BASE}/gaps`,setGapData), loading.gap)}
+              {SB_BTN(loading.gap?'Loading...':'Refresh',()=>load('gap',`${BASE}/gaps`,setGapData),loading.gap)}
             </div>
           </div>
           <div>
             {error.gap && <div style={{ marginBottom:'8px', padding:'9px 12px', background:'var(--red-d)', border:'1px solid rgba(239,68,68,.2)', borderRadius:'var(--r)', fontSize:'11px', color:'var(--red)' }}>{error.gap}</div>}
-            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'7px' }}>
-              <span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.gap?'Loading live data...':`${filteredGaps.length} results · live`}</span>
-            </div>
+            <div style={{ marginBottom:'7px' }}><span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.gap?'Loading live data...':`${filteredGaps.length} results · live`}</span></div>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflow:'hidden' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
                 <thead><tr>
@@ -367,7 +340,7 @@ export function Scanner() {
                 </tr></thead>
                 <tbody>
                   {loading.gap ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Fetching live data...</td></tr>
-                  : filteredGaps.length===0 ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>{gapData.length===0 ? 'No pre-market gaps detected — Gap Scanner is live Monday–Friday 4:00 AM to 9:30 AM ET' : 'No results — adjust your filters'}</td></tr>
+                  : filteredGaps.length===0 ? <tr><td colSpan={9} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>{gapData.length===0?'No pre-market gaps detected — Gap Scanner is live Monday–Friday 4:00 AM to 9:30 AM ET':'No results — adjust your filters'}</td></tr>
                   : filteredGaps.map(r=>(
                     <tr key={r.ticker} onClick={()=>openDetail(r,'gap',r.ticker)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
                       <td style={TD}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px' }}>{r.ticker}</div><div style={{ fontSize:'10px', color:'var(--txt3)' }}>{r.name}</div></td>
@@ -407,18 +380,9 @@ export function Scanner() {
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', width:'100%', overflowX:'hidden' }}>
               <table style={{ width:'100%', borderCollapse:'collapse', tableLayout:'fixed' }}>
                 <colgroup>
-                  <col style={{width:'8%'}}/>
-                  <col style={{width:'7%'}}/>
-                  <col style={{width:'7%'}}/>
-                  <col style={{width:'7%'}}/>
-                  <col style={{width:'6%'}}/>
-                  <col style={{width:'6%'}}/>
-                  <col style={{width:'7%'}}/>
-                  <col style={{width:'7%'}}/>
-                  <col style={{width:'7%'}}/>
-                  <col style={{width:'10%'}}/>
-                  <col style={{width:'13%'}}/>
-                  <col style={{width:'15%'}}/>
+                  <col style={{width:'8%'}}/><col style={{width:'7%'}}/><col style={{width:'7%'}}/><col style={{width:'7%'}}/>
+                  <col style={{width:'6%'}}/><col style={{width:'6%'}}/><col style={{width:'7%'}}/><col style={{width:'7%'}}/>
+                  <col style={{width:'7%'}}/><col style={{width:'10%'}}/><col style={{width:'13%'}}/><col style={{width:'15%'}}/>
                 </colgroup>
                 <thead><tr>
                   {([['ticker','Ticker'],['m1','1M %'],['m3','3M %'],['m6','6M %'],['adr','ADR %'],['atrPct','ATR'],['rs','RS'],['epsRank','EPS'],['revRank','Rev'],['sector','Sector'],['industry','Industry'],['theme','Theme']] as [string,string][]).map(([col,label])=>(
@@ -467,38 +431,41 @@ export function Scanner() {
           </div>
           <div>
             {error.themes && <div style={{ marginBottom:'8px', padding:'9px 12px', background:'var(--red-d)', border:'1px solid rgba(239,68,68,.2)', borderRadius:'var(--r)', fontSize:'11px', color:'var(--red)' }}>{error.themes}</div>}
-            <div style={{ marginBottom:'7px' }}><span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.themes?'Loading...':`${themeData.length} themes`}</span></div>
+
+            {/* Sector strip */}
+            {loading.themes
+              ? <div style={{ display:'grid', gridTemplateColumns:'repeat(11,1fr)', gap:'6px', marginBottom:'12px' }}>
+                  {Array(11).fill(0).map((_,i)=><div key={i} style={{ height:'72px', background:'var(--bg3)', borderRadius:'var(--r2)', border:'1px solid var(--brd)' }}/>)}
+                </div>
+              : <SectorStrip/>
+            }
+
+            <div style={{ marginBottom:'7px' }}><span style={{ fontSize:'11px', color:'var(--txt3)' }}>{loading.themes?'Loading...':`${(themeResp.themes||[]).length} themes`}</span></div>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', overflow:'hidden' }}>
-              {/* Header row */}
-              <div style={{ display:'grid', gridTemplateColumns:'160px 1fr 70px 70px 70px 70px 70px 70px', gap:'0', padding:'6px 12px', borderBottom:'2px solid var(--brd)', background:'var(--bg3)' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'160px 1fr 70px 70px 70px 70px 70px 70px', padding:'6px 12px', borderBottom:'2px solid var(--brd)', background:'var(--bg3)' }}>
                 {['Theme','','1D%','1W%','1M%','3M%','6M%','YTD%'].map((h,i)=>(
-                  <div key={i} style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', textAlign: i >= 2 ? 'right' : 'left' }}>{h}</div>
+                  <div key={i} style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', textAlign:i>=2?'right':'left' }}>{h}</div>
                 ))}
               </div>
-
               {loading.themes ? <div style={{ padding:'32px', textAlign:'center', color:'var(--txt3)', fontSize:'11px' }}>Loading theme data...</div>
-              : themeData.map((d,i)=>{
-                const maxAbs  = Math.max(...themeData.map(t=>Math.abs(getThemePct(t))));
-                const barPct  = getThemePct(d);
-                const barW    = maxAbs > 0 ? Math.round((Math.abs(barPct)/maxAbs)*44) : 0;
-                const isPos   = barPct >= 0;
+              : (themeResp.themes||[]).map((d,i)=>{
+                const maxAbs = Math.max(...(themeResp.themes||[]).map(t=>Math.abs(t.pct)));
+                const barW   = maxAbs>0?Math.round((Math.abs(d.pct)/maxAbs)*44):0;
+                const isPos  = d.pct>=0;
                 return (
                   <div key={d.name}>
                     <div onClick={()=>setOpenTheme(openTheme===i?-1:i)}
-                      style={{ display:'grid', gridTemplateColumns:'160px 1fr 70px 70px 70px 70px 70px 70px', gap:'0', alignItems:'center', padding:'5px 12px', borderBottom:'1px solid var(--brd)', cursor:'pointer', background:openTheme===i?'var(--bg3)':'transparent', transition:'.1s' }}
+                      style={{ display:'grid', gridTemplateColumns:'160px 1fr 70px 70px 70px 70px 70px 70px', alignItems:'center', padding:'5px 12px', borderBottom:'1px solid var(--brd)', cursor:'pointer', background:openTheme===i?'var(--bg3)':'transparent', transition:'.1s' }}
                       onMouseEnter={e=>{ if(openTheme!==i)(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,.02)'; }}
                       onMouseLeave={e=>{ if(openTheme!==i)(e.currentTarget as HTMLElement).style.background='transparent'; }}>
-                      {/* Theme name + ETF */}
                       <div>
                         <div style={{ fontSize:'11px', color:'var(--txt)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.name}</div>
                         <div style={{ fontSize:'9px', color:'var(--txt3)' }}>{d.etf}</div>
                       </div>
-                      {/* Bar chart */}
                       <div style={{ position:'relative', height:'14px', display:'flex', alignItems:'center', marginRight:'8px' }}>
                         <div style={{ position:'absolute', left:'50%', width:'1px', height:'14px', background:'var(--brd2)' }}></div>
                         <div style={{ position:'absolute', height:'7px', borderRadius:'1px', ...(isPos?{left:'50%'}:{right:'50%'}), width:`${barW}%`, background:isPos?'var(--ac)':'var(--red)' }}></div>
                       </div>
-                      {/* Pct columns */}
                       <div style={{ fontSize:'11px', fontWeight:600, color:pctColor(d.pct1d), textAlign:'right' }}>{pct(d.pct1d)}</div>
                       <div style={{ fontSize:'11px', fontWeight:600, color:pctColor(d.pct1w), textAlign:'right' }}>{pct(d.pct1w)}</div>
                       <div style={{ fontSize:'11px', fontWeight:600, color:pctColor(d.pct1m), textAlign:'right' }}>{pct(d.pct1m)}</div>
@@ -508,13 +475,13 @@ export function Scanner() {
                     </div>
                     {openTheme===i && (
                       <div style={{ background:'var(--bg)', borderBottom:'1px solid var(--brd)', padding:'8px 20px' }}>
-                        {(d.stocks||[]).length > 0 ? (d.stocks||[]).map(s=>(
+                        {(d.stocks||[]).length>0?(d.stocks||[]).map((s:any)=>(
                           <div key={s.t} style={{ display:'flex', alignItems:'center', padding:'4px 0', borderBottom:'1px solid var(--brd)' }}>
                             <span style={{ fontSize:'11px', fontWeight:600, color:'var(--ac2)', width:'48px', flexShrink:0 }}>{s.t}</span>
                             <span style={{ fontSize:'10px', color:'var(--txt3)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', padding:'0 8px' }}>{s.n}</span>
                             <span style={{ fontSize:'11px', fontWeight:600, color:pctColor(parseFloat(s.p)) }}>{s.p}</span>
                           </div>
-                        )) : (
+                        )):(
                           <div style={{ fontSize:'10px', color:'var(--txt3)', padding:'4px 0' }}>ETF: {d.etf} · Sector: {d.sector}</div>
                         )}
                       </div>

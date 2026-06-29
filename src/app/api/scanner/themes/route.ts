@@ -4,13 +4,25 @@ import { THEME_ETF_MAP } from '@/lib/themes';
 const POLYGON_KEY = process.env.POLYGON_API_KEY;
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-// Fetch historical bars for an ETF
+const SECTOR_ETFS = [
+  { name: 'Technology',             etf: 'XLK' },
+  { name: 'Healthcare',             etf: 'XLV' },
+  { name: 'Financials',             etf: 'XLF' },
+  { name: 'Consumer Disc.',         etf: 'XLY' },
+  { name: 'Industrials',            etf: 'XLI' },
+  { name: 'Communication',          etf: 'XLC' },
+  { name: 'Consumer Staples',       etf: 'XLP' },
+  { name: 'Energy',                 etf: 'XLE' },
+  { name: 'Real Estate',            etf: 'XLRE' },
+  { name: 'Materials',              etf: 'XLB' },
+  { name: 'Utilities',              etf: 'XLU' },
+];
+
 async function fetchBars(ticker: string, days: number): Promise<any[]> {
   const from = new Date();
   from.setDate(from.getDate() - days);
   const fromStr = from.toISOString().split('T')[0];
   const toStr   = new Date().toISOString().split('T')[0];
-
   const res = await fetch(
     `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/day/${fromStr}/${toStr}?adjusted=true&sort=desc&limit=${days + 10}&apiKey=${POLYGON_KEY}`,
     { cache: 'no-store' }
@@ -28,7 +40,6 @@ function perfFromBars(bars: any[], days: number): number | null {
   return parseFloat((((latest - past) / Math.abs(past)) * 100).toFixed(2));
 }
 
-// Get today's change from snapshot
 async function fetchSnapshot(ticker: string): Promise<{ price: number; change1d: number } | null> {
   const res = await fetch(
     `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}?apiKey=${POLYGON_KEY}`,
@@ -44,79 +55,66 @@ async function fetchSnapshot(ticker: string): Promise<{ price: number; change1d:
   return { price, change1d };
 }
 
+async function fetchETFData(ticker: string) {
+  const [snap, bars] = await Promise.all([
+    fetchSnapshot(ticker),
+    fetchBars(ticker, 260),
+  ]);
+  const price    = snap?.price || bars[0]?.c || 0;
+  const change1d = snap?.change1d || 0;
+  const now      = new Date();
+  const ytdDays  = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (1000 * 60 * 60 * 24));
+  return {
+    price:   parseFloat(price.toFixed(2)),
+    pct1d:   change1d,
+    pct1w:   perfFromBars(bars, 5)   ?? 0,
+    pct1m:   perfFromBars(bars, 21)  ?? 0,
+    pct3m:   perfFromBars(bars, 63)  ?? 0,
+    pct6m:   perfFromBars(bars, 126) ?? 0,
+    pctYtd:  perfFromBars(bars, Math.min(ytdDays, bars.length - 1)) ?? 0,
+  };
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const period = searchParams.get('period') || 'today';
 
   try {
-    // Fetch all ETF data concurrently in batches of 10
-    const CONCURRENCY = 10;
-    const results: any[] = [];
-
-    const themes = THEME_ETF_MAP;
-
-    for (let i = 0; i < themes.length; i += CONCURRENCY) {
-      const chunk = themes.slice(i, i + CONCURRENCY);
-
-      const chunkResults = await Promise.all(chunk.map(async (t) => {
+    // Fetch sectors and themes concurrently
+    const [sectorResults, themeResults] = await Promise.all([
+      // Sectors
+      Promise.all(SECTOR_ETFS.map(async (s) => {
         try {
-          const [snap, bars] = await Promise.all([
-            fetchSnapshot(t.etf),
-            fetchBars(t.etf, 260), // enough for YTD + 6M
-          ]);
+          const d = await fetchETFData(s.etf);
+          const pct = period === '1w' ? d.pct1w : period === '1m' ? d.pct1m : period === '3m' ? d.pct3m : period === '6m' ? d.pct6m : period === 'ytd' ? d.pctYtd : d.pct1d;
+          return { ...s, ...d, pct };
+        } catch { return null; }
+      })),
 
-          if (!snap && !bars.length) return null;
-
-          const price    = snap?.price || bars[0]?.c || 0;
-          const change1d = snap?.change1d || 0;
-
-          // Calculate performance for each period
-          const pct1w  = perfFromBars(bars, 5);
-          const pct1m  = perfFromBars(bars, 21);
-          const pct3m  = perfFromBars(bars, 63);
-          const pct6m  = perfFromBars(bars, 126);
-
-          // YTD: from first trading day of current year
-          const now     = new Date();
-          const ytdDays = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (1000 * 60 * 60 * 24));
-          const pctYtd  = perfFromBars(bars, Math.min(ytdDays, bars.length - 1));
-
-          // Which pct to use for sorting based on period param
-          let sortPct: number;
-          switch (period) {
-            case '1w':  sortPct = pct1w  ?? 0; break;
-            case '1m':  sortPct = pct1m  ?? 0; break;
-            case 'ytd': sortPct = pctYtd ?? 0; break;
-            default:    sortPct = change1d;     break; // 'today'
-          }
-
-          return {
-            name:    t.theme,
-            etf:     t.etf,
-            sector:  t.sector,
-            price:   parseFloat(price.toFixed(2)),
-            pct:     sortPct,
-            pct1d:   change1d,
-            pct1w:   pct1w   ?? 0,
-            pct1m:   pct1m   ?? 0,
-            pct3m:   pct3m   ?? 0,
-            pct6m:   pct6m   ?? 0,
-            pctYtd:  pctYtd  ?? 0,
-            stocks:  [], // reserved for future top stocks per theme
-          };
-        } catch (e) {
-          return null;
+      // Themes
+      (async () => {
+        const results: any[] = [];
+        const CONCURRENCY = 10;
+        for (let i = 0; i < THEME_ETF_MAP.length; i += CONCURRENCY) {
+          const chunk = THEME_ETF_MAP.slice(i, i + CONCURRENCY);
+          const chunkResults = await Promise.all(chunk.map(async (t) => {
+            try {
+              const d = await fetchETFData(t.etf);
+              const pct = period === '1w' ? d.pct1w : period === '1m' ? d.pct1m : period === '3m' ? d.pct3m : period === '6m' ? d.pct6m : period === 'ytd' ? d.pctYtd : d.pct1d;
+              return { name: t.theme, etf: t.etf, sector: t.sector, ...d, pct, stocks: [] };
+            } catch { return null; }
+          }));
+          chunkResults.forEach(r => { if (r) results.push(r); });
+          if (i % 20 === 0 && i > 0) await sleep(200);
         }
-      }));
+        return results.sort((a, b) => b.pct - a.pct);
+      })(),
+    ]);
 
-      chunkResults.forEach(r => { if (r) results.push(r); });
-      if (i % 20 === 0 && i > 0) await sleep(200);
-    }
-
-    // Sort by selected period performance
-    results.sort((a, b) => b.pct - a.pct);
-
-    return NextResponse.json(results);
+    return NextResponse.json({
+      sectors: sectorResults.filter(Boolean),
+      themes:  themeResults,
+    });
 
   } catch (err: any) {
     console.error('[themes]', err);
