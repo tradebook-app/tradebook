@@ -14,43 +14,19 @@ export async function GET() {
       .eq('id', 'gaps')
       .single();
 
-    // DEBUG: expose the actual error and what came back
-    if (error) {
-      return NextResponse.json({
-        debug: true,
-        stage: 'supabase_error',
-        error_message: error.message,
-        error_details: error.details,
-        error_hint: error.hint,
-        error_code: error.code,
-        supabase_url_present: !!SUPABASE_URL,
-        supabase_key_present: !!SUPABASE_KEY,
-      }, { status: 200 });
+    if (error || !data) {
+      return NextResponse.json(
+        { error: 'No cached gap data yet. Run /api/scanner/cache/gaps?token=YOUR_TOKEN to populate.' },
+        { status: 404 }
+      );
     }
 
-    if (!data) {
-      return NextResponse.json({
-        debug: true,
-        stage: 'no_data_returned',
-        data_is_null: true,
-      }, { status: 200 });
-    }
-
-    // Success — return how many rows we got
-    const count = Array.isArray(data.data) ? data.data.length : 'not-an-array';
-    return NextResponse.json({
-      debug: true,
-      stage: 'success',
-      count,
-      updated_at: data.updated_at,
-      first_item: Array.isArray(data.data) ? data.data[0] : data.data,
-    }, { status: 200 });
+    return NextResponse.json(data.data, {
+      headers: { 'X-Cache-Updated': data.updated_at },
+    });
 
   } catch (err: any) {
-    return NextResponse.json({
-      debug: true,
-      stage: 'exception',
-      message: err.message,
-    }, { status: 200 });
+    console.error('[scanner/gaps]', err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
