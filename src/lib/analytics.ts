@@ -217,10 +217,11 @@ export function holdTime(entryDate: string, exitDate?: string | null): string {
 // without requiring a backfill to run perfectly.
 
 export function tradesForStrategy(trades: TradeRow[], strategy: { id: string; name: string }): TradeRow[] {
-  const nameKey = strategy.name.trim().toLowerCase()
+  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ')
+  const nameKey = norm(strategy.name)
   return trades.filter(t =>
     t.strategy_id === strategy.id ||
-    (!t.strategy_id && (t.setup || '').trim().toLowerCase() === nameKey)
+    (!t.strategy_id && norm(t.setup || '') === nameKey)
   )
 }
 

@@ -38,6 +38,13 @@ export function StrategyDetail({ strategy, trades, imgUrl, onBack, onEdit, onDel
     .filter(t => t.exit && t.exit > 0)
     .sort((a, b) => b.date.localeCompare(a.date))
 
+  const nameKey = strategy.name.trim().toLowerCase().replace(/\s+/g, ' ')
+  const otherSetups = Array.from(new Set(
+    trades
+      .map(t => (t.setup || '').trim())
+      .filter(s => s && s.toLowerCase().replace(/\s+/g, ' ') !== nameKey)
+  )).slice(0, 8)
+
   function startEditingRules() {
     setDraft(groups.map(g => ({ id: g.id, name: g.name, rules: g.rules.map(r => ({ id: r.id, text: r.text })) })))
     setEditingRules(true)
@@ -106,6 +113,17 @@ export function StrategyDetail({ strategy, trades, imgUrl, onBack, onEdit, onDel
           <div className="empty" style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)' }}>
             No trades tagged to this strategy yet.<br />
             Set <b style={{ color: 'var(--txt2)' }}>Setup</b> to <b style={{ color: 'var(--txt2)' }}>&ldquo;{strategy.name}&rdquo;</b> when logging a trade to see stats here.
+            {otherSetups.length > 0 && (
+              <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--brd)', fontSize: '10px' }}>
+                Setup values currently on your trades that did <b>not</b> match &ldquo;{strategy.name}&rdquo;:
+                <div style={{ marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
+                  {otherSetups.map(s => <span key={s} className="tag">{s}</span>)}
+                </div>
+                <div style={{ marginTop: '8px', color: 'var(--txt4)' }}>
+                  Spelling, spacing, or capitalization has to match the strategy name exactly.
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

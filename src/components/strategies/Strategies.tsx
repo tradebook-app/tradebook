@@ -100,8 +100,11 @@ export function Strategies({ userId, trades }: Props) {
   const selected = selectedId ? strategies.find(s => s.id === selectedId) || null : null
 
   // ─── Detail view ────────────────────────────────────────────────────────
-  if (selected) {
-    return (
+  // Rendered alongside the Modal below (not as an early return) so the
+  // Edit/New Strategy modal still works while viewing a strategy's detail page.
+  return (
+    <>
+    {selected ? (
       <StrategyDetail
         strategy={selected}
         trades={trades}
@@ -110,11 +113,7 @@ export function Strategies({ userId, trades }: Props) {
         onEdit={() => openEdit(selected)}
         onDelete={() => handleDelete(selected.id)}
       />
-    )
-  }
-
-  // ─── List / grid view ───────────────────────────────────────────────────
-  return (
+    ) : (
     <div>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
@@ -290,7 +289,10 @@ export function Strategies({ userId, trades }: Props) {
         </div>
       )}
 
-      {/* New / Edit modal */}
+    </div>
+    )}
+
+      {/* New / Edit modal — always rendered, so Edit works from the detail view too */}
       <Modal
         open={modal}
         onClose={() => setModal(false)}
@@ -330,6 +332,6 @@ export function Strategies({ userId, trades }: Props) {
           </div>
         )}
       </Modal>
-    </div>
+    </>
   )
 }
