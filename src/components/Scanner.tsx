@@ -649,15 +649,16 @@ export function Scanner() {
         <div style={{ display:'grid', gridTemplateColumns:'155px 1fr', gap:'12px', flex:1, minWidth:0 }}>
           <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', padding:'11px', alignSelf:'start', position:'sticky', top:0, maxHeight:'calc(100vh - 120px)', overflowY:'auto' }}>
             <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'9px', paddingBottom:'7px', borderBottom:'1px solid var(--brd)' }}>Filters</div>
-            {([['Min 1M %',mM1,setMM1],['Min 3M %',mM3,setMM3],['Min 6M %',mM6,setMM6],['Min ADR %',mAdr,setMAdr],['Min RS rank',mRs,setMRs],['Min EPS rank',mEps,setMEps],['Min Rev rank',mRev,setMRevR]] as any[]).map(([l,v,s])=>(
+            {([['Min 1M %',mM1,setMM1],['Min 3M %',mM3,setMM3],['Min 6M %',mM6,setMM6],['Min ADR %',mAdr,setMAdr]] as any[]).map(([l,v,s])=>(
               <div key={l} style={GRP}><label style={LBL}>{l}</label><input style={INPUT} type="number" value={v} onChange={e=>s(e.target.value===''?'':+e.target.value)} placeholder="Min"/></div>
             ))}
+            <div style={GRP}><label style={LBL}>ATR</label><input style={INPUT} type="number" value={mAtrMin} onChange={e=>setMAtrMin(e.target.value===''?'':+e.target.value)} placeholder="Min"/></div>
             <div style={GRP}><label style={LBL}>Price $</label>
               <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="number" value={mPMin} onChange={e=>setMPMin(e.target.value===''?'':+e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="number" value={mPMax} onChange={e=>setMPMax(e.target.value===''?'':+e.target.value)} placeholder="Max"/></div>
             </div>
-            <div style={GRP}><label style={LBL}>ATR</label>
-              <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="number" value={mAtrMin} onChange={e=>setMAtrMin(e.target.value===''?'':+e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="number" value={mAtrMax} onChange={e=>setMAtrMax(e.target.value===''?'':+e.target.value)} placeholder="Max"/></div>
-            </div>
+            {([['Min RS rank',mRs,setMRs],['Min EPS rank',mEps,setMEps],['Min Rev rank',mRev,setMRevR]] as any[]).map(([l,v,s])=>(
+              <div key={l} style={GRP}><label style={LBL}>{l}</label><input style={INPUT} type="number" value={v} onChange={e=>s(e.target.value===''?'':+e.target.value)} placeholder="Min"/></div>
+            ))}
             <div style={GRP}><label style={LBL}>Avg Vol 30D</label>
               <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="text" value={mAvgVolMin} onChange={e=>setMAvgVolMin(e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="text" value={mAvgVolMax} onChange={e=>setMAvgVolMax(e.target.value)} placeholder="Max"/></div>
             </div>
