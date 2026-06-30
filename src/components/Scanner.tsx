@@ -37,6 +37,20 @@ const GRP: React.CSSProperties   = { marginBottom:'9px' };
 const TH: React.CSSProperties    = { fontSize:'9px', fontWeight:600, letterSpacing:'.04em', textTransform:'uppercase' as const, color:'var(--txt3)', padding:'6px 6px', textAlign:'left' as const, borderBottom:'1px solid var(--brd)', whiteSpace:'nowrap' as const, cursor:'pointer', userSelect:'none' as const };
 const TD: React.CSSProperties    = { padding:'5px 6px', fontSize:'11px', borderBottom:'1px solid var(--brd)', whiteSpace:'nowrap' as const };
 
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <div
+      onClick={() => onChange(!checked)}
+      style={{ display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', userSelect:'none' as const, padding:'7px 9px', background:'var(--bg4)', border:`1px solid ${checked ? 'var(--ac)' : 'var(--brd2)'}`, borderRadius:'var(--r)' }}
+    >
+      <span style={{ fontSize:'11px', color: checked ? 'var(--txt)' : 'var(--txt2)', fontWeight: checked ? 600 : 400 }}>{label}</span>
+      <div style={{ position:'relative', width:'30px', height:'17px', borderRadius:'9px', background: checked ? 'var(--ac)' : 'var(--bg3)', border:`1px solid ${checked ? 'var(--ac)' : 'var(--brd2)'}`, transition:'.15s', flexShrink:0 }}>
+        <div style={{ position:'absolute', top:'1px', left: checked ? '14px' : '1px', width:'13px', height:'13px', borderRadius:'50%', background: checked ? '#000' : 'var(--txt3)', transition:'.15s' }}/>
+      </div>
+    </div>
+  );
+}
+
 function parseKMB(val: string): number {
   const s = val.trim().toUpperCase();
   if (!s || s === '0') return 0;
@@ -653,9 +667,8 @@ export function Scanner() {
             <div style={GRP}><label style={LBL}>Mkt Cap</label>
               <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="text" value={mMktCapMin} onChange={e=>setMMktCapMin(e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="text" value={mMktCapMax} onChange={e=>setMMktCapMax(e.target.value)} placeholder="Max"/></div>
             </div>
-            <div style={{ ...GRP, display:'flex', alignItems:'center', gap:'8px', padding:'2px 0' }}>
-              <input type="checkbox" id="mIncludeEtfs" checked={mIncludeEtfs} onChange={e=>setMIncludeEtfs(e.target.checked)} style={{ width:'16px', height:'16px', accentColor:'var(--ac)', cursor:'pointer', flexShrink:0 }}/>
-              <label htmlFor="mIncludeEtfs" style={{ fontSize:'11px', color:'var(--txt2)', cursor:'pointer', userSelect:'none' as const }}>Include ETFs</label>
+            <div style={GRP}>
+              <Toggle checked={mIncludeEtfs} onChange={setMIncludeEtfs} label="Include ETFs"/>
             </div>
             {/* ── Saved Screens ── */}
             <div style={{ borderTop:'1px solid var(--brd)', marginTop:'8px', paddingTop:'8px' }}>
