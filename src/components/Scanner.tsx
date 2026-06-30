@@ -825,10 +825,8 @@ export function Scanner() {
                             onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background='transparent'}>
                             <span style={{ fontSize:'11px', fontWeight:600, color:'var(--ac2)', width:'48px', flexShrink:0 }}>{s.t}</span>
                             <span style={{ fontSize:'10px', color:'var(--txt3)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', padding:'0 8px' }}>{s.n}</span>
-                            <div style={{ display:'flex', alignItems:'center', gap:'4px', width:'70px', justifyContent:'flex-end' }}>
-                              <RkBadge v={s.rs}/>
-                              <span style={{ fontSize:'11px', fontWeight:600, color:pctColor(parseFloat(s.p)) }}>{s.p}</span>
-                            </div>
+                            <div style={{ width:'28px', flexShrink:0, display:'flex', justifyContent:'center' }}><RkBadge v={s.rs}/></div>
+                            <span style={{ fontSize:'11px', fontWeight:600, color:pctColor(parseFloat(s.p)), width:'70px', flexShrink:0, textAlign:'right' }}>{s.p} 6M</span>
                           </div>
                         )):(
                           <div style={{ fontSize:'10px', color:'var(--txt3)', padding:'4px 0' }}>ETF: {d.etf} · Sector: {d.sector}</div>
