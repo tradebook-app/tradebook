@@ -808,6 +808,16 @@ export function Scanner() {
                     </div>
                     {openTheme===i && (
                       <div style={{ background:'var(--bg)', borderBottom:'1px solid var(--brd)', padding:'8px 20px' }}>
+                        {/* Theme ETF — clickable, visually marked as an ETF, sits above individual stocks */}
+                        <div onClick={()=>setChartStock({ ticker:d.etf, name:`${d.name} (ETF)`, m1:null, m3:null, m6:d.pct6m, rs:null, epsRank:null, revRank:null, adr:null, d50:null, d200:null })}
+                          style={{ display:'flex', alignItems:'center', padding:'6px 8px', marginBottom:'4px', borderRadius:'var(--r)', background:'rgba(16,185,129,.08)', border:'1px solid rgba(16,185,129,.3)', cursor:'pointer' }}
+                          onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background='rgba(16,185,129,.14)'}
+                          onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background='rgba(16,185,129,.08)'}>
+                          <span style={{ fontSize:'9px', fontWeight:700, letterSpacing:'.05em', color:'var(--ac)', background:'rgba(16,185,129,.18)', border:'1px solid rgba(16,185,129,.35)', borderRadius:'3px', padding:'1px 5px', marginRight:'8px', flexShrink:0 }}>ETF</span>
+                            <span style={{ fontSize:'11px', fontWeight:700, color:'var(--ac2)', width:'48px', flexShrink:0 }}>{d.etf}</span>
+                            <span style={{ fontSize:'10px', color:'var(--txt3)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', padding:'0 8px' }}>{d.name} sector ETF</span>
+                            <span style={{ fontSize:'11px', fontWeight:600, color:pctColor(d.pct6m) }}>{pct(d.pct6m)} 6M</span>
+                        </div>
                         {(d.stocks||[]).length>0?(d.stocks||[]).map((s:any)=>(
                           <div key={s.t} onClick={()=>setChartStock({ ticker:s.t, name:s.n, m1:null, m3:null, m6:parseFloat(s.p), rs:s.rs, epsRank:null, revRank:null, adr:null, d50:null, d200:null })}
                             style={{ display:'flex', alignItems:'center', padding:'5px 0', borderBottom:'1px solid var(--brd)', cursor:'pointer' }}
@@ -815,8 +825,10 @@ export function Scanner() {
                             onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background='transparent'}>
                             <span style={{ fontSize:'11px', fontWeight:600, color:'var(--ac2)', width:'48px', flexShrink:0 }}>{s.t}</span>
                             <span style={{ fontSize:'10px', color:'var(--txt3)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', padding:'0 8px' }}>{s.n}</span>
-                            <RkBadge v={s.rs}/>
-                            <span style={{ fontSize:'11px', fontWeight:600, color:pctColor(parseFloat(s.p)), marginLeft:'10px', width:'60px', textAlign:'right' }}>{s.p}</span>
+                            <div style={{ display:'flex', alignItems:'center', gap:'4px', width:'70px', justifyContent:'flex-end' }}>
+                              <RkBadge v={s.rs}/>
+                              <span style={{ fontSize:'11px', fontWeight:600, color:pctColor(parseFloat(s.p)) }}>{s.p}</span>
+                            </div>
                           </div>
                         )):(
                           <div style={{ fontSize:'10px', color:'var(--txt3)', padding:'4px 0' }}>ETF: {d.etf} · Sector: {d.sector}</div>
