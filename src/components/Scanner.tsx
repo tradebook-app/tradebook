@@ -653,9 +653,9 @@ export function Scanner() {
             <div style={GRP}><label style={LBL}>Mkt Cap</label>
               <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="text" value={mMktCapMin} onChange={e=>setMMktCapMin(e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="text" value={mMktCapMax} onChange={e=>setMMktCapMax(e.target.value)} placeholder="Max"/></div>
             </div>
-            <div style={{ ...GRP, display:'flex', alignItems:'center', gap:'6px' }}>
-              <input type="checkbox" id="mIncludeEtfs" checked={mIncludeEtfs} onChange={e=>setMIncludeEtfs(e.target.checked)} style={{ width:'13px', height:'13px', accentColor:'var(--ac)', cursor:'pointer' }}/>
-              <label htmlFor="mIncludeEtfs" style={{ fontSize:'10px', color:'var(--txt2)', cursor:'pointer', userSelect:'none' as const }}>Include ETFs</label>
+            <div style={{ ...GRP, display:'flex', alignItems:'center', gap:'8px', padding:'2px 0' }}>
+              <input type="checkbox" id="mIncludeEtfs" checked={mIncludeEtfs} onChange={e=>setMIncludeEtfs(e.target.checked)} style={{ width:'16px', height:'16px', accentColor:'var(--ac)', cursor:'pointer', flexShrink:0 }}/>
+              <label htmlFor="mIncludeEtfs" style={{ fontSize:'11px', color:'var(--txt2)', cursor:'pointer', userSelect:'none' as const }}>Include ETFs</label>
             </div>
             {/* ── Saved Screens ── */}
             <div style={{ borderTop:'1px solid var(--brd)', marginTop:'8px', paddingTop:'8px' }}>
