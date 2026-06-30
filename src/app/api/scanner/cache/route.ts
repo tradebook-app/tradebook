@@ -121,6 +121,34 @@ function calcADR(bars: any[], days = 20): number {
   return parseFloat((100 * (avgRatio - 1)).toFixed(2));
 }
 
+// ATR (raw dollar value, e.g. TradingView's "ATR, 14") using Wilder's smoothing (RMA),
+// the standard/default method TradingView's ATR indicator uses.
+// bars is sorted desc (most recent first) — reverse to oldest-first for the recursive smoothing.
+function calcATR(bars: any[], length = 14): number {
+  if (!bars || bars.length < length + 1) return 0;
+  const chrono = [...bars].reverse(); // oldest -> newest
+  const trueRanges: number[] = [];
+  for (let i = 1; i < chrono.length; i++) {
+    const cur  = chrono[i];
+    const prev = chrono[i - 1];
+    if (!cur.h || !cur.l || !prev.c) continue;
+    const tr = Math.max(
+      cur.h - cur.l,
+      Math.abs(cur.h - prev.c),
+      Math.abs(cur.l - prev.c)
+    );
+    trueRanges.push(tr);
+  }
+  if (trueRanges.length < length) return 0;
+
+  // Seed with simple average of the first `length` true ranges, then apply Wilder's RMA.
+  let atr = trueRanges.slice(0, length).reduce((a, b) => a + b, 0) / length;
+  for (let i = length; i < trueRanges.length; i++) {
+    atr = (atr * (length - 1) + trueRanges[i]) / length;
+  }
+  return parseFloat(atr.toFixed(2));
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
@@ -173,6 +201,7 @@ export async function GET(request: Request) {
       const rsScore = (m1 * 0.40) + (m3 * 0.35) + (m6 * 0.25);
       const atrPct = price > 0 && high && low ? ((high - low) / price) * 100 : 0;
       const adr    = calcADR(bars, 20);
+      const atr    = calcATR(bars, 14);
 
       const closes = bars.map((b: any) => b.c).filter(Boolean);
       const sma    = (n: number) => closes.length >= n
@@ -192,6 +221,7 @@ export async function GET(request: Request) {
         m6:          parseFloat(m6.toFixed(1)),
         rsScore:     parseFloat(rsScore.toFixed(2)),
         adr,
+        atr,
         atrPct:      parseFloat(atrPct.toFixed(2)),
         d50:         sma(50)  ? parseFloat(sma(50)!.toFixed(2))  : null,
         d200:        sma(200) ? parseFloat(sma(200)!.toFixed(2)) : null,

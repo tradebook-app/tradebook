@@ -24,7 +24,7 @@ function RkBadge({ v }: { v: number | null }) {
 }
 
 type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; avgVol:number|null; mktCap:number|null; dollarVol:number|null; sector:string|null; industry:string|null; theme:string|null; isPreMarket:boolean; isPostMarket:boolean };
-type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; rs:number; epsRank:number|null; revRank:number|null; sector:string|null; industry:string|null; theme:string|null; d50:number|null; d200:number|null };
+type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; atr:number; rs:number; epsRank:number|null; revRank:number|null; sector:string|null; industry:string|null; theme:string|null; d50:number|null; d200:number|null };
 type SectorData = { name:string; etf:string; price:number; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number };
 type Theme      = { name:string; etf:string; sector:string; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number; price:number; stocks:any[] };
 type ThemeResponse = { sectors: SectorData[]; themes: Theme[] };
@@ -230,8 +230,8 @@ export function Scanner() {
       (mRs===''||r.rs>=mRs) &&
       (mEps===''||r.epsRank==null||r.epsRank>=mEps) &&
       (mRev===''||r.revRank==null||r.revRank>=mRev) &&
-      (mAtrMin===''||r.atrPct>=mAtrMin) &&
-      (mAtrMax===''||r.atrPct<=mAtrMax) &&
+      (mAtrMin===''||r.atr>=mAtrMin) &&
+      (mAtrMax===''||r.atr<=mAtrMax) &&
       (mAvgVolMinN===0||!r.avgVol||r.avgVol>=mAvgVolMinN) &&
       (mAvgVolMaxN===0||!r.avgVol||r.avgVol<=mAvgVolMaxN) &&
       (mDolVolMinN===0||(r.price*r.avgVol)>=mDolVolMinN) &&
@@ -243,7 +243,7 @@ export function Scanner() {
       const dir=mSortAsc?1:-1;
       if (mSortCol==='ticker') return dir*a.ticker.localeCompare(b.ticker);
       if (mSortCol==='m1') return dir*(a.m1-b.m1); if (mSortCol==='m3') return dir*(a.m3-b.m3); if (mSortCol==='m6') return dir*(a.m6-b.m6);
-      if (mSortCol==='adr') return dir*(a.adr-b.adr); if (mSortCol==='atrPct') return dir*(a.atrPct-b.atrPct);
+      if (mSortCol==='adr') return dir*(a.adr-b.adr); if (mSortCol==='atr') return dir*(a.atr-b.atr);
       if (mSortCol==='rs') return dir*(a.rs-b.rs);
       if (mSortCol==='epsRank') return dir*((a.epsRank??-1)-(b.epsRank??-1));
       if (mSortCol==='revRank') return dir*((a.revRank??-1)-(b.revRank??-1));
@@ -295,7 +295,7 @@ export function Scanner() {
           ['1M',<span style={{color:pctColor(detail.m1)}}>{pct(detail.m1)}</span>],
           ['3M',<span style={{color:pctColor(detail.m3)}}>{pct(detail.m3)}</span>],
           ['6M',<span style={{color:pctColor(detail.m6)}}>{pct(detail.m6)}</span>],
-          ['ADR %',detail.adr.toFixed(1)+'%'],['ATR',detail.atrPct.toFixed(1)],
+          ['ADR %',detail.adr.toFixed(1)+'%'],['ATR',detail.atr!=null?detail.atr.toFixed(2):'—'],
           ['RS rank',<RkBadge v={detail.rs}/>],['EPS rank',<RkBadge v={detail.epsRank}/>],['Rev rank',<RkBadge v={detail.revRank}/>],
           ['50D MA',fmt$(detail.d50)],['200D MA',fmt$(detail.d200)],
           ['Sector',detail.sector||'—'],['Industry',detail.industry||'—'],['Theme',detail.theme||'—'],
@@ -638,7 +638,7 @@ export function Scanner() {
             <div style={GRP}><label style={LBL}>Price $</label>
               <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="number" value={mPMin} onChange={e=>setMPMin(e.target.value===''?'':+e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="number" value={mPMax} onChange={e=>setMPMax(e.target.value===''?'':+e.target.value)} placeholder="Max"/></div>
             </div>
-            <div style={GRP}><label style={LBL}>ATR %</label>
+            <div style={GRP}><label style={LBL}>ATR</label>
               <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="number" value={mAtrMin} onChange={e=>setMAtrMin(e.target.value===''?'':+e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="number" value={mAtrMax} onChange={e=>setMAtrMax(e.target.value===''?'':+e.target.value)} placeholder="Max"/></div>
             </div>
             <div style={GRP}><label style={LBL}>Avg Vol 30D</label>
@@ -699,7 +699,7 @@ export function Scanner() {
                   <col style={{width:'7%'}}/><col style={{width:'10%'}}/><col style={{width:'13%'}}/><col style={{width:'15%'}}/>
                 </colgroup>
                 <thead><tr>
-                  {([['ticker','Ticker'],['m1','1M %'],['m3','3M %'],['m6','6M %'],['adr','ADR %'],['atrPct','ATR'],['rs','RS'],['epsRank','EPS'],['revRank','Rev'],['sector','Sector'],['industry','Industry'],['theme','Theme']] as [string,string][]).map(([col,label])=>(
+                  {([['ticker','Ticker'],['m1','1M %'],['m3','3M %'],['m6','6M %'],['adr','ADR %'],['atr','ATR'],['rs','RS'],['epsRank','EPS'],['revRank','Rev'],['sector','Sector'],['industry','Industry'],['theme','Theme']] as [string,string][]).map(([col,label])=>(
                     <th key={col} style={{ ...TH, overflow:'hidden', textOverflow:'ellipsis' }} onClick={()=>handleMomSort(col)}>
                       {label}{momSortIcon(col)}
                     </th>
@@ -714,7 +714,7 @@ export function Scanner() {
                       <td style={{ ...TD, color:pctColor(r.m3), fontWeight:600 }}>{pct(r.m3)}</td>
                       <td style={{ ...TD, color:pctColor(r.m6), fontWeight:600 }}>{pct(r.m6)}</td>
                       <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.adr.toFixed(1)}%</td>
-                      <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.atrPct.toFixed(1)}</td>
+                      <td style={{ ...TD, color:'var(--ac)', fontWeight:600 }}>{r.atr!=null?r.atr.toFixed(2):'—'}</td>
                       <td style={TD}><RkBadge v={r.rs}/></td>
                       <td style={TD}><RkBadge v={r.epsRank}/></td>
                       <td style={TD}><RkBadge v={r.revRank}/></td>
