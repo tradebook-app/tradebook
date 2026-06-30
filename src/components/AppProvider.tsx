@@ -44,11 +44,11 @@ function GatedNotebook({ userId }: { userId: string }) {
   return <Notebook userId={userId} />
 }
 
-function GatedStrategies({ userId }: { userId: string }) {
+function GatedStrategies({ userId, trades }: { userId: string, trades: TradeRow[] }) {
   const { isPro, loading } = usePlan()
   if (loading) return null
   if (!isPro) return <UpgradeWall feature="Strategies - Pro Feature" description="Upgrade to Pro to build and manage your trading strategies with full notes and screenshots." />
-  return <Strategies userId={userId} />
+  return <Strategies userId={userId} trades={trades} />
 }
 
 function GatedImport({ userId, existingTrades, onImported }: { userId: string, existingTrades: any[], onImported: () => void }) {
@@ -172,7 +172,7 @@ export function AppProvider({ userId, userEmail }: Props) {
     if (pathname === '/journal')      return <Journal trades={trades} onEdit={openEdit} />
     if (pathname === '/reports')      return <GatedReports trades={trades} filter={filter} />
     if (pathname === '/position-size')return <PositionSize />
-    if (pathname === '/strategies')   return <GatedStrategies userId={userId} />
+    if (pathname === '/strategies')   return <GatedStrategies userId={userId} trades={trades} />
     if (pathname === '/notebook')     return <GatedNotebook userId={userId} />
     if (pathname === '/import')       return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
     if (pathname === '/settings')     return <Settings userEmail={userEmail} />
