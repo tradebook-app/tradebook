@@ -100,6 +100,7 @@ export function Scanner() {
   useEffect(()=>{
     try { const s=localStorage.getItem('st-scanner-presets'); if(s) setPresets(JSON.parse(s)); } catch {}
     try { const s=localStorage.getItem('st-mom-presets'); if(s) setMPresets(JSON.parse(s)); } catch {}
+    try { const s=localStorage.getItem('st-funda-presets'); if(s) setFPresets(JSON.parse(s)); } catch {}
   },[]);
 
   function currentFilters() { return { gDir,gGapMin,gGapMax,gPriceMin,gPriceMax,gVolMin,gVolMax,gFloatMin,gFloatMax,gAdrMin,gAdrMax,gAtrMin,gAtrMax,gAvgVolMin,gAvgVolMax,gMktCapMin,gMktCapMax,gDolVolMin,gDolVolMax }; }
@@ -155,6 +156,8 @@ export function Scanner() {
   const [fTheme,setFTheme]=useState('');
   const [fSortCol, setFSortCol] = useState('rs');
   const [fSortAsc, setFSortAsc] = useState(false);
+  const [fPresets,setFPresets]=useState<{name:string;filters:any}[]>([]);
+  const [fPresetName,setFPresetName]=useState('');
 
   const load = useCallback(async (key: string, url: string, setter: (d:any)=>void) => {
     setLoading(l=>({...l,[key]:true})); setError(e=>({...e,[key]:''}));
@@ -301,6 +304,27 @@ export function Scanner() {
   });
 
   function handleFundaSort(col: string) { if (fSortCol===col) setFSortAsc(a=>!a); else { setFSortCol(col); setFSortAsc(false); } }
+
+  function fCurrentFilters() {
+    return { fEpsRank,fRevRank,fRs,fEpsQ0Min,fRevMin,fIndustry,fSector,fTheme };
+  }
+  function saveFPreset() {
+    const name = fPresetName.trim(); if (!name) return;
+    const updated = [...fPresets.filter(p=>p.name!==name), { name, filters: fCurrentFilters() }];
+    setFPresets(updated); try { localStorage.setItem('st-funda-presets', JSON.stringify(updated)); } catch {}
+    setFPresetName('');
+  }
+  function loadFPreset(p: {name:string;filters:any}) {
+    const f = p.filters;
+    if(f.fEpsRank!==undefined) setFEpsRank(f.fEpsRank); if(f.fRevRank!==undefined) setFRevRank(f.fRevRank);
+    if(f.fRs!==undefined) setFRs(f.fRs); if(f.fEpsQ0Min!==undefined) setFEpsQ0Min(f.fEpsQ0Min);
+    if(f.fRevMin!==undefined) setFRevMin(f.fRevMin); if(f.fIndustry!==undefined) setFIndustry(f.fIndustry);
+    if(f.fSector!==undefined) setFSector(f.fSector); if(f.fTheme!==undefined) setFTheme(f.fTheme);
+  }
+  function deleteFPreset(name: string) {
+    const updated = fPresets.filter(p=>p.name!==name); setFPresets(updated);
+    try { localStorage.setItem('st-funda-presets', JSON.stringify(updated)); } catch {}
+  }
   function fundaSortIcon(col: string) { if (fSortCol!==col) return ' ↕'; return fSortAsc ? ' ↑' : ' ↓'; }
 
   function openDetail(row: any, type: string, t: string) { setDetail(row); setDetailType(type); setTicker(t); }
@@ -891,7 +915,25 @@ export function Scanner() {
             <div style={GRP}><label style={LBL}>Theme</label>
               <input style={INPUT} type="text" value={fTheme} onChange={e=>setFTheme(e.target.value)} placeholder="e.g. AI & Tech"/>
             </div>
-            <div style={{ display:'flex', gap:'4px', marginTop:'4px' }}>
+            <div style={{ borderTop:'1px solid var(--brd)', marginTop:'8px', paddingTop:'8px' }}>
+              <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'6px' }}>Saved Screens</div>
+              <div style={{ display:'flex', gap:'4px', marginBottom:'6px' }}>
+                <input style={{ ...INPUT, flex:1, fontSize:'9px', padding:'0 6px' }} type="text" value={fPresetName} onChange={e=>setFPresetName(e.target.value)} placeholder="Screen name" onKeyDown={e=>e.key==='Enter'&&saveFPreset()}/>
+                <button onClick={saveFPreset} style={{ height:'28px', padding:'0 7px', background:'var(--ac)', color:'#000', border:'none', borderRadius:'var(--r)', fontSize:'10px', fontWeight:700, cursor:'pointer', flexShrink:0 }}>Save</button>
+              </div>
+              {fPresets.length > 0 && (
+                <div style={{ maxHeight:'100px', overflowY:'auto', display:'flex', flexDirection:'column', gap:'2px' }}>
+                  {fPresets.map(p=>(
+                    <div key={p.name} style={{ display:'flex', alignItems:'center', gap:'4px' }}>
+                      <button onClick={()=>loadFPreset(p)} style={{ flex:1, height:'24px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'10px', cursor:'pointer', textAlign:'left', padding:'0 6px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</button>
+                      <button onClick={()=>deleteFPreset(p.name)} style={{ width:'24px', height:'24px', background:'none', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt3)', fontSize:'12px', cursor:'pointer', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {fPresets.length===0 && <div style={{ fontSize:'10px', color:'var(--txt4)', textAlign:'center', padding:'4px 0' }}>No saved screens yet</div>}
+            </div>
+            <div style={{ display:'flex', gap:'4px', marginTop:'8px' }}>
               <button onClick={()=>{ setFEpsRank(''); setFRevRank(''); setFRs(''); setFEpsQ0Min(''); setFRevMin(''); setFIndustry(''); setFSector(''); setFTheme(''); }}
                 style={{ flex:1, height:'28px', background:'none', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'11px', cursor:'pointer', fontFamily:'var(--sans)' }}>Reset</button>
               {SB_BTN(loading.funda?'Loading...':'Refresh',()=>load('funda',`${BASE}/fundamentals`,setFundaData),loading.funda)}
