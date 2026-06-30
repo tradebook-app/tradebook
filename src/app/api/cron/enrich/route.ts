@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Allow this function up to 60s (Vercel Hobby max). Without this, the default
+// 10s timeout kills the function before it can finish even one batch of FMP
+// calls, so progress never gets saved — same symptom as 0 enriched no matter
+// how many times you run it.
+export const maxDuration = 60;
+
 const FMP_BASE     = 'https://financialmodelingprep.com/stable';
 const FMP_KEY      = process.env.FMP_API_KEY;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -112,6 +118,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // How many NOT-yet-enriched stocks to attempt in this single invocation.
+  // Kept well under what 60s can plausibly handle (5 concurrent x 3 FMP calls
+  // per batch, ~40-50 batches fits comfortably), so this run reliably finishes
+  // and saves instead of getting killed mid-loop like before.
+  const PER_RUN_LIMIT = 400;
+
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     console.log('[enrich] Starting FMP enrichment cron...');
@@ -130,12 +142,15 @@ export async function GET(request: Request) {
     const stocks: any[] = cached.data;
     console.log(`[enrich] Loaded ${stocks.length} stocks from cache`);
 
-    // Process ALL stocks but skip already enriched ones
-    // This way each cron run picks up where it left off
-    const toEnrich = stocks.filter(s => !s.sector); // only unenriched
-    const alreadyDone = stocks.filter(s => s.sector); // already have data
+    const allUnenriched = stocks.filter(s => !s.sector); // not yet enriched
+    const alreadyDone    = stocks.filter(s => s.sector);  // already have data
 
-    console.log(`[enrich] ${alreadyDone.length} already enriched, ${toEnrich.length} remaining`);
+    // Only attempt a bounded slice this run — the rest stay queued for the
+    // next cron firing / manual trigger to pick up.
+    const toEnrich  = allUnenriched.slice(0, PER_RUN_LIMIT);
+    const stillQueued = allUnenriched.slice(PER_RUN_LIMIT);
+
+    console.log(`[enrich] ${alreadyDone.length} already enriched, ${toEnrich.length} processing this run, ${stillQueued.length} still queued`);
 
     if (toEnrich.length === 0) {
       console.log('[enrich] All stocks already enriched!');
@@ -160,9 +175,11 @@ export async function GET(request: Request) {
             const pd = await profileRes.json();
             const p  = Array.isArray(pd) ? pd[0] : pd;
             if (p) {
-              const { low: yearLow, high: yearHigh } = parseRange(p.range);
               const sector   = p.sector   || null;
               const industry = p.industry || null;
+              // NOTE: adr is intentionally NOT set here — it's computed from real
+              // Polygon daily bars in the main cache route and must not be
+              // overwritten with the old broken 52-week-range formula.
               enriched[i + idx] = {
                 ...enriched[i + idx],
                 name:     p.companyName || stock.ticker,
@@ -170,11 +187,6 @@ export async function GET(request: Request) {
                 sector,
                 industry,
                 theme:    assignTheme(sector, industry),
-                h52:      yearHigh,
-                l52:      yearLow,
-                adr:      yearHigh && yearLow
-                  ? parseFloat((((yearHigh - yearLow) / ((yearHigh + yearLow) / 2)) / 52 * 100).toFixed(2))
-                  : 0,
               };
             }
           }
@@ -224,25 +236,30 @@ export async function GET(request: Request) {
         }
       }));
 
-      // Save progress every 200 stocks
-      if (i % 200 === 0 && i > 0) {
-        await saveRanked([...enriched, ...alreadyDone], supabase);
+      // Save progress every 100 stocks within this run (more frequent than
+      // before, since each run is now bounded to PER_RUN_LIMIT anyway).
+      if (i > 0 && i % 100 === 0) {
+        await saveRanked([...enriched, ...alreadyDone, ...stillQueued], supabase);
         console.log(`[enrich] Progress: ${i}/${enriched.length}`);
       }
 
       await sleep(100); // gentle rate limiting
     }
 
-    // Final save
-    await saveRanked([...enriched, ...alreadyDone], supabase);
-    console.log(`[enrich] Done! Enriched ${enriched.length} stocks.`);
+    // Final save for this run
+    await saveRanked([...enriched, ...alreadyDone, ...stillQueued], supabase);
+    console.log(`[enrich] Done this run! Enriched ${enriched.length} stocks. ${stillQueued.length} still queued for next run.`);
 
     return NextResponse.json({
       success:         true,
       newlyEnriched:   enriched.length,
       alreadyEnriched: alreadyDone.length,
+      stillQueued:     stillQueued.length,
       total:           stocks.length,
       updated_at:      new Date().toISOString(),
+      note: stillQueued.length > 0
+        ? `${stillQueued.length} stocks still need enrichment — run this endpoint again (or wait for the next cron) to continue.`
+        : 'All stocks enriched!',
     });
 
   } catch (err: any) {
