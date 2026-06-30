@@ -884,27 +884,28 @@ export function Scanner() {
             <div style={{ background:'var(--bg2)', border:'1px solid var(--brd)', borderRadius:'var(--r2)', width:'100%', overflowX:'hidden' }}>
               <table style={{ width:'100%', borderCollapse:'collapse', tableLayout:'fixed' }}>
                 <colgroup>
-                  <col style={{width:'10%'}}/> {/* Ticker */}
-                  <col style={{width:'7%'}}/>  {/* Price */}
-                  <col style={{width:'9%'}}/>  {/* EPS Q0 */}
-                  <col style={{width:'9%'}}/>  {/* EPS Q1 */}
-                  <col style={{width:'9%'}}/>  {/* Annual EPS */}
-                  <col style={{width:'9%'}}/>  {/* Rev Growth */}
-                  <col style={{width:'7%'}}/>  {/* EPS Rank */}
-                  <col style={{width:'7%'}}/>  {/* Rev Rank */}
-                  <col style={{width:'7%'}}/>  {/* RS Rank */}
-                  <col style={{width:'13%'}}/> {/* Sector */}
-                  <col style={{width:'13%'}}/> {/* Theme */}
+                  <col style={{width:'8%'}}/>  {/* Ticker */}
+                  <col style={{width:'6%'}}/>  {/* Price */}
+                  <col style={{width:'8%'}}/>  {/* EPS Curr Q YoY */}
+                  <col style={{width:'8%'}}/>  {/* EPS Prior Q YoY */}
+                  <col style={{width:'8%'}}/>  {/* Annual EPS */}
+                  <col style={{width:'9%'}}/>  {/* Rev Growth (Q YoY) */}
+                  <col style={{width:'6%'}}/>  {/* EPS Rank */}
+                  <col style={{width:'6%'}}/>  {/* Rev Rank */}
+                  <col style={{width:'6%'}}/>  {/* RS Rank */}
+                  <col style={{width:'11%'}}/> {/* Sector */}
+                  <col style={{width:'12%'}}/> {/* Industry */}
+                  <col style={{width:'12%'}}/> {/* Theme */}
                 </colgroup>
-                <thead><tr>{['Ticker','Price','EPS Q0 YoY','EPS Q1 YoY','Annual EPS','Rev Growth','EPS Rank','Rev Rank','RS Rank','Sector','Theme'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Ticker','Price','EPS Curr Q YoY','EPS Prior Q YoY','Annual EPS','Rev Growth (Q YoY)','EPS Rank','Rev Rank','RS Rank','Sector','Industry','Theme'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
                 <tbody>
                   {loading.funda
-                    ? <tr><td colSpan={11} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading fundamentals...</td></tr>
+                    ? <tr><td colSpan={12} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading fundamentals...</td></tr>
                     : filteredFunda.length===0
-                    ? <tr><td colSpan={11} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>No results — adjust filters</td></tr>
+                    ? <tr><td colSpan={12} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>No results — adjust filters</td></tr>
                     : filteredFunda.map((r:any)=>(
                       <tr key={r.ticker} onClick={()=>setChartStock(r)} style={{ cursor:'pointer' }} {...ROW_HOVER}>
-                        <td style={{ ...TD, overflow:'hidden' }}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.ticker}</div><div style={{ fontSize:'9px', color:'var(--txt3)', overflow:'hidden', textOverflow:'ellipsis' }}>{r.name}</div></td>
+                        <td style={{ ...TD, overflow:'hidden' }}><div style={{ fontWeight:600, color:'var(--ac2)', fontSize:'12px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.ticker}</div></td>
                         <td style={{ ...TD, fontFamily:'var(--mono)' }}>{fmt$(r.price)}</td>
                         <td style={{ ...TD, color:pctColor(r.epsQ0), fontWeight:600 }}>{pct(r.epsQ0)}</td>
                         <td style={{ ...TD, color:pctColor(r.epsQ1), fontWeight:600 }}>{pct(r.epsQ1)}</td>
@@ -914,6 +915,7 @@ export function Scanner() {
                         <td style={TD}><RkBadge v={r.revRank}/></td>
                         <td style={TD}><RkBadge v={r.rs}/></td>
                         <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.sector||'—'}</td>
+                        <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.industry||'—'}</td>
                         <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.theme||'—'}</td>
                       </tr>
                     ))
