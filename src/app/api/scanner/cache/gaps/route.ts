@@ -142,6 +142,76 @@ async function fetchSnapshots(symbols: string[]): Promise<any[]> {
   return results;
 }
 
+// Fetch ~45 calendar days of daily bars (enough for a 20-day ADR and 14-day ATR
+// lookback even accounting for weekends/holidays) for a small set of tickers —
+// only called for stocks that already passed the gap filter, so this stays cheap.
+async function fetchBarsForTickers(symbols: string[]): Promise<Record<string, any[]>> {
+  const from = new Date();
+  from.setDate(from.getDate() - 45);
+  const fromStr = from.toISOString().split('T')[0];
+  const toStr   = new Date().toISOString().split('T')[0];
+  const result: Record<string, any[]> = {};
+  const CONCURRENCY = 20;
+
+  for (let i = 0; i < symbols.length; i += CONCURRENCY) {
+    const chunk = symbols.slice(i, i + CONCURRENCY);
+    await Promise.all(chunk.map(async (ticker) => {
+      let retries = 3;
+      while (retries > 0) {
+        const res = await fetch(
+          `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/day/${fromStr}/${toStr}?adjusted=true&sort=desc&limit=40&apiKey=${POLYGON_KEY}`,
+          { cache: 'no-store' }
+        );
+        if (res.status === 429) { await sleep(1500); retries--; continue; }
+        if (!res.ok) break;
+        const data = await res.json();
+        if (Array.isArray(data.results) && data.results.length > 0) {
+          result[ticker] = data.results.map((b: any) => ({ c: b.c, h: b.h, l: b.l, o: b.o, v: b.v }));
+        }
+        break;
+      }
+    }));
+  }
+  return result;
+}
+
+// ADR% — matches TradingView's "ADR% - Average Daily Range %" indicator:
+// ADR = 100 * (SMA(high/low, Length) - 1), Length = 20
+// bars is sorted desc (most recent first), so slice(0, days) = most recent N trading days.
+function calcADR(bars: any[], days = 20): number {
+  const recent = bars.slice(0, days);
+  const ratios = recent
+    .filter((b: any) => b.h && b.l && b.l !== 0)
+    .map((b: any) => b.h / b.l);
+  if (!ratios.length) return 0;
+  const avgRatio = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+  return parseFloat((100 * (avgRatio - 1)).toFixed(2));
+}
+
+// ATR (raw dollar value, e.g. TradingView's "ATR, 14") using Wilder's smoothing (RMA).
+function calcATR(bars: any[], length = 14): number {
+  if (!bars || bars.length < length + 1) return 0;
+  const chrono = [...bars].reverse(); // oldest -> newest
+  const trueRanges: number[] = [];
+  for (let i = 1; i < chrono.length; i++) {
+    const cur  = chrono[i];
+    const prev = chrono[i - 1];
+    if (!cur.h || !cur.l || !prev.c) continue;
+    const tr = Math.max(
+      cur.h - cur.l,
+      Math.abs(cur.h - prev.c),
+      Math.abs(cur.l - prev.c)
+    );
+    trueRanges.push(tr);
+  }
+  if (trueRanges.length < length) return 0;
+  let atr = trueRanges.slice(0, length).reduce((a, b) => a + b, 0) / length;
+  for (let i = length; i < trueRanges.length; i++) {
+    atr = (atr * (length - 1) + trueRanges[i]) / length;
+  }
+  return parseFloat(atr.toFixed(2));
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
@@ -163,30 +233,22 @@ export async function GET(request: Request) {
     const snapshots = await fetchSnapshots(allTickers);
     console.log(`[cache:gaps] Snapshots: ${snapshots.length}`);
 
-    // Step 3: Build gap data
-    // Polygon snapshot: prevDay = previous close, min = current minute bar (includes pre-market)
-    // lastTrade = most recent trade (includes pre-market trades during pre-market hours)
+    // Step 3: Build gap data (without ADR/ATR yet — those need daily bars, fetched
+    // afterward only for the smaller set of stocks that actually pass the gap filter)
     const gapStocks: any[] = [];
 
     for (const snap of snapshots) {
       const prevClose = snap.prevDay?.c || 0;
       if (!prevClose || prevClose <= 0) continue;
 
-      // Pre-market price: use lastTrade price during pre-market window
-      // lastTrade.p is the most recent trade price — during pre-market this is the pre-market price
       const preMarketPrice = snap.lastTrade?.p || null;
-
-      // Only include if we have a real pre-market price during pre-market hours
       if (!inPreMkt || !preMarketPrice || preMarketPrice <= 0) continue;
 
       const gap     = ((preMarketPrice - prevClose) / prevClose) * 100;
       const absGap  = Math.abs(gap);
-
-      // Filter: only meaningful gaps (>= 1%)
       if (absGap < 1) continue;
 
-      // Pre-market volume from lastQuote or day volume (approximate)
-      const preVol = snap.min?.av || 0; // accumulated volume
+      const preVol = snap.min?.av || 0;
 
       gapStocks.push({
         ticker:       snap.ticker,
@@ -196,8 +258,8 @@ export async function GET(request: Request) {
         preVol:       Math.round(preVol / 1000), // convert to K
         prevClose:    parseFloat(prevClose.toFixed(2)),
         float:        null, // FMP enrichment
-        adr:          0,    // FMP enrichment
-        atr:          0,
+        adr:          0,    // filled in below from real daily bars
+        atr:          0,    // filled in below from real daily bars
         avgVol:       snap.prevDay?.v || null,
         mktCap:       null, // FMP enrichment
         dollarVol:    null,
@@ -208,6 +270,19 @@ export async function GET(request: Request) {
         isPostMarket: false,
         updatedAt:    new Date().toISOString(),
       });
+    }
+
+    // Step 3b: Fetch real daily bars only for the stocks that passed the gap filter,
+    // then compute real ADR%/ATR from them (TradingView-matching formulas — same as
+    // the Momentum scanner). This replaces the old broken 52-week-range ADR formula
+    // and the previously hardcoded atr: 0.
+    if (gapStocks.length > 0) {
+      const barsByTicker = await fetchBarsForTickers(gapStocks.map(s => s.ticker));
+      for (const stock of gapStocks) {
+        const bars = barsByTicker[stock.ticker] || [];
+        stock.adr = calcADR(bars, 20);
+        stock.atr = calcATR(bars, 14);
+      }
     }
 
     // Sort by absolute gap descending
@@ -224,7 +299,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Step 5: FMP enrichment in background
+    // Step 5: FMP enrichment in background (sector/industry/theme/float/mktCap only —
+    // ADR/ATR are NOT touched here anymore, they're already correct from Step 3b)
     if (gapStocks.length > 0) {
       enrichGapsWithFMP(gapStocks, supabase).catch(e => console.error('[cache:gaps] FMP error:', e));
     }
@@ -241,13 +317,6 @@ export async function GET(request: Request) {
     console.error('[cache:gaps]', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
-}
-
-function parseRange(range: string | null | undefined): { low: number | null; high: number | null } {
-  if (!range) return { low: null, high: null };
-  const match = range.trim().match(/^([\d.]+)\s*-\s*([\d.]+)$/);
-  if (!match) return { low: null, high: null };
-  return { low: parseFloat(match[1]), high: parseFloat(match[2]) };
 }
 
 async function enrichGapsWithFMP(stocks: any[], supabase: any) {
@@ -268,9 +337,10 @@ async function enrichGapsWithFMP(stocks: any[], supabase: any) {
           const pd = await profileRes.json();
           const p  = Array.isArray(pd) ? pd[0] : pd;
           if (p) {
-            const { low: yearLow, high: yearHigh } = parseRange(p.range);
             const sector   = p.sector   || null;
             const industry = p.industry || null;
+            // NOTE: adr/atr intentionally NOT set here — they're computed from real
+            // Polygon daily bars before this function runs and must not be overwritten.
             enriched[i + idx] = {
               ...enriched[i + idx],
               name:      p.companyName || stock.ticker,
@@ -278,9 +348,6 @@ async function enrichGapsWithFMP(stocks: any[], supabase: any) {
               sector,
               industry,
               theme:     assignTheme(sector, industry),
-              adr:       yearHigh && yearLow
-                ? parseFloat((((yearHigh - yearLow) / ((yearHigh + yearLow) / 2)) / 52 * 100).toFixed(2))
-                : 0,
               dollarVol: p.volAvg && p.price ? parseFloat((p.volAvg * p.price).toFixed(0)) : null,
             };
           }
