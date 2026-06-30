@@ -151,6 +151,8 @@ export function Scanner() {
   const [fEpsQ0Min,setFEpsQ0Min]=useState<number|''>('');
   const [fRevMin,setFRevMin]=useState<number|''>('');
   const [fSector,setFSector]=useState('');
+  const [fIndustry,setFIndustry]=useState('');
+  const [fTheme,setFTheme]=useState('');
 
   const load = useCallback(async (key: string, url: string, setter: (d:any)=>void) => {
     setLoading(l=>({...l,[key]:true})); setError(e=>({...e,[key]:''}));
@@ -276,7 +278,9 @@ export function Scanner() {
     (fRs===''     ||( r.rs!=null      && r.rs>=fRs)) &&
     (fEpsQ0Min===''||(r.epsQ0!=null   && r.epsQ0>=fEpsQ0Min)) &&
     (fRevMin==='' ||(r.revGrowth!=null && r.revGrowth>=fRevMin)) &&
-    (fSector==='' || (r.sector||'').toLowerCase().includes(fSector.toLowerCase()))
+    (fIndustry==='' || (r.industry||'').toLowerCase().includes(fIndustry.toLowerCase())) &&
+    (fSector==='' || (r.sector||'').toLowerCase().includes(fSector.toLowerCase())) &&
+    (fTheme==='' || (r.theme||'').toLowerCase().includes(fTheme.toLowerCase()))
   );
 
   function openDetail(row: any, type: string, t: string) { setDetail(row); setDetailType(type); setTicker(t); }
@@ -858,11 +862,17 @@ export function Scanner() {
                 <input style={INPUT} type="number" value={v} onChange={e=>s(e.target.value===''?'':+e.target.value)} placeholder="Min"/>
               </div>
             ))}
+            <div style={GRP}><label style={LBL}>Industry</label>
+              <input style={INPUT} type="text" value={fIndustry} onChange={e=>setFIndustry(e.target.value)} placeholder="e.g. Semiconductors"/>
+            </div>
             <div style={GRP}><label style={LBL}>Sector</label>
               <input style={INPUT} type="text" value={fSector} onChange={e=>setFSector(e.target.value)} placeholder="e.g. Technology"/>
             </div>
+            <div style={GRP}><label style={LBL}>Theme</label>
+              <input style={INPUT} type="text" value={fTheme} onChange={e=>setFTheme(e.target.value)} placeholder="e.g. AI & Tech"/>
+            </div>
             <div style={{ display:'flex', gap:'4px', marginTop:'4px' }}>
-              <button onClick={()=>{ setFEpsRank(''); setFRevRank(''); setFRs(''); setFEpsQ0Min(''); setFRevMin(''); setFSector(''); }}
+              <button onClick={()=>{ setFEpsRank(''); setFRevRank(''); setFRs(''); setFEpsQ0Min(''); setFRevMin(''); setFIndustry(''); setFSector(''); setFTheme(''); }}
                 style={{ flex:1, height:'28px', background:'none', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt2)', fontSize:'11px', cursor:'pointer', fontFamily:'var(--sans)' }}>Reset</button>
               {SB_BTN(loading.funda?'Loading...':'Refresh',()=>load('funda',`${BASE}/fundamentals`,setFundaData),loading.funda)}
             </div>
@@ -893,11 +903,11 @@ export function Scanner() {
                   <col style={{width:'6%'}}/>  {/* EPS Rank */}
                   <col style={{width:'6%'}}/>  {/* Rev Rank */}
                   <col style={{width:'6%'}}/>  {/* RS Rank */}
-                  <col style={{width:'11%'}}/> {/* Sector */}
                   <col style={{width:'12%'}}/> {/* Industry */}
+                  <col style={{width:'11%'}}/> {/* Sector */}
                   <col style={{width:'12%'}}/> {/* Theme */}
                 </colgroup>
-                <thead><tr>{['Ticker','Price','EPS Curr Q YoY','EPS Prior Q YoY','Annual EPS','Rev Growth (Q YoY)','EPS Rank','Rev Rank','RS Rank','Sector','Industry','Theme'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Ticker','Price','EPS Curr Q YoY','EPS Prior Q YoY','Annual EPS','Rev Growth (Q YoY)','EPS Rank','Rev Rank','RS Rank','Industry','Sector','Theme'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
                 <tbody>
                   {loading.funda
                     ? <tr><td colSpan={12} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading fundamentals...</td></tr>
@@ -914,8 +924,8 @@ export function Scanner() {
                         <td style={TD}><RkBadge v={r.epsRank}/></td>
                         <td style={TD}><RkBadge v={r.revRank}/></td>
                         <td style={TD}><RkBadge v={r.rs}/></td>
-                        <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.sector||'—'}</td>
                         <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.industry||'—'}</td>
+                        <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.sector||'—'}</td>
                         <td style={{ ...TD, color:'var(--txt3)', fontSize:'10px', overflow:'hidden', textOverflow:'ellipsis' }}>{r.theme||'—'}</td>
                       </tr>
                     ))
