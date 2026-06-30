@@ -153,6 +153,8 @@ export function Scanner() {
   const [fSector,setFSector]=useState('');
   const [fIndustry,setFIndustry]=useState('');
   const [fTheme,setFTheme]=useState('');
+  const [fSortCol, setFSortCol] = useState('rs');
+  const [fSortAsc, setFSortAsc] = useState(false);
 
   const load = useCallback(async (key: string, url: string, setter: (d:any)=>void) => {
     setLoading(l=>({...l,[key]:true})); setError(e=>({...e,[key]:''}));
@@ -281,7 +283,25 @@ export function Scanner() {
     (fIndustry==='' || (r.industry||'').toLowerCase().includes(fIndustry.toLowerCase())) &&
     (fSector==='' || (r.sector||'').toLowerCase().includes(fSector.toLowerCase())) &&
     (fTheme==='' || (r.theme||'').toLowerCase().includes(fTheme.toLowerCase()))
-  );
+  ).sort((a:any,b:any) => {
+    const dir = fSortAsc ? 1 : -1;
+    if (fSortCol==='ticker')   return dir*a.ticker.localeCompare(b.ticker);
+    if (fSortCol==='price')    return dir*((a.price??0)-(b.price??0));
+    if (fSortCol==='epsQ0')    return dir*((a.epsQ0??-Infinity)-(b.epsQ0??-Infinity));
+    if (fSortCol==='epsQ1')    return dir*((a.epsQ1??-Infinity)-(b.epsQ1??-Infinity));
+    if (fSortCol==='epsAnn')   return dir*((a.epsAnn??-Infinity)-(b.epsAnn??-Infinity));
+    if (fSortCol==='revGrowth')return dir*((a.revGrowth??-Infinity)-(b.revGrowth??-Infinity));
+    if (fSortCol==='epsRank')  return dir*((a.epsRank??-1)-(b.epsRank??-1));
+    if (fSortCol==='revRank')  return dir*((a.revRank??-1)-(b.revRank??-1));
+    if (fSortCol==='rs')       return dir*((a.rs??-1)-(b.rs??-1));
+    if (fSortCol==='industry') return dir*((a.industry||'').localeCompare(b.industry||''));
+    if (fSortCol==='sector')   return dir*((a.sector||'').localeCompare(b.sector||''));
+    if (fSortCol==='theme')    return dir*((a.theme||'').localeCompare(b.theme||''));
+    return (b.rs??-1)-(a.rs??-1);
+  });
+
+  function handleFundaSort(col: string) { if (fSortCol===col) setFSortAsc(a=>!a); else { setFSortCol(col); setFSortAsc(false); } }
+  function fundaSortIcon(col: string) { if (fSortCol!==col) return ' ↕'; return fSortAsc ? ' ↑' : ' ↓'; }
 
   function openDetail(row: any, type: string, t: string) { setDetail(row); setDetailType(type); setTicker(t); }
 
@@ -907,7 +927,11 @@ export function Scanner() {
                   <col style={{width:'11%'}}/> {/* Sector */}
                   <col style={{width:'12%'}}/> {/* Theme */}
                 </colgroup>
-                <thead><tr>{['Ticker','Price','EPS Curr Q YoY','EPS Prior Q YoY','Annual EPS','Rev Growth (Q YoY)','EPS Rank','Rev Rank','RS Rank','Industry','Sector','Theme'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <thead><tr>
+                  {([['ticker','Ticker'],['price','Price'],['epsQ0','EPS Curr Q YoY'],['epsQ1','EPS Prior Q YoY'],['epsAnn','Annual EPS'],['revGrowth','Rev Growth (Q YoY)'],['epsRank','EPS Rank'],['revRank','Rev Rank'],['rs','RS Rank'],['industry','Industry'],['sector','Sector'],['theme','Theme']] as [string,string][]).map(([col,label])=>(
+                    <th key={col} style={TH} onClick={()=>handleFundaSort(col)}>{label}{fundaSortIcon(col)}</th>
+                  ))}
+                </tr></thead>
                 <tbody>
                   {loading.funda
                     ? <tr><td colSpan={12} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading fundamentals...</td></tr>
