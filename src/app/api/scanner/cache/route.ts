@@ -10,8 +10,8 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-async function fetchAllTickers(): Promise<string[]> {
-  const tickers: string[] = [];
+async function fetchAllTickers(): Promise<{ ticker: string; type: string }[]> {
+  const tickers: { ticker: string; type: string }[] = [];
   let url = `https://api.polygon.io/v3/reference/tickers?market=stocks&active=true&limit=1000&apiKey=${POLYGON_KEY}`;
   while (url) {
     const res = await fetch(url, { cache: 'no-store' });
@@ -21,7 +21,7 @@ async function fetchAllTickers(): Promise<string[]> {
       data.results.forEach((t: any) => {
         const sym = t.ticker;
         if (sym && !sym.includes('.') && !sym.includes('/') && sym.length <= 5) {
-          tickers.push(sym);
+          tickers.push({ ticker: sym, type: t.type || 'CS' });
         }
       });
     }
@@ -163,8 +163,10 @@ export async function GET(request: Request) {
     const allTickers = await fetchAllTickers();
     if (!allTickers.length) return NextResponse.json({ error: 'Failed to fetch tickers' }, { status: 500 });
     console.log(`[cache] Universe: ${allTickers.length} tickers`);
+    const tickerTypeMap = new Map(allTickers.map(t => [t.ticker, t.type]));
+    const tickerSymbols = allTickers.map(t => t.ticker);
 
-    const snapshots = await fetchSnapshots(allTickers);
+    const snapshots = await fetchSnapshots(tickerSymbols);
     console.log(`[cache] Snapshots: ${snapshots.length}`);
 
     const filtered = snapshots.filter(s => {
@@ -210,6 +212,7 @@ export async function GET(request: Request) {
       results.push({
         ticker,
         name:        ticker,
+        isEtf:       tickerTypeMap.get(ticker) === 'ETF',
         price:       parseFloat(price.toFixed(2)),
         change:      parseFloat(changeP.toFixed(2)),
         open:        parseFloat(open.toFixed(2)),

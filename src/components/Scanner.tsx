@@ -24,7 +24,7 @@ function RkBadge({ v }: { v: number | null }) {
 }
 
 type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; avgVol:number|null; mktCap:number|null; dollarVol:number|null; sector:string|null; industry:string|null; theme:string|null; isPreMarket:boolean; isPostMarket:boolean };
-type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; atr:number; rs:number; epsRank:number|null; revRank:number|null; sector:string|null; industry:string|null; theme:string|null; d50:number|null; d200:number|null };
+type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; atr:number; rs:number; epsRank:number|null; revRank:number|null; sector:string|null; industry:string|null; theme:string|null; d50:number|null; d200:number|null; isEtf?:boolean };
 type SectorData = { name:string; etf:string; price:number; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number };
 type Theme      = { name:string; etf:string; sector:string; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number; price:number; stocks:any[] };
 type ThemeResponse = { sectors: SectorData[]; themes: Theme[] };
@@ -128,6 +128,7 @@ export function Scanner() {
   const [mDolVolMin,setMDolVolMin]=useState(''); const [mDolVolMax,setMDolVolMax]=useState('');
   const [mMktCapMin,setMMktCapMin]=useState(''); const [mMktCapMax,setMMktCapMax]=useState('');
   const [mAtrMin,setMAtrMin]=useState<number|''>(''); const [mAtrMax,setMAtrMax]=useState<number|''>('');
+  const [mIncludeEtfs,setMIncludeEtfs]=useState(false);
   const [mPresets,setMPresets]=useState<{name:string;filters:any}[]>([]);
   const [mPresetName,setMPresetName]=useState('');
   const [fEpsRank,setFEpsRank]=useState<number|''>('');
@@ -190,7 +191,7 @@ export function Scanner() {
   const mMktCapMinN = parseKMB(mMktCapMin); const mMktCapMaxN = parseKMB(mMktCapMax);
 
   function mCurrentFilters() {
-    return { mM1,mM3,mM6,mAdr,mPMin,mPMax,mRs,mEps,mRev,mAtrMin,mAtrMax,mAvgVolMin,mAvgVolMax,mDolVolMin,mDolVolMax,mMktCapMin,mMktCapMax };
+    return { mM1,mM3,mM6,mAdr,mPMin,mPMax,mRs,mEps,mRev,mAtrMin,mAtrMax,mAvgVolMin,mAvgVolMax,mDolVolMin,mDolVolMax,mMktCapMin,mMktCapMax,mIncludeEtfs };
   }
   function saveMPreset() {
     const name = mPresetName.trim(); if (!name) return;
@@ -207,6 +208,7 @@ export function Scanner() {
     if(f.mAvgVolMin!==undefined) setMAvgVolMin(f.mAvgVolMin); if(f.mAvgVolMax!==undefined) setMAvgVolMax(f.mAvgVolMax);
     if(f.mDolVolMin!==undefined) setMDolVolMin(f.mDolVolMin); if(f.mDolVolMax!==undefined) setMDolVolMax(f.mDolVolMax);
     if(f.mMktCapMin!==undefined) setMMktCapMin(f.mMktCapMin); if(f.mMktCapMax!==undefined) setMMktCapMax(f.mMktCapMax);
+    if(f.mIncludeEtfs!==undefined) setMIncludeEtfs(f.mIncludeEtfs);
   }
   function deleteMPreset(name: string) {
     const updated = mPresets.filter(p=>p.name!==name); setMPresets(updated);
@@ -216,11 +218,12 @@ export function Scanner() {
     setMM1(''); setMM3(''); setMM6(''); setMAdr(''); setMPMin(''); setMPMax('');
     setMRs(''); setMEps(''); setMRevR(''); setMAtrMin(''); setMAtrMax('');
     setMAvgVolMin(''); setMAvgVolMax(''); setMDolVolMin(''); setMDolVolMax('');
-    setMMktCapMin(''); setMMktCapMax('');
+    setMMktCapMin(''); setMMktCapMax(''); setMIncludeEtfs(false);
   }
 
   const filteredMom = momData
     .filter(r=>
+      (mIncludeEtfs||!r.isEtf) &&
       (mM1===''||r.m1>=mM1) &&
       (mM3===''||r.m3>=mM3) &&
       (mM6===''||r.m6>=mM6) &&
@@ -649,6 +652,10 @@ export function Scanner() {
             </div>
             <div style={GRP}><label style={LBL}>Mkt Cap</label>
               <div style={{display:'flex',gap:'4px'}}><input style={INPUT_HALF} type="text" value={mMktCapMin} onChange={e=>setMMktCapMin(e.target.value)} placeholder="Min"/><input style={INPUT_HALF} type="text" value={mMktCapMax} onChange={e=>setMMktCapMax(e.target.value)} placeholder="Max"/></div>
+            </div>
+            <div style={{ ...GRP, display:'flex', alignItems:'center', gap:'6px' }}>
+              <input type="checkbox" id="mIncludeEtfs" checked={mIncludeEtfs} onChange={e=>setMIncludeEtfs(e.target.checked)} style={{ width:'13px', height:'13px', accentColor:'var(--ac)', cursor:'pointer' }}/>
+              <label htmlFor="mIncludeEtfs" style={{ fontSize:'10px', color:'var(--txt2)', cursor:'pointer', userSelect:'none' as const }}>Include ETFs</label>
             </div>
             {/* ── Saved Screens ── */}
             <div style={{ borderTop:'1px solid var(--brd)', marginTop:'8px', paddingTop:'8px' }}>
