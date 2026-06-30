@@ -108,6 +108,19 @@ function perf(bars: any[], days: number): number {
   return ((latest - past) / Math.abs(past)) * 100;
 }
 
+// ADR% — matches TradingView's "ADR% - Average Daily Range %" indicator:
+// ADR = 100 * (SMA(high/low, Length) - 1), Length = 20
+// bars is sorted desc (most recent first), so slice(0, days) = most recent N trading days.
+function calcADR(bars: any[], days = 20): number {
+  const recent = bars.slice(0, days);
+  const ratios = recent
+    .filter((b: any) => b.h && b.l && b.l !== 0)
+    .map((b: any) => b.h / b.l);
+  if (!ratios.length) return 0;
+  const avgRatio = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+  return parseFloat((100 * (avgRatio - 1)).toFixed(2));
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
@@ -159,6 +172,7 @@ export async function GET(request: Request) {
       // Weighted RS score: 40% 1M + 35% 3M + 25% 6M (favors recent momentum)
       const rsScore = (m1 * 0.40) + (m3 * 0.35) + (m6 * 0.25);
       const atrPct = price > 0 && high && low ? ((high - low) / price) * 100 : 0;
+      const adr    = calcADR(bars, 20);
 
       const closes = bars.map((b: any) => b.c).filter(Boolean);
       const sma    = (n: number) => closes.length >= n
@@ -177,7 +191,7 @@ export async function GET(request: Request) {
         m3:          parseFloat(m3.toFixed(1)),
         m6:          parseFloat(m6.toFixed(1)),
         rsScore:     parseFloat(rsScore.toFixed(2)),
-        adr:         0,
+        adr,
         atrPct:      parseFloat(atrPct.toFixed(2)),
         d50:         sma(50)  ? parseFloat(sma(50)!.toFixed(2))  : null,
         d200:        sma(200) ? parseFloat(sma(200)!.toFixed(2)) : null,
@@ -253,6 +267,9 @@ async function enrichWithFMP(stocks: any[], supabase: any) {
             const { low: yearLow, high: yearHigh } = parseRange(p.range);
             const sector   = p.sector   || null;
             const industry = p.industry || null;
+            // NOTE: ADR% is intentionally NOT set here. It's computed once from
+            // Polygon daily bars in the main cache route (calcADR, TradingView formula)
+            // and must not be overwritten with FMP's 52-week range data.
             enriched[i + idx] = {
               ...enriched[i + idx],
               name:     p.companyName || stock.ticker,
@@ -262,9 +279,6 @@ async function enrichWithFMP(stocks: any[], supabase: any) {
               theme:    assignTheme(sector, industry),
               h52:      yearHigh,
               l52:      yearLow,
-              adr:      yearHigh && yearLow
-                ? parseFloat((((yearHigh - yearLow) / ((yearHigh + yearLow) / 2)) / 52 * 100).toFixed(2))
-                : 0,
             };
           }
         }
@@ -326,13 +340,16 @@ async function enrichWithFMP(stocks: any[], supabase: any) {
 }
 
 async function saveRanked(enriched: any[], supabase: any) {
-  const allEps = enriched.map(r => r.epsCombined).filter((v): v is number => v !== null);
-  const allRev = enriched.map(r => r.revGrowth).filter((v): v is number => v !== null);
-  const allM6  = enriched.map(r => r.m6);
+  const allEps     = enriched.map(r => r.epsCombined).filter((v): v is number => v !== null);
+  const allRev     = enriched.map(r => r.revGrowth).filter((v): v is number => v !== null);
+  const allRsScore = enriched.map(r => r.rsScore);
 
   const reranked = enriched.map(r => ({
     ...r,
-    rs:      rank99(r.m6,          allM6,   true),
+    // IMPORTANT: rank by the weighted rsScore (40% 1M + 35% 3M + 25% 6M), NOT raw m6.
+    // Previously this fell back to rank99(r.m6, allM6, true), which silently
+    // discarded the weighted RS formula every time enrichment ran.
+    rs:      rank99(r.rsScore, allRsScore, true),
     epsRank: r.epsCombined != null ? rank99(r.epsCombined, allEps, true) : null,
     revRank: r.revGrowth   != null ? rank99(r.revGrowth,   allRev, true) : null,
   })).sort((a, b) => b.rs - a.rs);
