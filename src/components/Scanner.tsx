@@ -897,7 +897,7 @@ export function Scanner() {
                   <col style={{width:'12%'}}/> {/* Industry */}
                   <col style={{width:'12%'}}/> {/* Theme */}
                 </colgroup>
-                <thead><tr>{['Ticker','Price','EPS Curr Q YoY','EPS Prior Q YoY','Annual EPS','Rev Growth (Combined Q YoY)','EPS Rank','Rev Rank','RS Rank','Sector','Industry','Theme'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Ticker','Price','EPS Curr Q YoY','EPS Prior Q YoY','Annual EPS','Rev Growth','EPS Rank','Rev Rank','RS Rank','Sector','Industry','Theme'].map(h=><th key={h} style={TH} title={h==='Rev Growth'?'Average of current-quarter and prior-quarter YoY revenue growth':undefined}>{h}</th>)}</tr></thead>
                 <tbody>
                   {loading.funda
                     ? <tr><td colSpan={12} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading fundamentals...</td></tr>
