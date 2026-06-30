@@ -14,6 +14,21 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
+// Wraps fetch with a hard timeout so one slow/hanging FMP call can't stall
+// its entire batch (Promise.all waits for the slowest member otherwise).
+async function fetchWithTimeout(url: string, ms = 5000): Promise<Response | null> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  try {
+    const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+    return res;
+  } catch (e) {
+    return null;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 function parseRange(range: string | null | undefined): { low: number | null; high: number | null } {
   if (!range) return { low: null, high: null };
   const match = range.trim().match(/^([\d.]+)\s*-\s*([\d.]+)$/);
@@ -119,10 +134,7 @@ export async function GET(request: Request) {
   }
 
   // How many NOT-yet-enriched stocks to attempt in this single invocation.
-  // Kept well under what 60s can plausibly handle (5 concurrent x 3 FMP calls
-  // per batch, ~40-50 batches fits comfortably), so this run reliably finishes
-  // and saves instead of getting killed mid-loop like before.
-  const PER_RUN_LIMIT = 400;
+  const PER_RUN_LIMIT = 800;
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -157,7 +169,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, enriched: 0, message: 'All stocks already enriched' });
     }
 
-    const BATCH = 5;
+    const BATCH = 15;
     const enriched = [...toEnrich];
 
     for (let i = 0; i < enriched.length; i += BATCH) {
@@ -166,12 +178,12 @@ export async function GET(request: Request) {
       await Promise.all(batch.map(async (stock, idx) => {
         try {
           const [profileRes, incomeRes, annualRes] = await Promise.all([
-            fetch(`${FMP_BASE}/profile?symbol=${stock.ticker}&apikey=${FMP_KEY}`, { cache: 'no-store' }),
-            fetch(`${FMP_BASE}/income-statement?symbol=${stock.ticker}&period=quarter&limit=8&apikey=${FMP_KEY}`, { cache: 'no-store' }),
-            fetch(`${FMP_BASE}/income-statement?symbol=${stock.ticker}&period=annual&limit=2&apikey=${FMP_KEY}`, { cache: 'no-store' }),
+            fetchWithTimeout(`${FMP_BASE}/profile?symbol=${stock.ticker}&apikey=${FMP_KEY}`),
+            fetchWithTimeout(`${FMP_BASE}/income-statement?symbol=${stock.ticker}&period=quarter&limit=8&apikey=${FMP_KEY}`),
+            fetchWithTimeout(`${FMP_BASE}/income-statement?symbol=${stock.ticker}&period=annual&limit=2&apikey=${FMP_KEY}`),
           ]);
 
-          if (profileRes.ok) {
+          if (profileRes?.ok) {
             const pd = await profileRes.json();
             const p  = Array.isArray(pd) ? pd[0] : pd;
             if (p) {
@@ -191,7 +203,7 @@ export async function GET(request: Request) {
             }
           }
 
-          if (incomeRes.ok) {
+          if (incomeRes?.ok) {
             const stmts = await incomeRes.json();
             if (Array.isArray(stmts) && stmts.length >= 5) {
               const eps0 = stmts[0]?.eps ?? null;
@@ -207,7 +219,7 @@ export async function GET(request: Request) {
                 ? parseFloat(((eps1 - eps5) / Math.abs(eps5) * 100).toFixed(2)) : null;
 
               let epsAnn: number | null = null;
-              if (annualRes.ok) {
+              if (annualRes?.ok) {
                 const annual = await annualRes.json();
                 if (Array.isArray(annual) && annual.length >= 2) {
                   const ann0 = annual[0]?.eps ?? null;
@@ -236,14 +248,11 @@ export async function GET(request: Request) {
         }
       }));
 
-      // Save progress every 100 stocks within this run (more frequent than
-      // before, since each run is now bounded to PER_RUN_LIMIT anyway).
+      // Save progress every 100 stocks within this run.
       if (i > 0 && i % 100 === 0) {
         await saveRanked([...enriched, ...alreadyDone, ...stillQueued], supabase);
         console.log(`[enrich] Progress: ${i}/${enriched.length}`);
       }
-
-      await sleep(100); // gentle rate limiting
     }
 
     // Final save for this run
