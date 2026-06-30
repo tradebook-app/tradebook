@@ -1,4 +1,4 @@
-import { TradeRow, DateRangeFilter, KPIData, DayStats, SymbolStats } from '@/lib/types'
+import { TradeRow, DateRangeFilter, KPIData, DayStats, SymbolStats, StrategyStats } from '@/lib/types'
 import { format, startOfWeek, startOfMonth, startOfYear, isToday } from 'date-fns'
 
 // ─── Date filtering ──────────────────────────────────────────────────────────
@@ -208,4 +208,46 @@ export function holdTime(entryDate: string, exitDate?: string | null): string {
   return days < 2
     ? `1d ${Math.round((ms % 86400000) / 3600000)}h`
     : `${days.toFixed(1)} days`
+}
+
+// ─── Strategy stats ──────────────────────────────────────────────────────────
+// A trade belongs to a strategy if it's tagged with strategy_id, OR — for
+// trades logged before strategies had real linking — its free-text `setup`
+// matches the strategy name. This keeps stats accurate for historical trades
+// without requiring a backfill to run perfectly.
+
+export function tradesForStrategy(trades: TradeRow[], strategy: { id: string; name: string }): TradeRow[] {
+  const nameKey = strategy.name.trim().toLowerCase()
+  return trades.filter(t =>
+    t.strategy_id === strategy.id ||
+    (!t.strategy_id && (t.setup || '').trim().toLowerCase() === nameKey)
+  )
+}
+
+export function calcStrategyStats(trades: TradeRow[], strategy: { id: string; name: string }): StrategyStats {
+  const closed = closedTrades(tradesForStrategy(trades, strategy))
+  const wins   = closed.filter(t => t.pnl > 0)
+  const losses = closed.filter(t => t.pnl < 0)
+
+  const netPnl    = closed.reduce((s, t) => s + t.pnl, 0)
+  const grossWin  = wins.reduce((s, t) => s + t.pnl, 0)
+  const grossLoss = Math.abs(losses.reduce((s, t) => s + t.pnl, 0))
+
+  const winRate = closed.length ? (wins.length / closed.length) * 100 : 0
+  const profitFactor = grossLoss > 0 ? grossWin / grossLoss : (grossWin > 0 ? grossWin : 0)
+  const avgWin  = wins.length ? grossWin / wins.length : 0
+  const avgLoss = losses.length ? grossLoss / losses.length : 0
+
+  return {
+    trades: closed.length,
+    wins: wins.length,
+    losses: losses.length,
+    winRate,
+    profitFactor,
+    netPnl,
+    grossWin,
+    grossLoss,
+    avgWin,
+    avgLoss,
+  }
 }

@@ -22,6 +22,7 @@ export type TradeRow = {
   tags: string[]
   notes: string | null
   screenshot_url: string | null
+  strategy_id: string | null
   created_at: string
   updated_at: string
 }
@@ -47,9 +48,32 @@ export type StrategyRow = {
   updated_at: string
 }
 
+export type StrategyRuleGroupRow = {
+  id: string
+  strategy_id: string
+  name: string
+  position: number
+  created_at: string
+}
+
+export type StrategyRuleRow = {
+  id: string
+  group_id: string
+  text: string
+  position: number
+  created_at: string
+}
+
+// Nested shape used everywhere in the UI: a group with its rules attached
+export type StrategyRuleGroupWithRules = StrategyRuleGroupRow & {
+  rules: StrategyRuleRow[]
+}
+
 // ─── Insert Types (omit auto-generated fields) ───────────────────────────────
 
-export type TradeInsert = Omit<TradeRow, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+export type TradeInsert = Omit<TradeRow, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'strategy_id'> & {
+  strategy_id?: string | null
+}
 export type NoteInsert  = Omit<NoteRow,  'id' | 'user_id' | 'created_at' | 'updated_at'>
 export type StrategyInsert = Omit<StrategyRow, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 
@@ -93,6 +117,14 @@ export type StrategyFormData = {
   rules: string
   imgFile: File | null
   imgPreview: string | null
+}
+
+// A rule group as edited in the strategy form, before it's saved to the DB
+// (no ids yet for new groups/rules — those get assigned on save)
+export type StrategyRuleGroupDraft = {
+  id?: string        // present if editing an existing group
+  name: string
+  rules: { id?: string; text: string }[]
 }
 
 // ─── Dashboard / Analytics Types ─────────────────────────────────────────────
@@ -141,6 +173,20 @@ export type KPIData = {
   totalTrades: number
 }
 
+// Stats for a single strategy, computed from the trades tagged to it
+export type StrategyStats = {
+  trades: number
+  wins: number
+  losses: number
+  winRate: number
+  profitFactor: number
+  netPnl: number
+  grossWin: number
+  grossLoss: number
+  avgWin: number
+  avgLoss: number
+}
+
 // ─── Date Range Filter ───────────────────────────────────────────────────────
 
 export type DateRange = 'all' | 'today' | 'week' | 'month' | 'year' | 'custom'
@@ -185,6 +231,16 @@ export type Database = {
         Row: StrategyRow
         Insert: StrategyInsert & { user_id: string }
         Update: StrategyUpdate
+      }
+      strategy_rule_groups: {
+        Row: StrategyRuleGroupRow
+        Insert: Omit<StrategyRuleGroupRow, 'id' | 'created_at'>
+        Update: Partial<Omit<StrategyRuleGroupRow, 'id' | 'created_at'>>
+      }
+      strategy_rules: {
+        Row: StrategyRuleRow
+        Insert: Omit<StrategyRuleRow, 'id' | 'created_at'>
+        Update: Partial<Omit<StrategyRuleRow, 'id' | 'created_at'>>
       }
     }
   }
