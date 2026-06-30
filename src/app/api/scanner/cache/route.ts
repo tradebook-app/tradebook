@@ -141,7 +141,7 @@ export async function GET(request: Request) {
 
     const filtered = snapshots.filter(s => {
       const price  = s.day?.c || s.prevDay?.c || 0;
-      const volume = s.day?.v || 0;
+      const volume = s.day?.v || s.prevDay?.v || 0;
       return price > 0 && volume > 1000;
     });
     console.log(`[cache] After filter: ${filtered.length}`);
