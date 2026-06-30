@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Allow this function up to 60s (Vercel Hobby max). Without this, the default
-// 10s timeout kills the function before it can finish even one batch of FMP
-// calls, so progress never gets saved — same symptom as 0 enriched no matter
-// how many times you run it.
-export const maxDuration = 60;
+// Pro plan allows up to 300s (vs Hobby's 60s max), so each run can process
+// far more stocks before being cut off.
+export const maxDuration = 300;
 
 const FMP_BASE     = 'https://financialmodelingprep.com/stable';
 const FMP_KEY      = process.env.FMP_API_KEY;
@@ -134,7 +132,8 @@ export async function GET(request: Request) {
   }
 
   // How many NOT-yet-enriched stocks to attempt in this single invocation.
-  const PER_RUN_LIMIT = 800;
+  // Raised for Pro's 300s limit (was 800 on Hobby's 60s).
+  const PER_RUN_LIMIT = 3500;
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -169,7 +168,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, enriched: 0, message: 'All stocks already enriched' });
     }
 
-    const BATCH = 15;
+    const BATCH = 25;
     const enriched = [...toEnrich];
 
     for (let i = 0; i < enriched.length; i += BATCH) {
