@@ -559,8 +559,8 @@ export function Scanner() {
             <div style={{ borderTop:'1px solid var(--brd)', marginTop:'8px', paddingTop:'8px' }}>
               <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'6px' }}>Saved Screens</div>
               <div style={{ display:'flex', gap:'4px', marginBottom:'6px' }}>
-                <input style={{ ...INPUT, flex:1, fontSize:'10px' }} type="text" value={presetName} onChange={e=>setPresetName(e.target.value)} placeholder="Screen name" onKeyDown={e=>e.key==='Enter'&&savePreset()}/>
-                <button onClick={savePreset} style={{ height:'28px', padding:'0 8px', background:'var(--ac)', color:'#000', border:'none', borderRadius:'var(--r)', fontSize:'11px', fontWeight:700, cursor:'pointer', flexShrink:0 }}>Save</button>
+                <input style={{ ...INPUT, flex:1, fontSize:'9px', padding:'0 6px' }} type="text" value={presetName} onChange={e=>setPresetName(e.target.value)} placeholder="Screen name" onKeyDown={e=>e.key==='Enter'&&savePreset()}/>
+                <button onClick={savePreset} style={{ height:'28px', padding:'0 7px', background:'var(--ac)', color:'#000', border:'none', borderRadius:'var(--r)', fontSize:'10px', fontWeight:700, cursor:'pointer', flexShrink:0 }}>Save</button>
               </div>
               {presets.length > 0 && (
                 <div style={{ maxHeight:'100px', overflowY:'auto', display:'flex', flexDirection:'column', gap:'2px' }}>
@@ -654,8 +654,8 @@ export function Scanner() {
             <div style={{ borderTop:'1px solid var(--brd)', marginTop:'8px', paddingTop:'8px' }}>
               <div style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--txt3)', marginBottom:'6px' }}>Saved Screens</div>
               <div style={{ display:'flex', gap:'4px', marginBottom:'6px' }}>
-                <input style={{ ...INPUT, flex:1, fontSize:'10px' }} type="text" value={mPresetName} onChange={e=>setMPresetName(e.target.value)} placeholder="Screen name" onKeyDown={e=>e.key==='Enter'&&saveMPreset()}/>
-                <button onClick={saveMPreset} style={{ height:'28px', padding:'0 8px', background:'var(--ac)', color:'#000', border:'none', borderRadius:'var(--r)', fontSize:'11px', fontWeight:700, cursor:'pointer', flexShrink:0 }}>Save</button>
+                <input style={{ ...INPUT, flex:1, fontSize:'9px', padding:'0 6px' }} type="text" value={mPresetName} onChange={e=>setMPresetName(e.target.value)} placeholder="Screen name" onKeyDown={e=>e.key==='Enter'&&saveMPreset()}/>
+                <button onClick={saveMPreset} style={{ height:'28px', padding:'0 7px', background:'var(--ac)', color:'#000', border:'none', borderRadius:'var(--r)', fontSize:'10px', fontWeight:700, cursor:'pointer', flexShrink:0 }}>Save</button>
               </div>
               {mPresets.length > 0 && (
                 <div style={{ maxHeight:'100px', overflowY:'auto', display:'flex', flexDirection:'column', gap:'2px' }}>
