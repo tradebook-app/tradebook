@@ -211,7 +211,9 @@ export async function GET(request: Request) {
               const eps4 = stmts[4]?.eps ?? null;
               const eps5 = stmts[5]?.eps ?? null;
               const rev0 = stmts[0]?.revenue ?? null;
+              const rev1 = stmts[1]?.revenue ?? null;
               const rev4 = stmts[4]?.revenue ?? null;
+              const rev5 = stmts[5]?.revenue ?? null;
 
               const epsQ0 = eps0 != null && eps4 != null && eps4 !== 0
                 ? parseFloat(((eps0 - eps4) / Math.abs(eps4) * 100).toFixed(2)) : null;
@@ -234,12 +236,20 @@ export async function GET(request: Request) {
                 ? parseFloat((epsComponents.reduce((a, b) => a + b, 0) / epsComponents.length).toFixed(2))
                 : null;
 
-              const revGrowth = rev0 != null && rev4 != null && rev4 !== 0
+              // Revenue growth, combined: current-quarter YoY + prior-quarter YoY
+              // averaged together (same approach as epsCombined).
+              const revQ0 = rev0 != null && rev4 != null && rev4 !== 0
                 ? parseFloat(((rev0 - rev4) / Math.abs(rev4) * 100).toFixed(2)) : null;
+              const revQ1 = rev1 != null && rev5 != null && rev5 !== 0
+                ? parseFloat(((rev1 - rev5) / Math.abs(rev5) * 100).toFixed(2)) : null;
+              const revComponents = [revQ0, revQ1].filter((v): v is number => v !== null);
+              const revGrowth = revComponents.length > 0
+                ? parseFloat((revComponents.reduce((a, b) => a + b, 0) / revComponents.length).toFixed(2))
+                : null;
 
               enriched[i + idx] = {
                 ...enriched[i + idx],
-                epsQ0, epsQ1, epsAnn, epsCombined, revGrowth,
+                epsQ0, epsQ1, epsAnn, epsCombined, revQ0, revQ1, revGrowth,
               };
             }
           }

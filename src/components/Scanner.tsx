@@ -28,7 +28,7 @@ type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:numb
 type SectorData = { name:string; etf:string; price:number; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number };
 type Theme      = { name:string; etf:string; sector:string; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number; price:number; stocks:any[] };
 type ThemeResponse = { sectors: SectorData[]; themes: Theme[] };
-type FundaStock = { ticker:string; name:string; price:number; sector:string|null; industry:string|null; theme:string|null; mktCap:number|null; rs:number|null; epsRank:number|null; revRank:number|null; epsQ0:number|null; epsQ1:number|null; epsAnn:number|null; epsCombined:number|null; revGrowth:number|null; adr:number|null };
+type FundaStock = { ticker:string; name:string; price:number; sector:string|null; industry:string|null; theme:string|null; mktCap:number|null; rs:number|null; epsRank:number|null; revRank:number|null; epsQ0:number|null; epsQ1:number|null; epsAnn:number|null; epsCombined:number|null; revQ0:number|null; revQ1:number|null; revGrowth:number|null; adr:number|null };
 
 const INPUT: React.CSSProperties = { display:'block', width:'100%', height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none', boxSizing:'border-box' };
 const INPUT_HALF: React.CSSProperties = { display:'block', flex:1, minWidth:0, width:'auto', height:'28px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'0 8px', fontFamily:'var(--sans)', outline:'none', boxSizing:'border-box' };
@@ -897,7 +897,7 @@ export function Scanner() {
                   <col style={{width:'12%'}}/> {/* Industry */}
                   <col style={{width:'12%'}}/> {/* Theme */}
                 </colgroup>
-                <thead><tr>{['Ticker','Price','EPS Curr Q YoY','EPS Prior Q YoY','Annual EPS','Rev Growth (Q YoY)','EPS Rank','Rev Rank','RS Rank','Sector','Industry','Theme'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Ticker','Price','EPS Curr Q YoY','EPS Prior Q YoY','Annual EPS','Rev Growth (Combined Q YoY)','EPS Rank','Rev Rank','RS Rank','Sector','Industry','Theme'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
                 <tbody>
                   {loading.funda
                     ? <tr><td colSpan={12} style={{ ...TD, textAlign:'center', color:'var(--txt3)', padding:'32px' }}>Loading fundamentals...</td></tr>
