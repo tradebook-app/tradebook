@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Modal } from '@/components/ui/Modal'
-import type { TradeRow } from '@/lib/types'
+import type { TradeRow, StrategyRow } from '@/lib/types'
 
 type Props = {
   open: boolean
   onClose: () => void
   onSave: (data: TradeFormPayload, screenshotFile: File | null) => Promise<void>
   editTrade?: TradeRow | null
-  strategies: string[]
+  strategies: StrategyRow[]
 }
 
 export type TradeFormPayload = {
@@ -24,6 +24,7 @@ export type TradeFormPayload = {
   risk: number
   commission: number
   setup: string | null
+  strategy_id: string | null
   grade: string | null
   tags: string[]
   notes: string | null
@@ -42,7 +43,8 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: 
   const [pnlOver,    setPnlOver]    = useState('')
   const [risk,       setRisk]       = useState('')
   const [commission, setCommission] = useState('')
-  const [setup,      setSetup]      = useState('')
+  const [strategyId, setStrategyId] = useState('')
+  const [legacySetup, setLegacySetup] = useState<string | null>(null)
   const [grade,      setGrade]      = useState('')
   const [tags,       setTags]       = useState<string[]>([])
   const [tagInput,   setTagInput]   = useState('')
@@ -66,7 +68,16 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: 
       setPnlOver(String(editTrade.pnl))
       setRisk(editTrade.risk ? String(editTrade.risk) : '')
       setCommission(editTrade.commission ? String(editTrade.commission) : '')
-      setSetup(editTrade.setup || '')
+      if (editTrade.strategy_id) {
+        setStrategyId(editTrade.strategy_id)
+        setLegacySetup(null)
+      } else if (editTrade.setup) {
+        const match = strategies.find(s => s.name.trim().toLowerCase() === editTrade.setup!.trim().toLowerCase())
+        if (match) { setStrategyId(match.id); setLegacySetup(null) }
+        else { setStrategyId(''); setLegacySetup(editTrade.setup) }
+      } else {
+        setStrategyId(''); setLegacySetup(null)
+      }
       setGrade(editTrade.grade || '')
       setTags(editTrade.tags || [])
       setNotes(editTrade.notes || '')
@@ -75,7 +86,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: 
     } else {
       resetForm()
     }
-  }, [editTrade, open])
+  }, [editTrade, open, strategies])
 
   // Focus symbol input when modal opens
   useEffect(() => {
@@ -87,7 +98,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: 
     setDate(new Date().toISOString().substring(0, 16))
     setExitDate(''); setEntry(''); setExit(''); setShares('')
     setPnlOver(''); setRisk(''); setCommission('')
-    setSetup(''); setGrade(''); setTags([]); setTagInput('')
+    setStrategyId(''); setLegacySetup(null); setGrade(''); setTags([]); setTagInput('')
     setNotes(''); setImgPreview(null); setImgFile(null)
   }
 
@@ -141,6 +152,8 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: 
     if (!symbol.trim()) return alert('Enter a symbol')
     setSaving(true)
 
+    const selectedStrategy = strategies.find(s => s.id === strategyId)
+
     const payload: TradeFormPayload = {
       symbol:     symbol.trim().toUpperCase(),
       type:       side,
@@ -152,7 +165,8 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: 
       pnl:        calcPnl(),
       risk:       parseFloat(risk) || 0,
       commission: parseFloat(commission) || 0,
-      setup:      setup || null,
+      setup:      selectedStrategy ? selectedStrategy.name : (legacySetup || null),
+      strategy_id: strategyId || null,
       grade:      grade || null,
       tags,
       notes:      notes || null,
@@ -266,16 +280,21 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: 
       {/* Setup / Grade */}
       <div style={row2}>
         <div>
-          <label style={lbl}>Setup / Strategy</label>
-          <input
-            className="fi" list="setup-dl" value={setup}
-            onChange={e => setSetup(e.target.value)}
-            placeholder="Type or select..."
+          <label style={lbl}>Strategy</label>
+          <select
+            className="fi"
+            value={strategyId}
+            onChange={e => { setStrategyId(e.target.value); if (e.target.value) setLegacySetup(null) }}
             style={{ fontSize: '11px' }}
-          />
-          <datalist id="setup-dl">
-            {strategies.map(s => <option key={s} value={s} />)}
-          </datalist>
+          >
+            <option value="">— No Strategy —</option>
+            {strategies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          {legacySetup && !strategyId && (
+            <div style={{ fontSize: '10px', color: 'var(--txt3)', marginTop: '4px' }}>
+              Previously tagged &ldquo;{legacySetup}&rdquo; — no strategy matches that. Pick one above to link it, or leave as-is to keep the old label.
+            </div>
+          )}
         </div>
         <div>
           <label style={lbl}>Grade</label>

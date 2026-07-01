@@ -5,7 +5,8 @@ import { AppShell } from '@/components/layout/AppShell'
 import { AddTradeModal, type TradeFormPayload } from '@/components/trades/AddTradeModal'
 import { TradeView } from '@/components/trades/TradeView'
 import { Dashboard } from '@/components/dashboard/Dashboard'
-import type { TradeRow, DateRangeFilter } from '@/lib/types'
+import { fetchStrategies } from '@/lib/strategyService'
+import type { TradeRow, DateRangeFilter, StrategyRow } from '@/lib/types'
 import {
   fetchTrades, insertTrade, updateTrade,
   deleteTrade, deleteTrades, uploadScreenshot,
@@ -98,12 +99,14 @@ export function AppProvider({ userId, userEmail }: Props) {
   const [modalOpen, setModalOpen] = useState(false)
   const [editTrade, setEditTrade] = useState<TradeRow | null>(null)
   const [filter,    setFilter]    = useState<DateRangeFilter>({ range: 'all' })
+  const [strategyList, setStrategyList] = useState<StrategyRow[]>([])
 
   useEffect(() => {
     fetchTrades().then(data => {
       setTrades(data)
       setLoading(false)
     })
+    fetchStrategies().then(setStrategyList)
   }, [])
 
   useEffect(() => {
@@ -114,14 +117,15 @@ export function AppProvider({ userId, userEmail }: Props) {
       ) {
         setEditTrade(null)
         setModalOpen(true)
+        fetchStrategies().then(setStrategyList)
       }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
-  function openAdd() { setEditTrade(null); setModalOpen(true) }
-  function openEdit(trade: TradeRow) { setEditTrade(trade); setModalOpen(true) }
+  function openAdd() { setEditTrade(null); setModalOpen(true); fetchStrategies().then(setStrategyList) }
+  function openEdit(trade: TradeRow) { setEditTrade(trade); setModalOpen(true); fetchStrategies().then(setStrategyList) }
 
   async function handleSave(payload: TradeFormPayload, screenshotFile: File | null) {
     let screenshotUrl: string | null = editTrade?.screenshot_url || null
@@ -154,7 +158,6 @@ export function AppProvider({ userId, userEmail }: Props) {
     setTrades(data)
   }
 
-  const strategies = Array.from(new Set(trades.map(t => t.setup).filter((x) => Boolean(x)))).sort()
   const title = PAGE_TITLES[pathname] || 'Sleektrade'
 
   function renderPage() {
@@ -198,7 +201,7 @@ export function AppProvider({ userId, userEmail }: Props) {
         onClose={() => { setModalOpen(false); setEditTrade(null) }}
         onSave={handleSave}
         editTrade={editTrade}
-        strategies={strategies}
+        strategies={strategyList}
       />
     </PlanProvider>
   )
