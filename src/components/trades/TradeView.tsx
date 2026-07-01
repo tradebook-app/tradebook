@@ -57,8 +57,8 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
 
   const finput: React.CSSProperties = {
     background: 'var(--bg4)', border: '1px solid var(--brd2)',
-    borderRadius: 'var(--r)', color: 'var(--txt)', fontSize: '11px',
-    padding: '5px 9px', fontFamily: 'var(--sans)', outline: 'none',
+    borderRadius: '999px', color: 'var(--txt)', fontSize: '11.5px', fontWeight: 600,
+    padding: '7px 14px', fontFamily: 'var(--sans)', outline: 'none',
   }
 
   const badgeBase: React.CSSProperties = {
@@ -106,7 +106,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <input style={{ ...finput, width: '80px', textTransform: 'uppercase' }} placeholder="Symbol..." value={symFilter} onChange={e => setSymFilter(e.target.value)} />
+        <input style={{ ...finput, width: '100px', textTransform: 'uppercase' }} placeholder="Symbol..." value={symFilter} onChange={e => setSymFilter(e.target.value)} />
         <select style={finput} value={stFilter} onChange={e => setStFilter(e.target.value)}>
           <option value="all">All</option>
           <option value="win">Wins</option>
