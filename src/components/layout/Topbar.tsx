@@ -3,18 +3,17 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { DateRangeFilter } from '@/lib/types'
 import { DateRangePicker } from './DateRangePicker'
-
+import { ProfileMenu } from './ProfileMenu'
 type Props = {
   title: string
   filter: DateRangeFilter
   onFilterChange: (f: DateRangeFilter) => void
   actions?: React.ReactNode
+  userEmail?: string
 }
-
 function MarketStatus() {
   const [clock, setClock] = useState('')
   const [status, setStatus] = useState('')
-
   useEffect(() => {
     const update = () => {
       const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }))
@@ -33,9 +32,7 @@ function MarketStatus() {
     const t = setInterval(update, 30000)
     return () => clearInterval(t)
   }, [])
-
   const dotColor = status === 'Market Open' ? 'var(--ac)' : status === 'Pre-Market' ? 'var(--orange)' : 'var(--txt4)'
-
   return (
     <div style={{ display:'flex', alignItems:'center', gap:'8px', background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', padding:'5px 10px', minWidth:'200px' }}>
       <div style={{ width:'7px', height:'7px', borderRadius:'50%', background:dotColor, flexShrink:0 }}/>
@@ -46,16 +43,12 @@ function MarketStatus() {
     </div>
   )
 }
-
-export function Topbar({ title, filter, onFilterChange, actions }: Props) {
+export function Topbar({ title, filter, onFilterChange, actions, userEmail }: Props) {
   const pathname = usePathname()
   const isScanner = pathname === '/scanner'
   // Trade View, Reports, Dashboard genuinely use the date filter — Trade View
   // now shows it inline in its own filter row instead, so hide the topbar copy there.
   const hideFilter = ['/ai-analysis', '/journal', '/notebook', '/strategies', '/position-size', '/settings', '/trades'].includes(pathname)
-
-
-
   return (
     <div style={{
       height: '48px',
@@ -70,15 +63,14 @@ export function Topbar({ title, filter, onFilterChange, actions }: Props) {
       <div style={{ fontSize: '15px', fontWeight: 700, flex: 1 }}>
         {title}
       </div>
-
       {/* Scanner page: show market status. Pages with no date-filtered content: show nothing. Everything else: date filter */}
       {isScanner ? (
         <MarketStatus />
       ) : hideFilter ? null : (
         <DateRangePicker filter={filter} onFilterChange={onFilterChange} />
       )}
-
       {actions}
+      <ProfileMenu userEmail={userEmail} />
     </div>
   )
 }

@@ -1,11 +1,9 @@
 'use client'
-
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import type { DateRangeFilter } from '@/lib/types'
-
 type Props = {
   children: React.ReactNode
   title: string
@@ -15,7 +13,6 @@ type Props = {
   onFilterChange: (f: DateRangeFilter) => void
   onAddTrade: () => void
 }
-
 const BOTTOM_NAV = [
   { href: '/dashboard',    icon: '▣',  label: 'Dashboard' },
   { href: '/trades',       icon: '⫐',  label: 'Trades' },
@@ -23,7 +20,6 @@ const BOTTOM_NAV = [
   { href: '/notebook',     icon: '☰',  label: 'Notebook' },
   { href: '/settings',     icon: '⚙',  label: 'More' },
 ]
-
 export function AppShell({
   children,
   title,
@@ -34,7 +30,6 @@ export function AppShell({
   onAddTrade,
 }: Props) {
   const pathname = usePathname()
-
   return (
     <>
       <style>{`
@@ -59,19 +54,16 @@ export function AppShell({
           }
         }
       `}</style>
-
       <div className="app-shell-root" style={{
         display: 'flex',
         height: '100vh',
         overflow: 'hidden',
         background: 'var(--bg)',
       }}>
-
         {/* Sidebar — hidden on mobile via CSS */}
         <div className="desktop-sidebar" style={{ flexShrink: 0 }}>
           <Sidebar onAddTrade={onAddTrade} userEmail={userEmail} />
         </div>
-
         {/* Main content */}
         <div className="app-main-column" style={{
           flex: 1,
@@ -86,8 +78,8 @@ export function AppShell({
             filter={filter}
             onFilterChange={onFilterChange}
             actions={topbarActions}
+            userEmail={userEmail}
           />
-
           <div
             className="app-main-content"
             style={{
@@ -100,7 +92,6 @@ export function AppShell({
             {children}
           </div>
         </div>
-
         {/* Mobile bottom nav — shown only on mobile via CSS */}
         <nav className="mobile-bottom-nav" style={{ minHeight: '60px' }}>
           {BOTTOM_NAV.map(({ href, icon, label }) => (
@@ -132,7 +123,6 @@ export function AppShell({
             Add
           </button>
         </nav>
-
       </div>
     </>
   )

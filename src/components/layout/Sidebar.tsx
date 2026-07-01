@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ContactWidget } from '@/components/layout/ContactWidget'
 
@@ -29,28 +29,12 @@ type Props = {
 
 export function Sidebar({ onAddTrade, userEmail }: Props) {
   const pathname = usePathname()
-  const router   = useRouter()
   const supabase = createClient()
   const [showMenu, setShowMenu] = useState(false)
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
-  const menuRef = useRef<HTMLDivElement>(null)
 
   const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
-  const [traderTypes, setTraderTypes] = useState<string[]>([])
 
-  const displayName = firstName
-    ? `${firstName} ${lastName}`.trim()
-    : userEmail?.split('@')[0] || 'Trader'
-
-  const initials = firstName && lastName
-    ? `${firstName[0]}${lastName[0]}`.toUpperCase()
-    : userEmail ? userEmail.substring(0, 2).toUpperCase() : 'AY'
-
-  const traderLabel = traderTypes.length > 0
-    ? traderTypes.slice(0, 2).join(' + ')
-    : 'Trader'
+  const displayName = firstName || userEmail?.split('@')[0] || 'Trader'
 
   useEffect(() => {
     async function loadProfile() {
@@ -58,46 +42,13 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
       if (!user) return
       const { data } = await supabase
         .from('profiles')
-        .select('first_name, last_name, avatar_url, trader_types')
+        .select('first_name')
         .eq('id', user.id)
         .single()
-      if (data) {
-        if (data.first_name) setFirstName(data.first_name)
-        if (data.last_name) setLastName(data.last_name)
-        if (data.avatar_url) setAvatarUrl(data.avatar_url)
-        if (data.trader_types) setTraderTypes(data.trader_types)
-      }
+      if (data?.first_name) setFirstName(data.first_name)
     }
     loadProfile()
   }, [pathname])
-
-  async function handleLogout() {
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
-  }
-
-  useEffect(() => {
-    const saved = (localStorage.getItem('sleek-theme') as 'dark' | 'light') || 'dark'
-    setTheme(saved)
-  }, [])
-
-  function toggleTheme() {
-    const next = theme === 'dark' ? 'light' : 'dark'
-    setTheme(next)
-    localStorage.setItem('sleek-theme', next)
-    document.documentElement.setAttribute('data-theme', next)
-  }
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
 
   return (
     <nav style={{
@@ -129,7 +80,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
         </Link>
       </div>
 
-      <div ref={menuRef} style={{ position: 'relative', margin: '10px 10px 4px' }}>
+      <div style={{ position: 'relative', margin: '10px 10px 4px' }}>
         <button
           onClick={() => setShowMenu(v => !v)}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', width: '100%', padding: '9px', background: 'var(--ac)', color: '#000', borderRadius: 'var(--r)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'var(--sans)', transition: '.15s' }}
@@ -212,38 +163,8 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
         })}
       </div>
 
-      <ContactWidget userEmail={userEmail} displayName={displayName} />
-
-      <div style={{ marginTop: 'auto', padding: '10px 12px', borderTop: '1px solid var(--brd)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="avatar" style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-          ) : (
-            <div style={{ width: '26px', height: '26px', background: 'var(--ac)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: '#000', flexShrink: 0 }}>
-              {initials}
-            </div>
-          )}
-          <div style={{ overflow: 'hidden' }}>
-            <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--txt)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
-            <div style={{ fontSize: '8px', color: 'var(--txt3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{traderLabel}</div>
-          </div>
-        </div>
-        <button
-          onClick={toggleTheme}
-          style={{ width: '100%', padding: '5px 8px', background: 'transparent', border: '1px solid var(--brd2)', borderRadius: 'var(--r)', color: 'var(--txt2)', fontSize: '9px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)', textAlign: 'center', transition: '.1s', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brd3)'; e.currentTarget.style.color = 'var(--txt)' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--brd2)'; e.currentTarget.style.color = 'var(--txt2)' }}
-        >
-          {theme === 'dark' ? '☀ Light mode' : '☾ Dark mode'}
-        </button>
-        <button
-          onClick={handleLogout}
-          style={{ width: '100%', padding: '5px 8px', background: 'transparent', border: '1px solid var(--brd2)', borderRadius: 'var(--r)', color: 'var(--txt3)', fontSize: '9px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)', textAlign: 'center', transition: '.1s' }}
-          onMouseEnter={e => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,.3)' }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'var(--txt3)'; e.currentTarget.style.borderColor = 'var(--brd2)' }}
-        >
-          Sign out
-        </button>
+      <div style={{ marginTop: 'auto' }}>
+        <ContactWidget userEmail={userEmail} displayName={displayName} />
       </div>
     </nav>
   )
