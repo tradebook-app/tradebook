@@ -1,7 +1,8 @@
 'use client'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { DateRange, DateRangeFilter } from '@/lib/types'
+import { DateRangeFilter } from '@/lib/types'
+import { DateRangePicker } from './DateRangePicker'
 
 type Props = {
   title: string
@@ -54,10 +55,7 @@ export function Topbar({ title, filter, onFilterChange, actions }: Props) {
   // Trade View, Reports, and Dashboard DO use it — left untouched.
   const hideFilter = ['/ai-analysis', '/journal', '/notebook', '/strategies', '/position-size', '/settings'].includes(pathname)
 
-  function handleRangeChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const range = e.target.value as DateRange
-    onFilterChange({ ...filter, range })
-  }
+
 
   return (
     <div style={{
@@ -78,48 +76,7 @@ export function Topbar({ title, filter, onFilterChange, actions }: Props) {
       {isScanner ? (
         <MarketStatus />
       ) : hideFilter ? null : (
-        <>
-          <select
-            value={filter.range}
-            onChange={handleRangeChange}
-            style={{
-              background: 'var(--bg4)',
-              border: '1px solid var(--brd2)',
-              borderRadius: 'var(--r)',
-              color: 'var(--txt)',
-              fontSize: '11px',
-              padding: '5px 9px',
-              fontFamily: 'var(--sans)',
-              outline: 'none',
-              minWidth: '110px',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="all">All Dates</option>
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="year">This Year</option>
-            <option value="custom">Custom Range</option>
-          </select>
-          {filter.range === 'custom' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <input
-                type="date"
-                value={filter.from || ''}
-                onChange={e => onFilterChange({ ...filter, from: e.target.value })}
-                style={{ background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'5px 9px', fontFamily:'var(--sans)', outline:'none' }}
-              />
-              <span style={{ color: 'var(--txt3)', fontSize: '11px' }}>→</span>
-              <input
-                type="date"
-                value={filter.to || ''}
-                onChange={e => onFilterChange({ ...filter, to: e.target.value })}
-                style={{ background:'var(--bg4)', border:'1px solid var(--brd2)', borderRadius:'var(--r)', color:'var(--txt)', fontSize:'11px', padding:'5px 9px', fontFamily:'var(--sans)', outline:'none' }}
-              />
-            </div>
-          )}
-        </>
+        <DateRangePicker filter={filter} onFilterChange={onFilterChange} />
       )}
 
       {actions}
