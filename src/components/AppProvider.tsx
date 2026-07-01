@@ -60,10 +60,17 @@ function GatedImport({ userId, existingTrades, onImported }: { userId: string, e
 }
 
 function GatedAIAnalysis({ trades }: { trades: any[] }) {
-  const { isPro, loading } = usePlan()
+  const { isElite, loading } = usePlan()
   if (loading) return null
-  if (!isPro) return <UpgradeWall feature="Sleek AI - Elite Feature" description="Upgrade to Elite to unlock AI-powered trade analysis. Get personalized insights, pattern detection, and coaching from your own trading data." />
+  if (!isElite) return <UpgradeWall feature="Sleek AI - Elite Feature" description="Upgrade to Elite to unlock AI-powered trade analysis. Get personalized insights, pattern detection, and coaching from your own trading data." tier="elite" />
   return <AIAnalysis trades={trades} />
+}
+
+function GatedScanner() {
+  const { isElite, loading } = usePlan()
+  if (loading) return null
+  if (!isElite) return <UpgradeWall feature="Scanner - Elite Feature" description="Upgrade to Elite to unlock the full US-market Scanner with Momentum, Themes, and Fundamentals screening." tier="elite" />
+  return <Scanner />
 }
 
 function DashboardWithBanner({ trades, filter, onEdit, onDelete, userId, onReload }: any) {
@@ -169,7 +176,7 @@ export function AppProvider({ userId, userEmail }: Props) {
       )
     }
 
-    if (pathname === '/scanner')      return <Scanner />
+    if (pathname === '/scanner')      return <GatedScanner />
     if (pathname === '/trades')       return <TradeView trades={trades} filter={filter} onFilterChange={setFilter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} />
     if (pathname === '/dashboard')    return <DashboardWithBanner trades={trades} filter={filter} onEdit={openEdit} onDelete={handleDelete} userId={userId} onReload={reloadTrades} />
     if (pathname === '/journal')      return <Journal trades={trades} onEdit={openEdit} />

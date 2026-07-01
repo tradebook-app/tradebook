@@ -5,10 +5,12 @@ import Link from 'next/link'
 type Props = {
   feature: string
   description: string
+  tier?: 'pro' | 'elite'
   onClose?: () => void
 }
 
-export function UpgradeWall({ feature, description, onClose }: Props) {
+export function UpgradeWall({ feature, description, tier = 'pro', onClose }: Props) {
+  const isElite = tier === 'elite'
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -28,7 +30,7 @@ export function UpgradeWall({ feature, description, onClose }: Props) {
           background: '#10B981', borderRadius: '8px',
           padding: '11px 24px', textDecoration: 'none',
         }}>
-          Upgrade to Pro — $19/mo
+          {isElite ? 'Upgrade to Elite — $29/mo' : 'Upgrade to Pro — $19/mo'}
         </Link>
         {onClose && (
           <button onClick={onClose} style={{
