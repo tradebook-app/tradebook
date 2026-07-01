@@ -573,7 +573,7 @@ export function Scanner() {
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
       <ChartModal/>
       <div style={{ display:'flex', borderBottom:'1px solid var(--brd)', marginBottom:'14px' }}>
-        {(['gap','momentum','themes','fundamentals'] as const).map(t=>(
+        {(['momentum','themes','fundamentals'] as const).map(t=>(
           <button key={t} onClick={()=>{ setTab(t); setDetail(null); }} style={{
             padding:'8px 14px', fontSize:'12px', fontWeight:600, cursor:'pointer',
             background:'none', border:'none', borderBottom: tab===t ? '2px solid var(--ac)' : '2px solid transparent',
