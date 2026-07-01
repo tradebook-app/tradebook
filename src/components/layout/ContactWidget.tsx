@@ -31,12 +31,6 @@ const C = {
   shadow: '0 20px 48px rgba(15,17,23,.22), 0 2px 8px rgba(15,17,23,.08)',
 }
 
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  return name.substring(0, 2).toUpperCase()
-}
-
 export function ContactWidget({ userEmail, displayName }: Props) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME])
@@ -178,13 +172,22 @@ export function ContactWidget({ userEmail, displayName }: Props) {
             padding: '14px 16px', borderBottom: `1px solid ${C.border}`, flexShrink: 0, background: C.bg,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-              <div style={{
-                width: '30px', height: '30px', borderRadius: '50%', background: C.accent,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '11px', fontWeight: 700, color: '#fff', flexShrink: 0,
-              }}>AY</div>
+              <div style={{ display: 'flex', flexShrink: 0 }}>
+                {['12', '47', '33'].map((id, i) => (
+                  <img
+                    key={id}
+                    src={`https://i.pravatar.cc/64?img=${id}`}
+                    alt=""
+                    style={{
+                      width: '26px', height: '26px', borderRadius: '50%',
+                      objectFit: 'cover', border: `2px solid ${C.bg}`,
+                      marginLeft: i === 0 ? 0 : '-9px', boxShadow: '0 1px 3px rgba(0,0,0,.15)',
+                    }}
+                  />
+                ))}
+              </div>
               <div>
-                <div style={{ fontSize: '12.5px', fontWeight: 700, color: C.text }}>Ahmad · Sleektrade Support</div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: C.text }}>Sleektrade</div>
                 <div style={{ fontSize: '9px', color: C.text3, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: C.accent, display: 'inline-block' }} />
                   Instant answers, replies within 24h
