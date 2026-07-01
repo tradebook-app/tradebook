@@ -50,10 +50,9 @@ function MarketStatus() {
 export function Topbar({ title, filter, onFilterChange, actions }: Props) {
   const pathname = usePathname()
   const isScanner = pathname === '/scanner'
-  // These pages don't apply the date filter to anything they show, so
-  // displaying it would be misleading — it looks functional but isn't.
-  // Trade View, Reports, and Dashboard DO use it — left untouched.
-  const hideFilter = ['/ai-analysis', '/journal', '/notebook', '/strategies', '/position-size', '/settings'].includes(pathname)
+  // Trade View, Reports, Dashboard genuinely use the date filter — Trade View
+  // now shows it inline in its own filter row instead, so hide the topbar copy there.
+  const hideFilter = ['/ai-analysis', '/journal', '/notebook', '/strategies', '/position-size', '/settings', '/trades'].includes(pathname)
 
 
 

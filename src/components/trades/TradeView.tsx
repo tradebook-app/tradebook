@@ -5,16 +5,18 @@ import type { TradeRow, DateRangeFilter } from '@/lib/types'
 import { filterByDate, closedTrades, calcKPIs, fmtPnl, fmtDate } from '@/lib/analytics'
 import { MetricCard } from '@/components/ui/MetricCard'
 import { TradePanel } from '@/components/trades/TradePanel'
+import { DateRangePicker } from '@/components/layout/DateRangePicker'
 
 type Props = {
   trades: TradeRow[]
   filter: DateRangeFilter
+  onFilterChange: (f: DateRangeFilter) => void
   onEdit: (trade: TradeRow) => void
   onDelete: (id: string) => void
   onDeleteFiltered: (ids: string[]) => void
 }
 
-export function TradeView({ trades, filter, onEdit, onDelete, onDeleteFiltered }: Props) {
+export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, onDeleteFiltered }: Props) {
   const [symFilter,   setSymFilter]   = useState('')
   const [stFilter,    setStFilter]    = useState('all')
   const [sideFilter,  setSideFilter]  = useState('all')
@@ -120,6 +122,7 @@ export function TradeView({ trades, filter, onEdit, onDelete, onDeleteFiltered }
           <option value="all">All Setups</option>
           {setups.map(s => <option key={s}>{s}</option>)}
         </select>
+        <DateRangePicker filter={filter} onFilterChange={onFilterChange} />
         <button onClick={handleDeleteFiltered} style={{ marginLeft: 'auto', padding: '5px 12px', background: 'rgba(239,68,68,.12)', color: 'var(--red)', border: '1px solid rgba(239,68,68,.25)', borderRadius: 'var(--r)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}>🗑 Delete All</button>
       </div>
 

@@ -170,7 +170,7 @@ export function AppProvider({ userId, userEmail }: Props) {
     }
 
     if (pathname === '/scanner')      return <Scanner />
-    if (pathname === '/trades')       return <TradeView trades={trades} filter={filter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} />
+    if (pathname === '/trades')       return <TradeView trades={trades} filter={filter} onFilterChange={setFilter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} />
     if (pathname === '/dashboard')    return <DashboardWithBanner trades={trades} filter={filter} onEdit={openEdit} onDelete={handleDelete} userId={userId} onReload={reloadTrades} />
     if (pathname === '/journal')      return <Journal trades={trades} onEdit={openEdit} />
     if (pathname === '/reports')      return <GatedReports trades={trades} filter={filter} />
