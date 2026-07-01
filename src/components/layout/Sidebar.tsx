@@ -10,10 +10,10 @@ const NAV = [
   { href: '/dashboard',     icon: '▣',  label: 'Dashboard' },
   { href: '/trades',        icon: '⫐',  label: 'Trade View' },
   { href: '/journal',       icon: '◫',  label: 'Journal' },
-  { href: '/notebook',      icon: '☰',  label: 'Notebook',      tier: 'pro' },
-  { href: '/reports',       icon: '◩',  label: 'Reports' },
-  { href: '/strategies',    icon: '◇',  label: 'Strategies',    tier: 'pro' },
   { href: '/position-size', icon: '⊞',  label: 'Position Size' },
+  { href: '/notebook',      icon: '☰',  label: 'Notebook',      tier: 'pro' },
+  { href: '/reports',       icon: '◩',  label: 'Reports',       tier: 'pro' },
+  { href: '/strategies',    icon: '◇',  label: 'Strategies',    tier: 'pro' },
 ]
 
 const TOOLS = [
