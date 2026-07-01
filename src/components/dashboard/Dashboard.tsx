@@ -206,6 +206,8 @@ export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }
 
       <TradePanel
         trade={selected}
+        trades={bottomTab === 'recent' ? closed : open}
+        onNavigate={setSelected}
         onClose={() => setSelected(null)}
         onEdit={t => { setSelected(null); onEdit(t) }}
         onDelete={id => { onDelete(id); setSelected(null) }}
