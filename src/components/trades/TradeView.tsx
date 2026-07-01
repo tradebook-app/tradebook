@@ -19,8 +19,6 @@ export function TradeView({ trades, filter, onEdit, onDelete, onDeleteFiltered }
   const [stFilter,    setStFilter]    = useState('all')
   const [sideFilter,  setSideFilter]  = useState('all')
   const [setupFilter, setSetupFilter] = useState('all')
-  const [fromFilter,  setFromFilter]  = useState('')
-  const [toFilter,    setToFilter]    = useState('')
   const [selected,    setSelected]    = useState<TradeRow | null>(null)
 
   const setups = useMemo(() => {
@@ -36,10 +34,8 @@ export function TradeView({ trades, filter, onEdit, onDelete, onDeleteFiltered }
     if (stFilter === 'be')    r = r.filter(t => t.pnl === 0)
     if (sideFilter !== 'all') r = r.filter(t => t.type === sideFilter)
     if (setupFilter !== 'all') r = r.filter(t => t.setup === setupFilter)
-    if (fromFilter) r = r.filter(t => t.date.substring(0, 10) >= fromFilter)
-    if (toFilter)   r = r.filter(t => t.date.substring(0, 10) <= toFilter)
     return r.slice().reverse()
-  }, [trades, filter, symFilter, stFilter, sideFilter, setupFilter, fromFilter, toFilter])
+  }, [trades, filter, symFilter, stFilter, sideFilter, setupFilter])
 
   const kpi = useMemo(() => calcKPIs(filterByDate(closedTrades(trades), filter)), [trades, filter])
 
@@ -124,10 +120,6 @@ export function TradeView({ trades, filter, onEdit, onDelete, onDeleteFiltered }
           <option value="all">All Setups</option>
           {setups.map(s => <option key={s}>{s}</option>)}
         </select>
-        <span style={{ fontSize: '10px', color: 'var(--txt3)' }}>From</span>
-        <input style={finput} type="date" value={fromFilter} onChange={e => setFromFilter(e.target.value)} />
-        <span style={{ fontSize: '10px', color: 'var(--txt3)' }}>To</span>
-        <input style={finput} type="date" value={toFilter} onChange={e => setToFilter(e.target.value)} />
         <button onClick={handleDeleteFiltered} style={{ marginLeft: 'auto', padding: '5px 12px', background: 'rgba(239,68,68,.12)', color: 'var(--red)', border: '1px solid rgba(239,68,68,.25)', borderRadius: 'var(--r)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}>🗑 Delete All</button>
       </div>
 
