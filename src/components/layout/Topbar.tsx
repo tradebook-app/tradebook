@@ -51,7 +51,8 @@ export function Topbar({ title, filter, onFilterChange, actions }: Props) {
   const isScanner = pathname === '/scanner'
   // These pages don't apply the date filter to anything they show, so
   // displaying it would be misleading — it looks functional but isn't.
-  const hideFilter = pathname === '/ai-analysis'
+  // Trade View, Reports, and Dashboard DO use it — left untouched.
+  const hideFilter = ['/ai-analysis', '/journal', '/notebook', '/strategies', '/position-size', '/settings'].includes(pathname)
 
   function handleRangeChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const range = e.target.value as DateRange
