@@ -12,7 +12,7 @@ type Props = {
 const WELCOME: ChatMessage = {
   role: 'assistant',
   isWelcome: true,
-  content: "👋 Hi! Ask me anything about Sleektrade — plans, features, importing trades, strategies. If I can't help, use \"Talk to a person\" below and Ahmad will reply directly.",
+  content: "👋 Hi! Ask me anything about Sleektrade — plans, features, importing trades, strategies. If I can't help, use \"Talk to a person\" below and our support team will reply directly.",
 }
 
 // Fixed light palette — this widget is intentionally white/light regardless
@@ -113,7 +113,7 @@ export function ContactWidget({ userEmail, displayName }: Props) {
       setEscalated(true)
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `Sent to Ahmad — he'll reply to ${userEmail || 'your email'} within 24 hours.`,
+        content: `Sent to our support team — they'll reply to ${userEmail || 'your email'} within 24 hours.`,
       }])
     } catch {
       setMessages(prev => [...prev, {
@@ -237,7 +237,7 @@ export function ContactWidget({ userEmail, displayName }: Props) {
                 fontFamily: 'inherit',
               }}
             >
-              {escalated ? '✓ Sent to Ahmad' : escalating ? 'Sending to Ahmad...' : 'Talk to a person instead'}
+              {escalated ? '✓ Sent to Support' : escalating ? 'Sending...' : 'Talk to a person instead'}
             </button>
           </div>
 
