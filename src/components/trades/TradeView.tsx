@@ -106,7 +106,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
         <div style={{
           display: 'flex', alignItems: 'center', gap: '7px',
           background: 'var(--bg4)', border: '1px solid var(--brd2)', borderRadius: '999px',
-          padding: '7px 14px', boxSizing: 'border-box',
+          padding: '0 14px', height: '32px', boxSizing: 'border-box',
         }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--txt3)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -115,7 +115,8 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
             style={{
               background: 'none', border: 'none', outline: 'none', color: 'var(--txt)',
               fontSize: '11.5px', fontWeight: 600, fontFamily: 'var(--sans)',
-              textTransform: 'uppercase', width: '78px', padding: 0,
+              textTransform: 'uppercase', width: '78px', padding: 0, height: '100%',
+              lineHeight: 'normal',
             }}
             placeholder="Symbol..."
             value={symFilter}
@@ -147,7 +148,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
           options={[{ value: 'all', label: 'All Setups' }, ...setups.map(s => ({ value: s, label: s }))]}
         />
         <DateRangePicker filter={filter} onFilterChange={onFilterChange} />
-        <button onClick={handleDeleteFiltered} style={{ marginLeft: 'auto', padding: '5px 12px', background: 'rgba(239,68,68,.12)', color: 'var(--red)', border: '1px solid rgba(239,68,68,.25)', borderRadius: 'var(--r)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}>🗑 Delete All</button>
+        <button onClick={handleDeleteFiltered} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', padding: '0 14px', height: '32px', boxSizing: 'border-box', background: 'rgba(239,68,68,.12)', color: 'var(--red)', border: '1px solid rgba(239,68,68,.25)', borderRadius: '999px', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}>🗑 Delete All</button>
       </div>
 
       {/* Table */}
