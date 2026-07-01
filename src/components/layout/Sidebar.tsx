@@ -212,11 +212,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
         })}
       </div>
 
-      <div style={{ height: '1px', background: 'var(--brd)', margin: '5px 12px' }} />
-
-      <div style={{ padding: '4px 0' }}>
-        <ContactWidget userEmail={userEmail} displayName={displayName} />
-      </div>
+      <ContactWidget userEmail={userEmail} displayName={displayName} />
 
       <div style={{ marginTop: 'auto', padding: '10px 12px', borderTop: '1px solid var(--brd)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
