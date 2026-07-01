@@ -6,6 +6,7 @@ import { filterByDate, closedTrades, calcKPIs, fmtPnl, fmtDate } from '@/lib/ana
 import { MetricCard } from '@/components/ui/MetricCard'
 import { TradePanel } from '@/components/trades/TradePanel'
 import { DateRangePicker } from '@/components/layout/DateRangePicker'
+import { FilterDropdown } from '@/components/ui/FilterDropdown'
 
 type Props = {
   trades: TradeRow[]
@@ -107,21 +108,30 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
       {/* Filters */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
         <input style={{ ...finput, width: '100px', textTransform: 'uppercase' }} placeholder="Symbol..." value={symFilter} onChange={e => setSymFilter(e.target.value)} />
-        <select style={finput} value={stFilter} onChange={e => setStFilter(e.target.value)}>
-          <option value="all">All</option>
-          <option value="win">Wins</option>
-          <option value="loss">Losses</option>
-          <option value="be">Breakeven</option>
-        </select>
-        <select style={finput} value={sideFilter} onChange={e => setSideFilter(e.target.value)}>
-          <option value="all">All Sides</option>
-          <option>Long</option>
-          <option>Short</option>
-        </select>
-        <select style={finput} value={setupFilter} onChange={e => setSetupFilter(e.target.value)}>
-          <option value="all">All Setups</option>
-          {setups.map(s => <option key={s}>{s}</option>)}
-        </select>
+        <FilterDropdown
+          value={stFilter}
+          onChange={setStFilter}
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'win', label: 'Wins' },
+            { value: 'loss', label: 'Losses' },
+            { value: 'be', label: 'Breakeven' },
+          ]}
+        />
+        <FilterDropdown
+          value={sideFilter}
+          onChange={setSideFilter}
+          options={[
+            { value: 'all', label: 'All Sides' },
+            { value: 'Long', label: 'Long' },
+            { value: 'Short', label: 'Short' },
+          ]}
+        />
+        <FilterDropdown
+          value={setupFilter}
+          onChange={setSetupFilter}
+          options={[{ value: 'all', label: 'All Setups' }, ...setups.map(s => ({ value: s, label: s }))]}
+        />
         <DateRangePicker filter={filter} onFilterChange={onFilterChange} />
         <button onClick={handleDeleteFiltered} style={{ marginLeft: 'auto', padding: '5px 12px', background: 'rgba(239,68,68,.12)', color: 'var(--red)', border: '1px solid rgba(239,68,68,.25)', borderRadius: 'var(--r)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}>🗑 Delete All</button>
       </div>
