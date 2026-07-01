@@ -19,7 +19,6 @@ const NAV = [
 const TOOLS = [
   { href: '/position-size', icon: '⊞', label: 'Position Size' },
   { href: '/ai-analysis',   icon: '🤖', label: 'Sleek AI' },
-  { href: '/settings',      icon: '⚙', label: 'Settings' },
 ]
 
 type Props = {
