@@ -49,6 +49,9 @@ function MarketStatus() {
 export function Topbar({ title, filter, onFilterChange, actions }: Props) {
   const pathname = usePathname()
   const isScanner = pathname === '/scanner'
+  // These pages don't apply the date filter to anything they show, so
+  // displaying it would be misleading — it looks functional but isn't.
+  const hideFilter = pathname === '/ai-analysis'
 
   function handleRangeChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const range = e.target.value as DateRange
@@ -70,10 +73,10 @@ export function Topbar({ title, filter, onFilterChange, actions }: Props) {
         {title}
       </div>
 
-      {/* Scanner page: show market status. All other pages: show date filter */}
+      {/* Scanner page: show market status. Pages with no date-filtered content: show nothing. Everything else: date filter */}
       {isScanner ? (
         <MarketStatus />
-      ) : (
+      ) : hideFilter ? null : (
         <>
           <select
             value={filter.range}
