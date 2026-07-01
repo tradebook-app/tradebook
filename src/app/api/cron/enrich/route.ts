@@ -153,8 +153,8 @@ export async function GET(request: Request) {
     const stocks: any[] = cached.data;
     console.log(`[enrich] Loaded ${stocks.length} stocks from cache`);
 
-    const allUnenriched = stocks.filter(s => !s.sector); // not yet enriched
-    const alreadyDone    = stocks.filter(s => s.sector);  // already have data
+    const allUnenriched = stocks.filter(s => !s.sector && !s.isEtf); // not yet enriched, skip ETFs (no fundamentals to fetch)
+    const alreadyDone    = stocks.filter(s => s.sector || s.isEtf);  // already have data, or intentionally skipped
 
     // Only attempt a bounded slice this run — the rest stay queued for the
     // next cron firing / manual trigger to pick up.
@@ -252,8 +252,8 @@ export async function GET(request: Request) {
               };
             }
           }
-        } catch (e) {
-          // skip failed
+        } catch (e: any) {
+          console.error(`[enrich] Failed for ${stock.ticker}:`, e?.message || e);
         }
       }));
 
