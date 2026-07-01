@@ -10,9 +10,9 @@ const NAV = [
   { href: '/dashboard',     icon: '▣',  label: 'Dashboard' },
   { href: '/trades',        icon: '⫐',  label: 'Trade View' },
   { href: '/journal',       icon: '◫',  label: 'Journal' },
-  { href: '/notebook',      icon: '☰',  label: 'Notebook' },
+  { href: '/notebook',      icon: '☰',  label: 'Notebook',      tier: 'pro' },
   { href: '/reports',       icon: '◩',  label: 'Reports' },
-  { href: '/strategies',    icon: '◇',  label: 'Strategies' },
+  { href: '/strategies',    icon: '◇',  label: 'Strategies',    tier: 'pro' },
   { href: '/position-size', icon: '⊞',  label: 'Position Size' },
 ]
 
@@ -124,12 +124,17 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
       </div>
 
       <div style={{ padding: '4px 0' }}>
-        {NAV.map(({ href, icon, label }) => {
+        {NAV.map(({ href, icon, label, tier }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
           return (
             <Link key={href} href={href} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', cursor: 'pointer', color: active ? 'var(--ac2)' : 'var(--txt2)', fontSize: '12px', fontWeight: 500, transition: '.1s', borderLeft: `2px solid ${active ? 'var(--ac)' : 'transparent'}`, background: active ? 'var(--ac-d)' : 'transparent', textDecoration: 'none' }}>
               <span style={{ fontSize: '13px', width: '16px', textAlign: 'center' }}>{icon}</span>
               {label}
+              {tier === 'pro' && !active && (
+                <span style={{ marginLeft: 'auto', fontSize: '8px', fontWeight: 700, color: '#000', background: '#F59E0B', borderRadius: '4px', padding: '1px 5px' }}>
+                  PRO
+                </span>
+              )}
             </Link>
           )
         })}
