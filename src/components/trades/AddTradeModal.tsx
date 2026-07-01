@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import type { TradeRow, StrategyRow } from '@/lib/types'
+import { insertStrategy } from '@/lib/strategyService'
 
 type Props = {
   open: boolean
@@ -10,6 +11,8 @@ type Props = {
   onSave: (data: TradeFormPayload, screenshotFile: File | null) => Promise<void>
   editTrade?: TradeRow | null
   strategies: StrategyRow[]
+  userId: string
+  onStrategyCreated: (strategy: StrategyRow) => void
 }
 
 export type TradeFormPayload = {
@@ -32,7 +35,7 @@ export type TradeFormPayload = {
 
 const GRADES = ['A+', 'A', 'A-', 'B', 'C']
 
-export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: Props) {
+export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, userId, onStrategyCreated }: Props) {
   const [symbol,     setSymbol]     = useState('')
   const [side,       setSide]       = useState<'Long' | 'Short'>('Long')
   const [date,       setDate]       = useState('')
@@ -45,6 +48,9 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: 
   const [commission, setCommission] = useState('')
   const [strategyId, setStrategyId] = useState('')
   const [legacySetup, setLegacySetup] = useState<string | null>(null)
+  const [creatingStrategy, setCreatingStrategy] = useState(false)
+  const [newStrategyName, setNewStrategyName] = useState('')
+  const [creatingStrategySaving, setCreatingStrategySaving] = useState(false)
   const [grade,      setGrade]      = useState('')
   const [tags,       setTags]       = useState<string[]>([])
   const [tagInput,   setTagInput]   = useState('')
@@ -99,6 +105,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: 
     setExitDate(''); setEntry(''); setExit(''); setShares('')
     setPnlOver(''); setRisk(''); setCommission('')
     setStrategyId(''); setLegacySetup(null); setGrade(''); setTags([]); setTagInput('')
+    setCreatingStrategy(false); setNewStrategyName('')
     setNotes(''); setImgPreview(null); setImgFile(null)
   }
 
@@ -124,6 +131,23 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: 
     }
     if (e.key === 'Backspace' && !tagInput && tags.length) {
       setTags(t => t.slice(0, -1))
+    }
+  }
+
+  async function handleCreateStrategy() {
+    const name = newStrategyName.trim()
+    if (!name) return
+    setCreatingStrategySaving(true)
+    const created = await insertStrategy({ name, rules: null, img_url: null }, userId)
+    setCreatingStrategySaving(false)
+    if (created) {
+      onStrategyCreated(created)
+      setStrategyId(created.id)
+      setLegacySetup(null)
+      setCreatingStrategy(false)
+      setNewStrategyName('')
+    } else {
+      alert('Could not create the strategy — try again.')
     }
   }
 
@@ -281,16 +305,48 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies }: 
       <div style={row2}>
         <div>
           <label style={lbl}>Strategy</label>
-          <select
-            className="fi"
-            value={strategyId}
-            onChange={e => { setStrategyId(e.target.value); if (e.target.value) setLegacySetup(null) }}
-            style={{ fontSize: '11px' }}
-          >
-            <option value="">— No Strategy —</option>
-            {strategies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-          {legacySetup && !strategyId && (
+          {creatingStrategy ? (
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <input
+                className="fi"
+                autoFocus
+                value={newStrategyName}
+                onChange={e => setNewStrategyName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateStrategy() } if (e.key === 'Escape') setCreatingStrategy(false) }}
+                placeholder="New strategy name..."
+                style={{ fontSize: '11px' }}
+              />
+              <button
+                type="button"
+                className="btn btn-p"
+                style={{ fontSize: '10px', padding: '0 12px', flexShrink: 0 }}
+                onClick={handleCreateStrategy}
+                disabled={creatingStrategySaving || !newStrategyName.trim()}
+              >{creatingStrategySaving ? '...' : 'Add'}</button>
+              <button
+                type="button"
+                className="btn btn-o"
+                style={{ fontSize: '10px', padding: '0 10px', flexShrink: 0 }}
+                onClick={() => { setCreatingStrategy(false); setNewStrategyName('') }}
+              >✕</button>
+            </div>
+          ) : (
+            <select
+              className="fi"
+              value={strategyId}
+              onChange={e => {
+                if (e.target.value === '__new__') { setCreatingStrategy(true); return }
+                setStrategyId(e.target.value)
+                if (e.target.value) setLegacySetup(null)
+              }}
+              style={{ fontSize: '11px' }}
+            >
+              <option value="">— No Strategy —</option>
+              {strategies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              <option value="__new__">+ New Strategy...</option>
+            </select>
+          )}
+          {legacySetup && !strategyId && !creatingStrategy && (
             <div style={{ fontSize: '10px', color: 'var(--txt3)', marginTop: '4px' }}>
               Previously tagged &ldquo;{legacySetup}&rdquo; — no strategy matches that. Pick one above to link it, or leave as-is to keep the old label.
             </div>

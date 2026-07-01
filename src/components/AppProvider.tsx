@@ -202,6 +202,8 @@ export function AppProvider({ userId, userEmail }: Props) {
         onSave={handleSave}
         editTrade={editTrade}
         strategies={strategyList}
+        userId={userId}
+        onStrategyCreated={s => setStrategyList(prev => [s, ...prev])}
       />
     </PlanProvider>
   )
