@@ -94,13 +94,21 @@ export function Settings({ userEmail }: { userEmail?: string }) {
       .from('avatars')
       .getPublicUrl(path)
 
+    // Save the cache-busted URL to the DB too, not just local state.
+    // The file path never changes (upsert overwrites avatar.png), so a
+    // browser/CDN will happily cache the plain publicUrl forever unless
+    // the stored URL itself carries a fresh timestamp each upload.
     const urlWithBust = `${publicUrl}?t=${Date.now()}`
     setAvatarUrl(urlWithBust)
 
-    await supabase
+    const { error: dbError } = await supabase
       .from('profiles')
-      .update({ avatar_url: publicUrl })
+      .update({ avatar_url: urlWithBust })
       .eq('id', user.id)
+
+    if (dbError) {
+      alert('Photo uploaded but failed to save: ' + dbError.message)
+    }
 
     setAvatarUploading(false)
   }
