@@ -56,11 +56,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
     onDeleteFiltered(ids)
   }
 
-  const finput: React.CSSProperties = {
-    background: 'var(--bg4)', border: '1px solid var(--brd2)',
-    borderRadius: '999px', color: 'var(--txt)', fontSize: '11.5px', fontWeight: 600,
-    padding: '7px 14px', fontFamily: 'var(--sans)', outline: 'none',
-  }
+
 
   const badgeBase: React.CSSProperties = {
     fontSize: '9px', fontWeight: 800, padding: '3px 0',
@@ -107,7 +103,25 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <input style={{ ...finput, width: '100px', textTransform: 'uppercase' }} placeholder="Symbol..." value={symFilter} onChange={e => setSymFilter(e.target.value)} />
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '7px',
+          background: 'var(--bg4)', border: '1px solid var(--brd2)', borderRadius: '999px',
+          padding: '7px 14px', boxSizing: 'border-box',
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--txt3)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            style={{
+              background: 'none', border: 'none', outline: 'none', color: 'var(--txt)',
+              fontSize: '11.5px', fontWeight: 600, fontFamily: 'var(--sans)',
+              textTransform: 'uppercase', width: '78px', padding: 0,
+            }}
+            placeholder="Symbol..."
+            value={symFilter}
+            onChange={e => setSymFilter(e.target.value)}
+          />
+        </div>
         <FilterDropdown
           value={stFilter}
           onChange={setStFilter}
