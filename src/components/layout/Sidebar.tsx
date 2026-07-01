@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { ContactWidget } from '@/components/layout/ContactWidget'
 
 const NAV = [
   { href: '/dashboard',   icon: '▣',  label: 'Dashboard' },
@@ -209,6 +210,12 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
             </Link>
           )
         })}
+      </div>
+
+      <div style={{ height: '1px', background: 'var(--brd)', margin: '5px 12px' }} />
+
+      <div style={{ padding: '4px 0' }}>
+        <ContactWidget userEmail={userEmail} displayName={displayName} />
       </div>
 
       <div style={{ marginTop: 'auto', padding: '10px 12px', borderTop: '1px solid var(--brd)' }}>
