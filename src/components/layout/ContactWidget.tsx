@@ -2,23 +2,26 @@
 
 import { useState, useRef, useEffect } from 'react'
 
-type Message = { role: 'assistant' | 'user'; text: string }
+type ChatMessage = { role: 'assistant' | 'user'; content: string; isWelcome?: boolean }
 
 type Props = {
   userEmail?: string
   displayName: string
 }
 
-const WELCOME: Message = {
+const WELCOME: ChatMessage = {
   role: 'assistant',
-  text: "👋 Hi! Got a question, found a bug, or just want to say hi? Type it below — Ahmad reads every message personally and replies within 24 hours.",
+  isWelcome: true,
+  content: "👋 Hi! I'm the Sleektrade Support Assistant. Ask me anything about the app — plans, features, importing trades, strategies. If I can't help, use \"Talk to a person\" below and Ahmad will reply directly.",
 }
 
 export function ContactWidget({ userEmail, displayName }: Props) {
   const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([WELCOME])
+  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [escalating, setEscalating] = useState(false)
+  const [escalated, setEscalated] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -38,9 +41,46 @@ export function ContactWidget({ userEmail, displayName }: Props) {
     const text = input.trim()
     if (!text || sending) return
 
-    setMessages(prev => [...prev, { role: 'user', text }])
+    const nextMessages = [...messages, { role: 'user' as const, content: text }]
+    setMessages(nextMessages)
     setInput('')
     setSending(true)
+
+    try {
+      const res = await fetch('/api/support-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: nextMessages.filter(m => !m.isWelcome).map(m => ({ role: m.role, content: m.content })),
+        }),
+      })
+      const data = await res.json()
+
+      if (res.status === 429) {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.message }])
+      } else if (!res.ok) {
+        throw new Error(data.error || 'failed')
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.message }])
+      }
+    } catch {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: "Something went wrong on my end. Try again, or use \"Talk to a person\" below.",
+      }])
+    }
+
+    setSending(false)
+  }
+
+  async function handleEscalate() {
+    if (escalating || escalated) return
+    setEscalating(true)
+
+    const transcript = messages
+      .filter(m => !m.isWelcome)
+      .map(m => `${m.role === 'user' ? displayName : 'Support Assistant'}: ${m.content}`)
+      .join('\n\n')
 
     try {
       const res = await fetch('/api/contact', {
@@ -49,23 +89,24 @@ export function ContactWidget({ userEmail, displayName }: Props) {
         body: JSON.stringify({
           name: displayName,
           email: userEmail || 'unknown@sleektrade.app',
-          subject: 'In-app message',
-          message: text,
+          subject: 'Escalated support chat',
+          message: transcript || "(No messages yet — user requested to talk to a person directly.)",
         }),
       })
       if (!res.ok) throw new Error('failed')
+      setEscalated(true)
       setMessages(prev => [...prev, {
         role: 'assistant',
-        text: `Got it — thanks! I'll reply to ${userEmail || 'your email'} within 24 hours.`,
+        content: `Sent to Ahmad — he'll reply to ${userEmail || 'your email'} within 24 hours.`,
       }])
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        text: "Hmm, that didn't send. Please email support@sleektrade.app directly and I'll get it.",
+        content: "Couldn't send that. Please email support@sleektrade.app directly.",
       }])
     }
 
-    setSending(false)
+    setEscalating(false)
   }
 
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -97,8 +138,8 @@ export function ContactWidget({ userEmail, displayName }: Props) {
         <div
           ref={panelRef}
           style={{
-            position: 'fixed', bottom: '76px', left: '12px', width: '320px', maxWidth: 'calc(100vw - 24px)',
-            height: '440px', background: 'var(--bg3)', border: '1px solid var(--brd2)',
+            position: 'fixed', bottom: '76px', left: '12px', width: '340px', maxWidth: 'calc(100vw - 24px)',
+            height: '480px', background: 'var(--bg3)', border: '1px solid var(--brd2)',
             borderRadius: 'var(--r2)', boxShadow: '0 16px 40px rgba(0,0,0,.5)',
             zIndex: 500, display: 'flex', flexDirection: 'column', overflow: 'hidden',
           }}
@@ -112,10 +153,10 @@ export function ContactWidget({ userEmail, displayName }: Props) {
               <div style={{
                 width: '26px', height: '26px', borderRadius: '50%', background: 'var(--ac)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', flexShrink: 0,
-              }}>💬</div>
+              }}>🤖</div>
               <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--txt)' }}>Contact Sleektrade</div>
-                <div style={{ fontSize: '9px', color: 'var(--txt3)' }}>Usually replies within 24h</div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--txt)' }}>Sleektrade Support</div>
+                <div style={{ fontSize: '9px', color: 'var(--txt3)' }}>AI Agent · instant answers</div>
               </div>
             </div>
             <button
@@ -138,15 +179,31 @@ export function ContactWidget({ userEmail, displayName }: Props) {
                   padding: '9px 12px',
                   fontSize: '12px',
                   lineHeight: 1.5,
+                  whiteSpace: 'pre-wrap',
                   color: m.role === 'user' ? 'var(--ac2)' : 'var(--txt2)',
                 }}
               >
-                {m.text}
+                {m.content}
               </div>
             ))}
             {sending && (
-              <div style={{ alignSelf: 'flex-start', fontSize: '10px', color: 'var(--txt4)', padding: '0 4px' }}>Sending...</div>
+              <div style={{ alignSelf: 'flex-start', fontSize: '10px', color: 'var(--txt4)', padding: '0 4px' }}>Thinking...</div>
             )}
+          </div>
+
+          {/* Escalate link */}
+          <div style={{ padding: '0 14px 8px', flexShrink: 0 }}>
+            <button
+              onClick={handleEscalate}
+              disabled={escalating || escalated}
+              style={{
+                background: 'none', border: 'none', padding: 0, cursor: escalated ? 'default' : 'pointer',
+                fontSize: '10px', color: escalated ? 'var(--ac)' : 'var(--txt3)', textDecoration: escalated ? 'none' : 'underline',
+                fontFamily: 'var(--sans)',
+              }}
+            >
+              {escalated ? '✓ Sent to Ahmad' : escalating ? 'Sending to Ahmad...' : '💬 Talk to a person instead'}
+            </button>
           </div>
 
           {/* Input */}
@@ -168,11 +225,6 @@ export function ContactWidget({ userEmail, displayName }: Props) {
                 style={{ padding: '8px 10px', flexShrink: 0, opacity: sending || !input.trim() ? 0.5 : 1 }}
               >➤</button>
             </div>
-            {!userEmail && (
-              <div style={{ fontSize: '9px', color: 'var(--txt4)', marginTop: '6px' }}>
-                Replies go to your account email.
-              </div>
-            )}
           </div>
         </div>
       )}

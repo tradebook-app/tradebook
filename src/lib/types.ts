@@ -212,6 +212,13 @@ export type DASParsedTrade = {
   exitTime?: number
 }
 
+export type SupportChatUsageRow = {
+  user_id: string
+  day: string
+  count: number
+  updated_at: string
+}
+
 // ─── Supabase Database type (for typed client) ───────────────────────────────
 
 export type Database = {
@@ -241,6 +248,11 @@ export type Database = {
         Row: StrategyRuleRow
         Insert: Omit<StrategyRuleRow, 'id' | 'created_at'>
         Update: Partial<Omit<StrategyRuleRow, 'id' | 'created_at'>>
+      }
+      support_chat_usage: {
+        Row: SupportChatUsageRow
+        Insert: SupportChatUsageRow
+        Update: Partial<SupportChatUsageRow>
       }
     }
   }
