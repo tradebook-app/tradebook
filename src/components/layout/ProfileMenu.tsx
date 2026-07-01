@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 type Props = {
@@ -10,6 +10,7 @@ type Props = {
 }
 
 export function ProfileMenu({ userEmail }: Props) {
+  const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const [showMenu, setShowMenu] = useState(false)
@@ -40,7 +41,7 @@ export function ProfileMenu({ userEmail }: Props) {
       }
     }
     loadProfile()
-  }, [])
+  }, [pathname])
 
   useEffect(() => {
     const saved = (localStorage.getItem('sleek-theme') as 'dark' | 'light') || 'dark'
