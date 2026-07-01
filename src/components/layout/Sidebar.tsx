@@ -7,17 +7,17 @@ import { createClient } from '@/lib/supabase/client'
 import { ContactWidget } from '@/components/layout/ContactWidget'
 
 const NAV = [
-  { href: '/dashboard',   icon: '▣',  label: 'Dashboard' },
-  { href: '/trades',      icon: '⫐',  label: 'Trade View' },
-  { href: '/journal',     icon: '◫',  label: 'Journal' },
-  { href: '/notebook',    icon: '☰',  label: 'Notebook' },
-  { href: '/reports',     icon: '◩',  label: 'Reports' },
-  { href: '/strategies',  icon: '◇',  label: 'Strategies' },
-  { href: '/scanner',     icon: '◎',  label: 'Scanner' },
+  { href: '/dashboard',     icon: '▣',  label: 'Dashboard' },
+  { href: '/trades',        icon: '⫐',  label: 'Trade View' },
+  { href: '/journal',       icon: '◫',  label: 'Journal' },
+  { href: '/notebook',      icon: '☰',  label: 'Notebook' },
+  { href: '/reports',       icon: '◩',  label: 'Reports' },
+  { href: '/strategies',    icon: '◇',  label: 'Strategies' },
+  { href: '/position-size', icon: '⊞',  label: 'Position Size' },
 ]
 
 const TOOLS = [
-  { href: '/position-size', icon: '⊞', label: 'Position Size' },
+  { href: '/scanner',       icon: '◎',  label: 'Scanner' },
   { href: '/ai-analysis',   icon: '🤖', label: 'Sleek AI' },
 ]
 
@@ -140,7 +140,6 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
       <div style={{ padding: '4px 0' }}>
         {TOOLS.map(({ href, icon, label }) => {
           const active = pathname === href
-          const isAI = href === '/ai-analysis'
           return (
             <Link key={href} href={href} style={{
               display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px',
@@ -148,11 +147,11 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
               borderLeft: `2px solid ${active ? 'var(--ac)' : 'transparent'}`,
               background: active ? 'var(--ac-d)' : 'transparent',
               textDecoration: 'none',
-              color: active ? 'var(--ac2)' : isAI ? '#10B981' : 'var(--txt2)',
+              color: active ? 'var(--ac2)' : '#10B981',
             }}>
               <span style={{ fontSize: '13px', width: '16px', textAlign: 'center' }}>{icon}</span>
               {label}
-              {isAI && !active && (
+              {!active && (
                 <span style={{ marginLeft: 'auto', fontSize: '8px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '4px', padding: '1px 5px' }}>
                   ELITE
                 </span>
