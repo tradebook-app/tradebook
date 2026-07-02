@@ -73,7 +73,7 @@ async function fetchBarsMulti(symbols: string[], days: number): Promise<Record<s
         if (!res.ok) break;
         const data = await res.json();
         if (Array.isArray(data.results) && data.results.length > 0) {
-          result[ticker] = data.results.map((b: any) => ({ c: b.c, h: b.h, l: b.l, o: b.o, v: b.v, vw: b.vw }));
+          result[ticker] = data.results.map((b: any) => ({ c: b.c, h: b.h, l: b.l, o: b.o, v: b.v, vw: b.vw, t: b.t }));
         }
         break;
       }
@@ -106,6 +106,29 @@ function perf(bars: any[], days: number): number {
   const past   = bars[Math.min(days, bars.length - 1)]?.c;
   if (!latest || !past || past === 0) return 0;
   return ((latest - past) / Math.abs(past)) * 100;
+}
+
+// Calendar-date-based performance — matches TradingView's methodology:
+// compares latest close to the close on the trading day closest to (but not
+// after) exactly N calendar months ago, rather than a fixed trading-day count.
+// This avoids drift from holidays/weekends causing 1-10%+ mismatches vs TV,
+// especially around volatile weeks that a fixed-count offset can miss or hit.
+function perfCalendar(bars: any[], monthsBack: number): number {
+  if (!bars || bars.length < 2) return 0;
+  const latest = bars[0];
+  if (!latest?.c || !latest?.t) return perf(bars, monthsBack === 1 ? 21 : monthsBack === 3 ? 63 : 126); // fallback if timestamps missing (old cache entries)
+
+  const targetDate = new Date(latest.t);
+  targetDate.setMonth(targetDate.getMonth() - monthsBack);
+  const targetTime = targetDate.getTime();
+
+  // bars sorted desc (most recent first) — find first bar at or before target date
+  let pastBar = bars.find((b: any) => b.t != null && b.t <= targetTime);
+  if (!pastBar) pastBar = bars[bars.length - 1]; // fallback: oldest bar we have
+
+  const past = pastBar?.c;
+  if (!past || past === 0) return 0;
+  return ((latest.c - past) / Math.abs(past)) * 100;
 }
 
 // ADR% — matches TradingView's "ADR% - Average Daily Range %" indicator:
@@ -196,9 +219,9 @@ export async function GET(request: Request) {
       const changeP   = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
 
       const bars   = allBars[ticker] || [];
-      const m1     = perf(bars, 21);
-      const m3     = perf(bars, 63);
-      const m6     = perf(bars, 126);
+      const m1     = perfCalendar(bars, 1);
+      const m3     = perfCalendar(bars, 3);
+      const m6     = perfCalendar(bars, 6);
       // Weighted RS score: 40% 1M + 35% 3M + 25% 6M (favors recent momentum)
       const rsScore = (m1 * 0.40) + (m3 * 0.35) + (m6 * 0.25);
       const atrPct = price > 0 && high && low ? ((high - low) / price) * 100 : 0;
