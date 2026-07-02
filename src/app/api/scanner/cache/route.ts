@@ -119,18 +119,35 @@ function perf(bars: any[], days: number): number {
 // Returns the timestamp of the real listing start, or the oldest bar's
 // timestamp if no discontinuity is found.
 function findRealListingStart(bars: any[]): number {
-  if (!bars || bars.length < 2) return bars?.[bars.length - 1]?.t ?? 0;
+  if (!bars || bars.length < 6) return bars?.[bars.length - 1]?.t ?? 0;
   const chron = [...bars].reverse(); // oldest -> newest
-  for (let idx = 1; idx < chron.length; idx++) {
-    const prev = chron[idx - 1];
-    const cur  = chron[idx];
-    if (!prev?.c || !cur?.c || !prev?.v || !cur?.v || !cur?.t) continue;
-    const priceJump  = Math.abs(cur.c - prev.c) / prev.c;
-    const volumeJump = prev.v > 0 ? cur.v / prev.v : (cur.v > 0 ? Infinity : 0);
-    // Real listing/relisting event: volume spikes 20x+ to a genuinely liquid
-    // level AND price gaps 100%+ overnight. Both conditions together avoid
-    // false positives from ordinary volatile news days on already-liquid stocks.
-    if (volumeJump >= 20 && cur.v >= 1_000_000 && priceJump >= 1.0) {
+
+  // Compare each bar against a rolling MEDIAN baseline of prior bars, not
+  // just the immediately preceding bar. A real listing/uplisting event can
+  // unfold over 2-3 sessions (partial "when-issued" volume, then full
+  // liquidity) — a pure adjacent-pair comparison can miss it if neither
+  // single day-over-day hop alone crosses both thresholds, even though the
+  // cumulative move against the pre-listing baseline clearly does.
+  for (let idx = 5; idx < chron.length; idx++) {
+    const cur = chron[idx];
+    if (!cur?.c || !cur?.v || !cur?.t) continue;
+
+    const priorWindow = chron.slice(Math.max(0, idx - 60), idx).filter(b => b?.c && b?.v);
+    if (priorWindow.length < 5) continue;
+
+    const priorVolumes = [...priorWindow.map(b => b.v)].sort((a, b) => a - b);
+    const priorCloses  = [...priorWindow.map(b => b.c)].sort((a, b) => a - b);
+    const medianVol    = priorVolumes[Math.floor(priorVolumes.length / 2)];
+    const medianClose  = priorCloses[Math.floor(priorCloses.length / 2)];
+
+    const volRatio   = medianVol > 0 ? cur.v / medianVol : (cur.v > 0 ? Infinity : 0);
+    const priceRatio = medianClose > 0 ? Math.abs(cur.c - medianClose) / medianClose : 0;
+
+    // Real listing/relisting event: volume spikes 20x+ the recent baseline
+    // to a genuinely liquid level, AND price has moved 50%+ from the recent
+    // baseline. Both together avoid false positives from ordinary volatile
+    // trading days on stocks that were already liquid.
+    if (volRatio >= 20 && cur.v >= 1_000_000 && priceRatio >= 0.5) {
       return cur.t;
     }
   }
@@ -260,6 +277,9 @@ export async function GET(request: Request) {
       const m1     = perfCalendar(bars, 1, listingStart);
       const m3     = perfCalendar(bars, 3, listingStart);
       const m6     = perfCalendar(bars, 6, listingStart);
+      if ((m1 != null && Math.abs(m1) > 200) || (m3 != null && Math.abs(m3) > 200) || (m6 != null && Math.abs(m6) > 200)) {
+        console.warn(`[cache] Extreme perf for ${ticker}: m1=${m1} m3=${m3} m6=${m6} listingStart=${new Date(listingStart).toISOString()} bars=${bars.length} oldestBar=${bars[bars.length-1] ? new Date(bars[bars.length-1].t).toISOString() : 'n/a'}`);
+      }
       // Weighted RS score: 40% 1M + 35% 3M + 25% 6M (favors recent momentum).
       // If any component is null (not enough price history — e.g. a recent
       // IPO), don't fabricate a blended score from partial data.
