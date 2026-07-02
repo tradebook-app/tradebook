@@ -118,6 +118,16 @@ html, body {
 ::-webkit-scrollbar-thumb  { background: var(--brd2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--brd3); }
 
+/* ─── Native date input theming ──────────────────────────────────────────── */
+/* `background-color` alone does NOT fully theme <input type="date"> — the
+   calendar icon and internal field rendering follow the browser's
+   `color-scheme`, not our CSS background. Without this, Chrome renders the
+   icon (and sometimes the whole field) using its own dark/light default
+   regardless of what background/border color we set, which is why the date
+   boxes still looked like solid black holes after only changing background. */
+input[type='date'] { color-scheme: dark; }
+[data-theme="light"] input[type='date'] { color-scheme: light; }
+
 /* ─── Base input styling ─────────────────────────────────────────────────── */
 input[type='text'],
 input[type='number'],
