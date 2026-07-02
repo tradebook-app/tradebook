@@ -4,6 +4,23 @@ import { useState, useEffect } from 'react'
 import { DateRangeFilter } from '@/lib/types'
 import { DateRangePicker } from './DateRangePicker'
 import { ProfileMenu } from './ProfileMenu'
+import { useAccounts } from '@/components/AccountProvider'
+
+function AccountSwitcher() {
+  const { accounts, selectedAccountId, setSelectedAccountId, loading } = useAccounts()
+  if (loading || accounts.length <= 1) return null // nothing to switch between
+  return (
+    <select
+      className="fi"
+      value={selectedAccountId || ''}
+      onChange={e => setSelectedAccountId(e.target.value || null)}
+      style={{ fontSize: '11px', width: 'auto', minWidth: '130px', padding: '5px 10px', background: 'var(--bg4)', border: '1px solid var(--brd2)', borderRadius: 'var(--r)', color: 'var(--txt)' }}
+    >
+      <option value="">All Accounts</option>
+      {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+    </select>
+  )
+}
 type Props = {
   title: string
   filter: DateRangeFilter
@@ -49,6 +66,7 @@ export function Topbar({ title, filter, onFilterChange, actions, userEmail }: Pr
   // Trade View, Reports, Dashboard genuinely use the date filter — Trade View
   // now shows it inline in its own filter row instead, so hide the topbar copy there.
   const hideFilter = ['/ai-analysis', '/journal', '/notebook', '/strategies', '/position-size', '/settings', '/trades'].includes(pathname)
+  const showAccountSwitcher = ['/dashboard', '/trades', '/journal', '/reports', '/ai-analysis'].includes(pathname)
   return (
     <div style={{
       height: '48px',
@@ -64,6 +82,7 @@ export function Topbar({ title, filter, onFilterChange, actions, userEmail }: Pr
         {title}
       </div>
       {/* Scanner page: show market status. Pages with no date-filtered content: show nothing. Everything else: date filter */}
+      {showAccountSwitcher && <AccountSwitcher />}
       {isScanner ? (
         <MarketStatus />
       ) : hideFilter ? null : (

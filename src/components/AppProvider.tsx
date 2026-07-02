@@ -18,7 +18,7 @@ import { PositionSize } from '@/components/PositionSize'
 import { Strategies } from '@/components/strategies/Strategies'
 import { Notebook } from '@/components/notebook/Notebook'
 import { PlanProvider, usePlan } from '@/components/PlanProvider'
-import { AccountProvider } from '@/components/AccountProvider'
+import { AccountProvider, useAccounts } from '@/components/AccountProvider'
 import { UpgradeWall, UpgradeBanner } from '@/components/UpgradeWall'
 import { Settings } from '@/components/Settings'
 import { Journal } from '@/components/Journal'
@@ -99,6 +99,74 @@ const PAGE_TITLES: Record<string, string> = {
   '/settings':      'Settings',
 }
 
+// Pages whose trade lists should respect the account switcher in the topbar.
+// Settings, Billing, Scanner, Strategies, Notebook, Import, Position Size
+// aren't account-scoped views, so they always get the unfiltered set.
+const ACCOUNT_SCOPED_PAGES = new Set(['/dashboard', '/trades', '/journal', '/reports', '/ai-analysis'])
+
+// Rendered INSIDE AccountProvider so it can read the selected account and
+// filter trades before anything downstream sees them. AppProvider itself
+// can't do this directly since it sits above PlanProvider/AccountProvider.
+function AppInner({
+  pathname, title, trades, loading, filter, setFilter, userId, userEmail,
+  openAdd, openEdit, handleSave, handleDelete, handleDeleteMany, reloadTrades,
+  modalOpen, setModalOpen, editTrade, setEditTrade, strategyList, setStrategyList,
+}: any) {
+  const { selectedAccountId } = useAccounts()
+
+  const scopedTrades = (ACCOUNT_SCOPED_PAGES.has(pathname) && selectedAccountId)
+    ? trades.filter((t: TradeRow) => t.account_id === selectedAccountId)
+    : trades
+
+  function renderPage() {
+    if (loading && pathname !== '/scanner') {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '50vh', color: 'var(--txt3)' }}>
+          Loading...
+        </div>
+      )
+    }
+
+    if (pathname === '/scanner')      return <GatedScanner />
+    if (pathname === '/trades')       return <TradeView trades={scopedTrades} filter={filter} onFilterChange={setFilter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} />
+    if (pathname === '/dashboard')    return <DashboardWithBanner trades={scopedTrades} filter={filter} onEdit={openEdit} onDelete={handleDelete} userId={userId} onReload={reloadTrades} />
+    if (pathname === '/journal')      return <Journal trades={scopedTrades} onEdit={openEdit} />
+    if (pathname === '/reports')      return <GatedReports trades={scopedTrades} filter={filter} />
+    if (pathname === '/position-size')return <PositionSize />
+    if (pathname === '/strategies')   return <GatedStrategies userId={userId} trades={trades} />
+    if (pathname === '/notebook')     return <GatedNotebook userId={userId} />
+    if (pathname === '/import')       return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
+    if (pathname === '/settings')     return <Settings userEmail={userEmail} />
+    if (pathname === '/ai-analysis')  return <GatedAIAnalysis trades={scopedTrades} />
+    if (pathname === '/billing')      return <Billing />
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: '12px' }}>
+        <div style={{ fontSize: '32px' }}>🚧</div>
+        <div style={{ fontSize: '16px', fontWeight: 700 }}>Coming soon</div>
+        <div style={{ fontSize: '12px', color: 'var(--txt2)' }}>This section is being built in the next phase.</div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <AppShell title={title} userEmail={userEmail} filter={filter} onFilterChange={setFilter} onAddTrade={openAdd}>
+        {renderPage()}
+      </AppShell>
+      <AddTradeModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setEditTrade(null) }}
+        onSave={handleSave}
+        editTrade={editTrade}
+        strategies={strategyList}
+        userId={userId}
+        onStrategyCreated={(s: StrategyRow) => setStrategyList((prev: StrategyRow[]) => [s, ...prev])}
+      />
+    </>
+  )
+}
+
 export function AppProvider({ userId, userEmail }: Props) {
   const pathname = usePathname()
 
@@ -168,51 +236,16 @@ export function AppProvider({ userId, userEmail }: Props) {
 
   const title = PAGE_TITLES[pathname] || 'Sleektrade'
 
-  function renderPage() {
-    if (loading && pathname !== '/scanner') {
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '50vh', color: 'var(--txt3)' }}>
-          Loading...
-        </div>
-      )
-    }
-
-    if (pathname === '/scanner')      return <GatedScanner />
-    if (pathname === '/trades')       return <TradeView trades={trades} filter={filter} onFilterChange={setFilter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} />
-    if (pathname === '/dashboard')    return <DashboardWithBanner trades={trades} filter={filter} onEdit={openEdit} onDelete={handleDelete} userId={userId} onReload={reloadTrades} />
-    if (pathname === '/journal')      return <Journal trades={trades} onEdit={openEdit} />
-    if (pathname === '/reports')      return <GatedReports trades={trades} filter={filter} />
-    if (pathname === '/position-size')return <PositionSize />
-    if (pathname === '/strategies')   return <GatedStrategies userId={userId} trades={trades} />
-    if (pathname === '/notebook')     return <GatedNotebook userId={userId} />
-    if (pathname === '/import')       return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
-    if (pathname === '/settings')     return <Settings userEmail={userEmail} />
-    if (pathname === '/ai-analysis')  return <GatedAIAnalysis trades={trades} />
-    if (pathname === '/billing')      return <Billing />
-
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: '12px' }}>
-        <div style={{ fontSize: '32px' }}>🚧</div>
-        <div style={{ fontSize: '16px', fontWeight: 700 }}>Coming soon</div>
-        <div style={{ fontSize: '12px', color: 'var(--txt2)' }}>This section is being built in the next phase.</div>
-      </div>
-    )
-  }
-
   return (
     <PlanProvider>
       <AccountProvider>
-        <AppShell title={title} userEmail={userEmail} filter={filter} onFilterChange={setFilter} onAddTrade={openAdd}>
-          {renderPage()}
-        </AppShell>
-        <AddTradeModal
-          open={modalOpen}
-          onClose={() => { setModalOpen(false); setEditTrade(null) }}
-          onSave={handleSave}
-          editTrade={editTrade}
-          strategies={strategyList}
-          userId={userId}
-          onStrategyCreated={s => setStrategyList(prev => [s, ...prev])}
+        <AppInner
+          pathname={pathname} title={title} trades={trades} loading={loading}
+          filter={filter} setFilter={setFilter} userId={userId} userEmail={userEmail}
+          openAdd={openAdd} openEdit={openEdit} handleSave={handleSave}
+          handleDelete={handleDelete} handleDeleteMany={handleDeleteMany} reloadTrades={reloadTrades}
+          modalOpen={modalOpen} setModalOpen={setModalOpen} editTrade={editTrade} setEditTrade={setEditTrade}
+          strategyList={strategyList} setStrategyList={setStrategyList}
         />
       </AccountProvider>
     </PlanProvider>

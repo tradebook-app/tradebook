@@ -23,6 +23,7 @@ export type TradeRow = {
   notes: string | null
   screenshot_url: string | null
   strategy_id: string | null
+  account_id: string | null
   created_at: string
   updated_at: string
 }
@@ -71,8 +72,9 @@ export type StrategyRuleGroupWithRules = StrategyRuleGroupRow & {
 
 // ─── Insert Types (omit auto-generated fields) ───────────────────────────────
 
-export type TradeInsert = Omit<TradeRow, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'strategy_id'> & {
+export type TradeInsert = Omit<TradeRow, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'strategy_id' | 'account_id'> & {
   strategy_id?: string | null
+  account_id?: string | null
 }
 export type NoteInsert  = Omit<NoteRow,  'id' | 'user_id' | 'created_at' | 'updated_at'>
 export type StrategyInsert = Omit<StrategyRow, 'id' | 'user_id' | 'created_at' | 'updated_at'>

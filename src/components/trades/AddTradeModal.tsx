@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import type { TradeRow, StrategyRow } from '@/lib/types'
 import { insertStrategy } from '@/lib/strategyService'
+import { useAccounts } from '@/components/AccountProvider'
 
 type Props = {
   open: boolean
@@ -28,6 +29,7 @@ export type TradeFormPayload = {
   commission: number
   setup: string | null
   strategy_id: string | null
+  account_id: string | null
   grade: string | null
   tags: string[]
   notes: string | null
@@ -36,6 +38,7 @@ export type TradeFormPayload = {
 const GRADES = ['A+', 'A', 'A-', 'B', 'C']
 
 export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, userId, onStrategyCreated }: Props) {
+  const { accounts } = useAccounts()
   const [symbol,     setSymbol]     = useState('')
   const [side,       setSide]       = useState<'Long' | 'Short'>('Long')
   const [date,       setDate]       = useState('')
@@ -47,6 +50,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
   const [risk,       setRisk]       = useState('')
   const [commission, setCommission] = useState('')
   const [strategyId, setStrategyId] = useState('')
+  const [accountId,  setAccountId]  = useState('')
   const [legacySetup, setLegacySetup] = useState<string | null>(null)
   const [creatingStrategy, setCreatingStrategy] = useState(false)
   const [newStrategyName, setNewStrategyName] = useState('')
@@ -84,6 +88,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
       } else {
         setStrategyId(''); setLegacySetup(null)
       }
+      setAccountId(editTrade.account_id || accounts.find(a => a.is_default)?.id || accounts[0]?.id || '')
       setGrade(editTrade.grade || '')
       setTags(editTrade.tags || [])
       setNotes(editTrade.notes || '')
@@ -105,6 +110,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
     setExitDate(''); setEntry(''); setExit(''); setShares('')
     setPnlOver(''); setRisk(''); setCommission('')
     setStrategyId(''); setLegacySetup(null); setGrade(''); setTags([]); setTagInput('')
+    setAccountId(accounts.find(a => a.is_default)?.id || accounts[0]?.id || '')
     setCreatingStrategy(false); setNewStrategyName('')
     setNotes(''); setImgPreview(null); setImgFile(null)
   }
@@ -191,6 +197,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
       commission: parseFloat(commission) || 0,
       setup:      selectedStrategy ? selectedStrategy.name : (legacySetup || null),
       strategy_id: strategyId || null,
+      account_id: accountId || null,
       grade:      grade || null,
       tags,
       notes:      notes || null,
@@ -286,6 +293,16 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
             style={{ fontFamily: 'var(--mono)' }} />
         </div>
       </div>
+
+      {/* Trading Account — only shown if the user has more than one */}
+      {accounts.length > 1 && (
+        <div style={fg}>
+          <label style={lbl}>Trading Account</label>
+          <select className="fi" value={accountId} onChange={e => setAccountId(e.target.value)} style={{ fontSize: '11px' }}>
+            {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </div>
+      )}
 
       {/* Risk / Commission */}
       <div style={row2}>

@@ -16,6 +16,8 @@ type AccountContext = {
   loading: boolean
   limit: number | null // null = unlimited
   atLimit: boolean
+  selectedAccountId: string | null // null = "All accounts"
+  setSelectedAccountId: (id: string | null) => void
   addAccount: (name: string, broker?: string) => Promise<{ ok: boolean; error?: string }>
   renameAccount: (id: string, name: string) => Promise<{ ok: boolean; error?: string }>
   deleteAccount: (id: string) => Promise<{ ok: boolean; error?: string }>
@@ -24,6 +26,7 @@ type AccountContext = {
 
 const Ctx = createContext<AccountContext>({
   accounts: [], loading: true, limit: 1, atLimit: false,
+  selectedAccountId: null, setSelectedAccountId: () => {},
   addAccount: async () => ({ ok: false }),
   renameAccount: async () => ({ ok: false }),
   deleteAccount: async () => ({ ok: false }),
@@ -42,6 +45,18 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const { plan } = usePlan()
   const [accounts, setAccounts] = useState<TradingAccount[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedAccountId, setSelectedAccountIdState] = useState<string | null>(null)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('sleektrade_selected_account')
+    if (saved) setSelectedAccountIdState(saved)
+  }, [])
+
+  function setSelectedAccountId(id: string | null) {
+    setSelectedAccountIdState(id)
+    if (id) localStorage.setItem('sleektrade_selected_account', id)
+    else localStorage.removeItem('sleektrade_selected_account')
+  }
 
   async function load() {
     try {
@@ -89,11 +104,12 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     const d = await res.json()
     if (!res.ok) return { ok: false, error: d.error || 'Failed to delete account.' }
     setAccounts(prev => prev.filter(a => a.id !== id))
+    if (selectedAccountId === id) setSelectedAccountId(null)
     return { ok: true }
   }
 
   return (
-    <Ctx.Provider value={{ accounts, loading, limit, atLimit, addAccount, renameAccount, deleteAccount, reload: load }}>
+    <Ctx.Provider value={{ accounts, loading, limit, atLimit, selectedAccountId, setSelectedAccountId, addAccount, renameAccount, deleteAccount, reload: load }}>
       {children}
     </Ctx.Provider>
   )
