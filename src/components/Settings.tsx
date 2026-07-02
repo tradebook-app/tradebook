@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useAccounts } from '@/components/AccountProvider'
 
-type Tab = 'profile' | 'security' | 'subscription'
+type Tab = 'profile' | 'security' | 'accounts' | 'subscription'
 
 const TRADER_TYPES = ['Day trader', 'Swing trader', 'Futures trader', 'Options trader', 'Crypto trader', 'Forex trader']
 
@@ -257,7 +258,7 @@ export function Settings({ userEmail }: { userEmail?: string }) {
         {/* SIDEBAR */}
         <div className="settings-sidebar">
           <div className="settings-section-label" style={{ fontSize: '10px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', padding: '0 10px', marginBottom: '8px' }}>User</div>
-          {([['profile', '👤', 'Profile'], ['security', '🔒', 'Security'], ['subscription', '💳', 'Subscription']] as const).map(([t, icon, label]) => (
+          {([['profile', '👤', 'Profile'], ['security', '🔒', 'Security'], ['accounts', '🏦', 'Trading Accounts'], ['subscription', '💳', 'Subscription']] as const).map(([t, icon, label]) => (
             <button key={t} onClick={() => setTab(t)} style={{
               display: 'flex', alignItems: 'center', gap: '8px',
               padding: '9px 14px', borderRadius: 'var(--r)',
@@ -394,6 +395,8 @@ export function Settings({ userEmail }: { userEmail?: string }) {
             </div>
           )}
 
+          {tab === 'accounts' && <AccountsTab />}
+
           {tab === 'subscription' && (
             <div>
               <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>Subscription</div>
@@ -488,5 +491,101 @@ export function Settings({ userEmail }: { userEmail?: string }) {
         </div>
       </div>
     </>
+  )
+}
+
+function AccountsTab() {
+  const { accounts, loading, limit, atLimit, addAccount, renameAccount, deleteAccount } = useAccounts()
+  const [newName, setNewName] = useState('')
+  const [newBroker, setNewBroker] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+
+  async function handleAdd() {
+    if (!newName.trim()) return
+    setAdding(true)
+    setError(null)
+    const res = await addAccount(newName.trim(), newBroker.trim())
+    setAdding(false)
+    if (!res.ok) { setError(res.error || 'Failed to add account.'); return }
+    setNewName('')
+    setNewBroker('')
+  }
+
+  async function handleRename(id: string) {
+    if (!editName.trim()) return
+    const res = await renameAccount(id, editName.trim())
+    if (res.ok) setEditingId(null)
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Delete "${name}"? Trades under this account will be kept but unassigned.`)) return
+    const res = await deleteAccount(id)
+    if (!res.ok) alert(res.error || 'Failed to delete account.')
+  }
+
+  return (
+    <div>
+      <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>Trading Accounts</div>
+      <div style={{ fontSize: '13px', color: 'var(--txt3)', marginBottom: '24px' }}>
+        Keep separate books — e.g. a live account and a paper account, or two brokers.
+      </div>
+
+      <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '16px' }}>
+        {loading ? 'Loading...' : `${accounts.length} of ${limit === null ? 'unlimited' : limit} account${limit === 1 ? '' : 's'} used`}
+      </div>
+
+      {!loading && accounts.map(acc => (
+        <div key={acc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', marginBottom: '8px' }}>
+          {editingId === acc.id ? (
+            <div style={{ display: 'flex', gap: '8px', flex: 1, alignItems: 'center' }}>
+              <input className="fi" value={editName} onChange={e => setEditName(e.target.value)} style={{ flex: 1 }} autoFocus />
+              <button onClick={() => handleRename(acc.id)} style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ac2)', background: 'transparent', border: 'none', cursor: 'pointer' }}>Save</button>
+              <button onClick={() => setEditingId(null)} style={{ fontSize: '12px', color: 'var(--txt3)', background: 'transparent', border: 'none', cursor: 'pointer' }}>Cancel</button>
+            </div>
+          ) : (
+            <>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600 }}>
+                  {acc.name} {acc.is_default && <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac2)', background: 'var(--ac-d)', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>DEFAULT</span>}
+                </div>
+                {acc.broker && <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>{acc.broker}</div>}
+              </div>
+              <div style={{ display: 'flex', gap: '14px' }}>
+                <button onClick={() => { setEditingId(acc.id); setEditName(acc.name) }} style={{ fontSize: '12px', color: 'var(--txt2)', background: 'transparent', border: 'none', cursor: 'pointer' }}>Rename</button>
+                {accounts.length > 1 && (
+                  <button onClick={() => handleDelete(acc.id, acc.name)} style={{ fontSize: '12px', color: 'var(--red)', background: 'transparent', border: 'none', cursor: 'pointer' }}>Delete</button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      ))}
+
+      {atLimit ? (
+        <div style={{ marginTop: '16px', padding: '16px', background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r)' }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>You've reached your account limit</div>
+          <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '12px' }}>Upgrade your plan to add more trading accounts.</div>
+          <Link href="/billing" style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ac2)', background: 'var(--ac-d)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '8px', padding: '9px 18px', textDecoration: 'none', display: 'inline-block' }}>
+            Upgrade Plan
+          </Link>
+        </div>
+      ) : (
+        <div style={{ marginTop: '16px', padding: '16px', background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r)' }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '10px' }}>Add a trading account</div>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+            <input className="fi" placeholder="Account name (e.g. Live - Fidelity)" value={newName} onChange={e => setNewName(e.target.value)} style={{ flex: 2, minWidth: '180px' }} />
+            <input className="fi" placeholder="Broker (optional)" value={newBroker} onChange={e => setNewBroker(e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
+          </div>
+          {error && <div style={{ fontSize: '12px', color: 'var(--red)', marginBottom: '8px' }}>{error}</div>}
+          <button onClick={handleAdd} disabled={adding || !newName.trim()}
+            style={{ fontSize: '12px', fontWeight: 700, color: '#000', background: 'var(--ac2)', border: 'none', borderRadius: '8px', padding: '9px 18px', cursor: adding ? 'default' : 'pointer', opacity: adding || !newName.trim() ? 0.6 : 1 }}>
+            {adding ? 'Adding...' : '+ Add Account'}
+          </button>
+        </div>
+      )}
+    </div>
   )
 }

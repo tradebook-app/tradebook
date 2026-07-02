@@ -18,6 +18,7 @@ import { PositionSize } from '@/components/PositionSize'
 import { Strategies } from '@/components/strategies/Strategies'
 import { Notebook } from '@/components/notebook/Notebook'
 import { PlanProvider, usePlan } from '@/components/PlanProvider'
+import { AccountProvider } from '@/components/AccountProvider'
 import { UpgradeWall, UpgradeBanner } from '@/components/UpgradeWall'
 import { Settings } from '@/components/Settings'
 import { Journal } from '@/components/Journal'
@@ -200,18 +201,20 @@ export function AppProvider({ userId, userEmail }: Props) {
 
   return (
     <PlanProvider>
-      <AppShell title={title} userEmail={userEmail} filter={filter} onFilterChange={setFilter} onAddTrade={openAdd}>
-        {renderPage()}
-      </AppShell>
-      <AddTradeModal
-        open={modalOpen}
-        onClose={() => { setModalOpen(false); setEditTrade(null) }}
-        onSave={handleSave}
-        editTrade={editTrade}
-        strategies={strategyList}
-        userId={userId}
-        onStrategyCreated={s => setStrategyList(prev => [s, ...prev])}
-      />
+      <AccountProvider>
+        <AppShell title={title} userEmail={userEmail} filter={filter} onFilterChange={setFilter} onAddTrade={openAdd}>
+          {renderPage()}
+        </AppShell>
+        <AddTradeModal
+          open={modalOpen}
+          onClose={() => { setModalOpen(false); setEditTrade(null) }}
+          onSave={handleSave}
+          editTrade={editTrade}
+          strategies={strategyList}
+          userId={userId}
+          onStrategyCreated={s => setStrategyList(prev => [s, ...prev])}
+        />
+      </AccountProvider>
     </PlanProvider>
   )
 }
