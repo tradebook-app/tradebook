@@ -46,8 +46,10 @@ export const THEME_ETF_MAP = [
   // Industrials
   { theme: 'Aerospace & Defense',  etf: 'PPA',  sector: 'Industrials',          keywords: ['aerospace', 'defense', 'aerospace & defense'] },
   { theme: 'Airlines',             etf: 'JETS', sector: 'Industrials',          keywords: ['airlines', 'air freight', 'airline'] },
-  { theme: 'Transportation',       etf: 'XTN',  sector: 'Industrials',          keywords: ['transportation', 'trucking', 'railroads', 'logistics'] },
+  { theme: 'Transportation',       etf: 'XTN',  sector: 'Industrials',          keywords: ['transportation', 'trucking', 'railroads', 'railroad', 'logistics'] },
   { theme: 'Shipping',             etf: 'SEA',  sector: 'Industrials',          keywords: ['shipping', 'marine', 'sea freight'] },
+  { theme: 'Industrial Equipment', etf: 'XLI',  sector: 'Industrials',          keywords: ['electrical equipment', 'electrical products', 'electrical component', 'industrial machinery', 'industrial - machinery', 'machinery', 'farm & heavy construction', 'building products', 'specialty industrial machinery', 'tools & accessories', 'conglomerates', 'metal fabrication'] },
+  { theme: 'Business Services',    etf: 'PSCI', sector: 'Industrials',          keywords: ['staffing', 'consulting services', 'security & protection', 'waste management', 'engineering & construction', 'rental & leasing services', 'business equipment & supplies'] },
   { theme: 'Water Resources',      etf: 'PHO',  sector: 'Utilities',            keywords: ['water', 'water utilities', 'water treatment'] },
 
   // Materials
@@ -107,7 +109,7 @@ export function assignTheme(sector: string | null, industry: string | null): str
   if (s.includes('financial'))               return 'Capital Markets';
   if (s.includes('energy'))                  return 'Oil';
   if (s.includes('basic materials'))         return 'Metals & Mining';
-  if (s.includes('industrials'))             return 'Transportation';
+  if (s.includes('industrials'))             return 'Industrial Equipment';
   if (s.includes('consumer discretionary'))  return 'Retail';
   if (s.includes('consumer staples'))        return 'Food & Beverage';
   if (s.includes('real estate'))             return 'REITs';
