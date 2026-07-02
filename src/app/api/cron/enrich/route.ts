@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { assignTheme } from '@/lib/themes';
 
 // Pro plan allows up to 300s (vs Hobby's 60s max), so each run can process
 // far more stocks before being cut off.
@@ -42,84 +43,6 @@ function rank99(value: number, arr: number[], higherBetter = true): number {
   return Math.max(1, Math.min(99, Math.round(higherBetter
     ? (raw / sorted.length) * 99
     : (1 - raw / sorted.length) * 99)));
-}
-
-// ─── Theme assignment (inline — no import needed) ─────────────────────────────
-const THEME_KEYWORDS: { theme: string; keywords: string[] }[] = [
-  { theme: 'Biotech',               keywords: ['biotechnology', 'biotech'] },
-  { theme: 'Medical Devices',       keywords: ['medical devices', 'medical instruments', 'diagnostics'] },
-  { theme: 'Pharmaceuticals',       keywords: ['pharmaceuticals', 'drug manufacturers'] },
-  { theme: 'Healthcare Providers',  keywords: ['healthcare providers', 'managed health', 'hospitals'] },
-  { theme: 'Home Builders',         keywords: ['residential construction', 'home builders', 'homebuilding'] },
-  { theme: 'REITs',                 keywords: ['reit', 'real estate investment', 'real estate services'] },
-  { theme: 'Food & Beverage',       keywords: ['food', 'beverage', 'packaged foods', 'grocery'] },
-  { theme: 'Restaurants',           keywords: ['restaurant', 'fast food', 'food service'] },
-  { theme: 'Leisure & Entertainment',keywords: ['leisure', 'entertainment', 'gaming', 'casinos', 'hotels', 'travel'] },
-  { theme: 'Retail',                keywords: ['retail', 'specialty retail', 'department stores'] },
-  { theme: 'Online Retail',         keywords: ['internet retail', 'e-commerce', 'online retail'] },
-  { theme: 'Cannabis',              keywords: ['cannabis', 'marijuana'] },
-  { theme: 'Electric Vehicles',     keywords: ['electric vehicle', 'auto manufacturers', 'automobile'] },
-  { theme: 'Cloud Computing',       keywords: ['cloud', 'saas', 'software infrastructure', 'information technology services'] },
-  { theme: 'Cryptocurrency',        keywords: ['cryptocurrency', 'crypto', 'blockchain', 'bitcoin'] },
-  { theme: 'Cybersecurity',         keywords: ['cybersecurity', 'security software', 'network security'] },
-  { theme: 'AI & Tech',             keywords: ['artificial intelligence', 'machine learning'] },
-  { theme: 'Internet',              keywords: ['internet content', 'internet services'] },
-  { theme: 'Nanotechnology',        keywords: ['nanotechnology', 'nano'] },
-  { theme: 'Semiconductors',        keywords: ['semiconductors', 'semiconductor', 'chips', 'integrated circuits'] },
-  { theme: 'Fintech',               keywords: ['fintech', 'financial technology', 'payment processing', 'credit services'] },
-  { theme: 'Social Media',          keywords: ['social media', 'social network'] },
-  { theme: 'Software',              keywords: ['software', 'application software', 'software—application', 'software-application'] },
-  { theme: 'Robotics & Automation', keywords: ['robotics', 'automation', 'industrial automation', 'scientific instruments'] },
-  { theme: 'Banks',                 keywords: ['money center banks'] },
-  { theme: 'Regional Banks',        keywords: ['regional banks', 'savings institutions'] },
-  { theme: 'Capital Markets',       keywords: ['capital markets', 'asset management', 'investment banking'] },
-  { theme: 'Insurance',             keywords: ['insurance', 'life insurance', 'property insurance', 'reinsurance'] },
-  { theme: 'Aerospace & Defense',   keywords: ['aerospace', 'defense', 'aerospace & defense'] },
-  { theme: 'Airlines',              keywords: ['airlines', 'airline'] },
-  { theme: 'Transportation',        keywords: ['trucking', 'railroads', 'logistics'] },
-  { theme: 'Shipping',              keywords: ['shipping', 'marine', 'sea freight'] },
-  { theme: 'Water Resources',       keywords: ['water utilities', 'water treatment'] },
-  { theme: 'Agriculture',           keywords: ['agriculture', 'farm products', 'fertilizers'] },
-  { theme: 'Gold Miners',           keywords: ['gold mining', 'gold miners'] },
-  { theme: 'Gold',                  keywords: ['gold', 'precious metals'] },
-  { theme: 'Silver',                keywords: ['silver miners', 'silver'] },
-  { theme: 'Copper Miners',         keywords: ['copper mining', 'copper'] },
-  { theme: 'Uranium',               keywords: ['uranium', 'nuclear'] },
-  { theme: 'Steel',                 keywords: ['steel', 'iron'] },
-  { theme: 'Metals & Mining',       keywords: ['mining', 'diversified metals'] },
-  { theme: 'Battery & Lithium',     keywords: ['lithium', 'battery', 'energy storage'] },
-  { theme: 'Natural Resources',     keywords: ['natural resources', 'diversified commodities'] },
-  { theme: 'Clean Energy',          keywords: ['clean energy', 'renewable energy'] },
-  { theme: 'Solar',                 keywords: ['solar'] },
-  { theme: 'Wind',                  keywords: ['wind energy', 'wind power'] },
-  { theme: 'Natural Gas',           keywords: ['natural gas', 'gas utilities'] },
-  { theme: 'Oil',                   keywords: ['oil', 'crude oil', 'oil & gas'] },
-  { theme: 'MLP',                   keywords: ['mlp', 'midstream', 'pipeline'] },
-  { theme: 'Infrastructure',        keywords: ['infrastructure', 'electric utilities', 'multi-utilities'] },
-  { theme: 'Communication Services',keywords: ['communication', 'telecom', 'wireless'] },
-];
-
-function assignTheme(sector: string | null, industry: string | null): string | null {
-  if (!sector && !industry) return null;
-  const combined = `${(sector||'').toLowerCase()} ${(industry||'').toLowerCase()}`;
-  for (const t of THEME_KEYWORDS) {
-    for (const kw of t.keywords) {
-      if (combined.includes(kw.toLowerCase())) return t.theme;
-    }
-  }
-  const s = (sector || '').toLowerCase();
-  if (s.includes('technology'))             return 'Software';
-  if (s.includes('healthcare'))             return 'Pharmaceuticals';
-  if (s.includes('financial'))              return 'Capital Markets';
-  if (s.includes('energy'))                 return 'Oil';
-  if (s.includes('basic materials'))        return 'Metals & Mining';
-  if (s.includes('industrials'))            return 'Transportation';
-  if (s.includes('consumer discretionary')) return 'Retail';
-  if (s.includes('consumer staples'))       return 'Food & Beverage';
-  if (s.includes('real estate'))            return 'REITs';
-  if (s.includes('utilities'))              return 'Infrastructure';
-  if (s.includes('communication'))          return 'Communication Services';
-  return null;
 }
 
 export async function GET(request: Request) {

@@ -64,7 +64,7 @@ export const THEME_ETF_MAP = [
 
   // Energy
   { theme: 'Clean Energy',         etf: 'PBW',  sector: 'Energy',               keywords: ['clean energy', 'renewable energy', 'green energy'] },
-  { theme: 'Oil',                  etf: 'USO',  sector: 'Energy',               keywords: ['oil', 'crude oil', 'oil & gas integrated', 'oil & gas e&p', 'oil & gas midstream'] },
+  { theme: 'Oil',                  etf: 'USO',  sector: 'Energy',               keywords: ['oil', 'crude oil', 'oil & gas integrated', 'oil & gas e&p'] },
   { theme: 'Natural Gas',          etf: 'FCG',  sector: 'Energy',               keywords: ['natural gas', 'gas utilities'] },
   { theme: 'Solar',                etf: 'TAN',  sector: 'Energy',               keywords: ['solar', 'solar energy'] },
   { theme: 'Wind',                 etf: 'FAN',  sector: 'Energy',               keywords: ['wind energy', 'wind power'] },
@@ -85,12 +85,21 @@ export function assignTheme(sector: string | null, industry: string | null): str
   const i = (industry || '').toLowerCase();
   const combined = `${s} ${i}`;
 
-  // Try industry match first (more specific), then sector
+  // Match against ALL themes, then pick the most SPECIFIC match (longest
+  // keyword) rather than the first theme in array order. First-match-wins
+  // let broader/earlier themes (e.g. "Gold") silently swallow every stock
+  // that should've gone to a more specific, later-listed theme (e.g. "Gold
+  // Miners"), leaving that theme permanently empty regardless of real data.
+  let best: { theme: string; kwLen: number } | null = null;
   for (const t of THEME_ETF_MAP) {
     for (const kw of t.keywords) {
-      if (combined.includes(kw.toLowerCase())) return t.theme;
+      const kwLower = kw.toLowerCase();
+      if (combined.includes(kwLower) && (!best || kwLower.length > best.kwLen)) {
+        best = { theme: t.theme, kwLen: kwLower.length };
+      }
     }
   }
+  if (best) return best.theme;
 
   // Fallback: broad sector match
   if (s.includes('technology'))              return 'Software';
