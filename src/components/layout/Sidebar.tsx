@@ -17,7 +17,6 @@ const NAV = [
 ]
 
 const TOOLS = [
-  { href: '/scanner',       icon: '◎',  label: 'Scanner' },
   { href: '/ai-analysis',   icon: '🤖', label: 'Sleek AI' },
 ]
 
