@@ -108,12 +108,41 @@ function perf(bars: any[], days: number): number {
   return ((latest - past) / Math.abs(past)) * 100;
 }
 
+// Detects the real start of liquid trading within a bar history. Protects
+// against ticker-reuse cases: a symbol can have months of technically-real
+// bars that are actually a thinly-traded placeholder (e.g. SPCX traded at
+// ~$22 on volumes of 40-200 shares/day for months), followed by a massive
+// volume + price discontinuity when the real company actually starts
+// trading (SpaceX's uplisting: volume jumped to 500M+ shares and price
+// gapped from ~$22 to ~$150 in a single day). Comparing today's price to
+// pre-discontinuity noise produces a fabricated "+600% in 3 months" reading.
+// Returns the timestamp of the real listing start, or the oldest bar's
+// timestamp if no discontinuity is found.
+function findRealListingStart(bars: any[]): number {
+  if (!bars || bars.length < 2) return bars?.[bars.length - 1]?.t ?? 0;
+  const chron = [...bars].reverse(); // oldest -> newest
+  for (let idx = 1; idx < chron.length; idx++) {
+    const prev = chron[idx - 1];
+    const cur  = chron[idx];
+    if (!prev?.c || !cur?.c || !prev?.v || !cur?.v || !cur?.t) continue;
+    const priceJump  = Math.abs(cur.c - prev.c) / prev.c;
+    const volumeJump = prev.v > 0 ? cur.v / prev.v : (cur.v > 0 ? Infinity : 0);
+    // Real listing/relisting event: volume spikes 20x+ to a genuinely liquid
+    // level AND price gaps 100%+ overnight. Both conditions together avoid
+    // false positives from ordinary volatile news days on already-liquid stocks.
+    if (volumeJump >= 20 && cur.v >= 1_000_000 && priceJump >= 1.0) {
+      return cur.t;
+    }
+  }
+  return chron[0]?.t ?? 0;
+}
+
 // Calendar-date-based performance — matches TradingView's methodology:
 // compares latest close to the close on the trading day closest to (but not
 // after) exactly N calendar months ago, rather than a fixed trading-day count.
 // This avoids drift from holidays/weekends causing 1-10%+ mismatches vs TV,
 // especially around volatile weeks that a fixed-count offset can miss or hit.
-function perfCalendar(bars: any[], monthsBack: number): number | null {
+function perfCalendar(bars: any[], monthsBack: number, listingStart?: number): number | null {
   if (!bars || bars.length < 2) return null;
   const latest = bars[0];
   if (!latest?.c || !latest?.t) return null;
@@ -124,12 +153,14 @@ function perfCalendar(bars: any[], monthsBack: number): number | null {
 
   // If our oldest available bar is more recent than the target date, we
   // don't have enough real history to answer this (e.g. a stock that IPO'd
-  // 2 weeks ago has no real "3 months ago" price). Falling back to the
-  // oldest bar we DO have would silently compare today's price to IPO-day
-  // price and mislabel it as a legitimate 3M/6M return — exactly how a
-  // fresh listing like SPCX produced a fabricated +600%+ reading.
+  // 2 weeks ago has no real "3 months ago" price).
   const oldestBar = bars[bars.length - 1];
   if (!oldestBar?.t || oldestBar.t > targetTime) return null;
+
+  // If the target date falls before the real listing start (pre-discontinuity
+  // noise), we also don't have a meaningful reference price — even though
+  // technically-real bars exist that far back.
+  if (listingStart != null && targetTime < listingStart) return null;
 
   const pastBar = bars.find((b: any) => b.t != null && b.t <= targetTime);
   const past = pastBar?.c;
@@ -225,9 +256,10 @@ export async function GET(request: Request) {
       const changeP   = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
 
       const bars   = allBars[ticker] || [];
-      const m1     = perfCalendar(bars, 1);
-      const m3     = perfCalendar(bars, 3);
-      const m6     = perfCalendar(bars, 6);
+      const listingStart = findRealListingStart(bars);
+      const m1     = perfCalendar(bars, 1, listingStart);
+      const m3     = perfCalendar(bars, 3, listingStart);
+      const m6     = perfCalendar(bars, 6, listingStart);
       // Weighted RS score: 40% 1M + 35% 3M + 25% 6M (favors recent momentum).
       // If any component is null (not enough price history — e.g. a recent
       // IPO), don't fabricate a blended score from partial data.
