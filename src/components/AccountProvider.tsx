@@ -54,7 +54,10 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { load() }, [])
 
-  const limit = ACCOUNT_LIMITS[plan] ?? 1
+  // NOTE: don't use `?? 1` here — ACCOUNT_LIMITS.elite is intentionally
+  // `null` (meaning unlimited), and `??` treats null as missing too, so it
+  // was silently turning "unlimited" into "1" for Elite users.
+  const limit = plan in ACCOUNT_LIMITS ? ACCOUNT_LIMITS[plan] : 1
   const atLimit = limit !== null && accounts.length >= limit
 
   async function addAccount(name: string, broker?: string) {
