@@ -15,6 +15,7 @@ export function getChartColors() {
       tooltipBorder: '#2E2E3A',
       tooltipTitle: '#9999AA',
       tooltipBody: '#F1F1F3',
+      redFill: 'rgba(239,68,68,.08)',
     }
   }
   const isLight = document.documentElement.getAttribute('data-theme') === 'light'
@@ -29,6 +30,10 @@ export function getChartColors() {
     tooltipBorder: v('--brd2', '#2E2E3A'),
     tooltipTitle: v('--txt2', '#9999AA'),
     tooltipBody: v('--txt', '#F1F1F3'),
+    // Red/green area fills need to be more translucent on a light
+    // background, or a jagged line (like drawdown) reads as one solid
+    // saturated block instead of a subtle fill.
+    redFill: isLight ? 'rgba(220,38,38,.05)' : 'rgba(239,68,68,.08)',
   }
 }
 

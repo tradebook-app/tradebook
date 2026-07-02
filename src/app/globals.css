@@ -64,15 +64,15 @@ input:focus {
 
 /* ─── Light Theme ────────────────────────────────────────────────────────── */
 [data-theme="light"] {
-  --bg:  #EFEFF2;
-  --bg2: #FAFAFC;
-  --bg3: #F0F0F3;
-  --bg4: #E6E6EC;
-  --bg5: #DCDCE4;
+  --bg:  #DEDEE6;
+  --bg2: #FFFFFF;
+  --bg3: #F7F7FA;
+  --bg4: #EEEEF2;
+  --bg5: #E2E2EA;
 
-  --brd:  #E2E2EA;
-  --brd2: #D4D4E0;
-  --brd3: #C4C4D4;
+  --brd:  #D2D2DC;
+  --brd2: #BFBFCC;
+  --brd3: #A8A8B8;
 
   --ac:    #10B981;
   --ac2:   #059669;
@@ -90,9 +90,9 @@ input:focus {
   --orange-d: rgba(217,119,6,.08);
 
   --txt:  #111118;
-  --txt2: #52526A;
-  --txt3: #8888A0;
-  --txt4: #BBBBCC;
+  --txt2: #43435A;
+  --txt3: #6B6B82;
+  --txt4: #A8A8B8;
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────── */

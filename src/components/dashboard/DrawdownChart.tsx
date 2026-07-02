@@ -34,7 +34,7 @@ export function DrawdownChart({ labels, data }: Props) {
           borderWidth: 1.5,
           pointRadius: 0,
           fill: true,
-          backgroundColor: 'rgba(239,68,68,.08)',
+          backgroundColor: tc.redFill,
           tension: 0.3,
         }],
       },
