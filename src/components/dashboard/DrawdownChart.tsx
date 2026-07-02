@@ -5,6 +5,7 @@ import {
   Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale,
   Filler, Tooltip, type ChartConfiguration,
 } from 'chart.js'
+import { getChartColors, useThemeVersion } from '@/lib/chartTheme'
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip)
 
@@ -16,10 +17,12 @@ type Props = {
 export function DrawdownChart({ labels, data }: Props) {
   const ref = useRef<HTMLCanvasElement>(null)
   const chartRef = useRef<Chart | null>(null)
+  const themeVersion = useThemeVersion()
 
   useEffect(() => {
     if (!ref.current || !data.length) return
     chartRef.current?.destroy()
+    const tc = getChartColors()
 
     const config: ChartConfiguration = {
       type: 'line',
@@ -41,11 +44,11 @@ export function DrawdownChart({ labels, data }: Props) {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#21212E',
-            borderColor: '#2E2E3A',
+            backgroundColor: tc.tooltipBg,
+            borderColor: tc.tooltipBorder,
             borderWidth: 1,
-            titleColor: '#9999AA',
-            bodyColor: '#F1F1F3',
+            titleColor: tc.tooltipTitle,
+            bodyColor: tc.tooltipBody,
             callbacks: {
               label: ctx => ` $${ctx.parsed.y.toFixed(2)}`,
             },
@@ -54,12 +57,12 @@ export function DrawdownChart({ labels, data }: Props) {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: '#606070', font: { size: 9 }, maxTicksLimit: 8 },
+            ticks: { color: tc.tick, font: { size: 9 }, maxTicksLimit: 8 },
           },
           y: {
-            grid: { color: 'rgba(255,255,255,.03)' },
+            grid: { color: tc.grid },
             ticks: {
-              color: '#606070', font: { size: 9 },
+              color: tc.tick, font: { size: 9 },
               callback: v => `$${Number(v).toFixed(0)}`,
             },
           },
@@ -69,7 +72,7 @@ export function DrawdownChart({ labels, data }: Props) {
 
     chartRef.current = new Chart(ref.current, config)
     return () => chartRef.current?.destroy()
-  }, [labels, data])
+  }, [labels, data, themeVersion])
 
   if (!data.length) {
     return (

@@ -6,6 +6,7 @@ import {
   Tooltip, type ChartConfiguration,
 } from 'chart.js'
 import type { DayStats } from '@/lib/types'
+import { getChartColors, useThemeVersion } from '@/lib/chartTheme'
 
 Chart.register(BarController, BarElement, LinearScale, CategoryScale, Tooltip)
 
@@ -14,10 +15,12 @@ type Props = { days: DayStats[] }
 export function DailyPnlChart({ days }: Props) {
   const ref = useRef<HTMLCanvasElement>(null)
   const chartRef = useRef<Chart | null>(null)
+  const themeVersion = useThemeVersion()
 
   useEffect(() => {
     if (!ref.current || !days.length) return
     chartRef.current?.destroy()
+    const tc = getChartColors()
 
     const config: ChartConfiguration = {
       type: 'bar',
@@ -40,11 +43,11 @@ export function DailyPnlChart({ days }: Props) {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#21212E',
-            borderColor: '#2E2E3A',
+            backgroundColor: tc.tooltipBg,
+            borderColor: tc.tooltipBorder,
             borderWidth: 1,
-            titleColor: '#9999AA',
-            bodyColor: '#F1F1F3',
+            titleColor: tc.tooltipTitle,
+            bodyColor: tc.tooltipBody,
             callbacks: {
               label: ctx => {
                 const v = ctx.parsed.y
@@ -56,12 +59,12 @@ export function DailyPnlChart({ days }: Props) {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: '#606070', font: { size: 9 }, maxTicksLimit: 14 },
+            ticks: { color: tc.tick, font: { size: 9 }, maxTicksLimit: 14 },
           },
           y: {
-            grid: { color: 'rgba(255,255,255,.03)' },
+            grid: { color: tc.grid },
             ticks: {
-              color: '#606070', font: { size: 9 },
+              color: tc.tick, font: { size: 9 },
               callback: v => `$${Number(v).toFixed(0)}`,
             },
           },
@@ -71,7 +74,7 @@ export function DailyPnlChart({ days }: Props) {
 
     chartRef.current = new Chart(ref.current, config)
     return () => chartRef.current?.destroy()
-  }, [days])
+  }, [days, themeVersion])
 
   if (!days.length) {
     return (

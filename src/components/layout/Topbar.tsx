@@ -146,7 +146,7 @@ export function Topbar({ title, filter, onFilterChange, actions, userEmail }: Pr
   const isScanner = pathname === '/scanner'
   // Trade View, Reports, Dashboard genuinely use the date filter — Trade View
   // now shows it inline in its own filter row instead, so hide the topbar copy there.
-  const hideFilter = ['/ai-analysis', '/journal', '/notebook', '/strategies', '/position-size', '/settings', '/trades'].includes(pathname)
+  const hideFilter = ['/ai-analysis', '/journal', '/notebook', '/strategies', '/position-size', '/settings', '/trades', '/billing'].includes(pathname)
   const showAccountSwitcher = ['/dashboard', '/trades', '/journal', '/reports', '/ai-analysis'].includes(pathname)
   return (
     <div style={{

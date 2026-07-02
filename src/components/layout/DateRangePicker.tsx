@@ -134,7 +134,7 @@ export function DateRangePicker({ filter, onFilterChange }: Props) {
                 value={filter.from || ''}
                 onChange={e => onFilterChange({ ...filter, from: e.target.value })}
                 style={{
-                  background: 'var(--bg4)', border: '1px solid var(--brd2)', borderRadius: '10px',
+                  background: 'var(--bg5)', border: '1px solid var(--brd3)', borderRadius: '10px',
                   color: 'var(--txt)', fontSize: '11px', padding: '7px 10px', fontFamily: 'var(--sans)', outline: 'none',
                 }}
               />
@@ -144,7 +144,7 @@ export function DateRangePicker({ filter, onFilterChange }: Props) {
                 value={filter.to || ''}
                 onChange={e => onFilterChange({ ...filter, to: e.target.value })}
                 style={{
-                  background: 'var(--bg4)', border: '1px solid var(--brd2)', borderRadius: '10px',
+                  background: 'var(--bg5)', border: '1px solid var(--brd3)', borderRadius: '10px',
                   color: 'var(--txt)', fontSize: '11px', padding: '7px 10px', fontFamily: 'var(--sans)', outline: 'none',
                 }}
               />

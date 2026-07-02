@@ -120,12 +120,12 @@ export function PositionSize() {
               <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
               <input className="fi" type="number" value={maxDollar}
                 onChange={e => setMaxPct(acc > 0 ? String((parseFloat(e.target.value) || 0) / acc * 100) : '0')}
-                placeholder="e.g. 10000" style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
+                style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
             </div>
             <div style={{ display: 'flex' }}>
               <input className="fi" type="number" value={maxPct}
                 onChange={e => setMaxPct(e.target.value)}
-                placeholder="e.g. 30" style={{ fontFamily: 'var(--mono)', borderRadius: 'var(--r) 0 0 var(--r)' }} />
+                style={{ fontFamily: 'var(--mono)', borderRadius: 'var(--r) 0 0 var(--r)' }} />
               <span style={{ ...affix, borderLeft: 0, borderRadius: '0 var(--r) var(--r) 0' }}>%</span>
             </div>
           </div>

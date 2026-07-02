@@ -64,11 +64,11 @@ input:focus {
 
 /* ─── Light Theme ────────────────────────────────────────────────────────── */
 [data-theme="light"] {
-  --bg:  #F4F4F6;
-  --bg2: #FFFFFF;
+  --bg:  #EFEFF2;
+  --bg2: #FAFAFC;
   --bg3: #F0F0F3;
-  --bg4: #E8E8ED;
-  --bg5: #E0E0E8;
+  --bg4: #E6E6EC;
+  --bg5: #DCDCE4;
 
   --brd:  #E2E2EA;
   --brd2: #D4D4E0;

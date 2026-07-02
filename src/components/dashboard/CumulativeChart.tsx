@@ -4,6 +4,7 @@ import {
   Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale,
   Filler, Tooltip, Legend, type ChartConfiguration,
 } from 'chart.js'
+import { getChartColors, useThemeVersion } from '@/lib/chartTheme'
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip, Legend)
 type Props = {
   labels: string[]
@@ -15,6 +16,7 @@ type Props = {
 export function CumulativeChart({ labels, data, unit = '$', color = '#10B981', colorFade = 'rgba(16,185,129,.08)' }: Props) {
   const ref = useRef<HTMLCanvasElement>(null)
   const chartRef = useRef<Chart | null>(null)
+  const themeVersion = useThemeVersion()
   const fmt = (v: number) =>
     unit === '%'
       ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
@@ -22,6 +24,7 @@ export function CumulativeChart({ labels, data, unit = '$', color = '#10B981', c
   useEffect(() => {
     if (!ref.current) return
     chartRef.current?.destroy()
+    const tc = getChartColors()
     const config: ChartConfiguration = {
       type: 'line',
       data: {
@@ -43,11 +46,11 @@ export function CumulativeChart({ labels, data, unit = '$', color = '#10B981', c
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#21212E',
-            borderColor: '#2E2E3A',
+            backgroundColor: tc.tooltipBg,
+            borderColor: tc.tooltipBorder,
             borderWidth: 1,
-            titleColor: '#9999AA',
-            bodyColor: '#F1F1F3',
+            titleColor: tc.tooltipTitle,
+            bodyColor: tc.tooltipBody,
             callbacks: {
               label: ctx => ` ${fmt(ctx.parsed.y)}`,
             },
@@ -55,13 +58,13 @@ export function CumulativeChart({ labels, data, unit = '$', color = '#10B981', c
         },
         scales: {
           x: {
-            grid: { color: 'rgba(255,255,255,.03)' },
-            ticks: { color: '#606070', font: { size: 9 }, maxTicksLimit: 10 },
+            grid: { color: tc.grid },
+            ticks: { color: tc.tick, font: { size: 9 }, maxTicksLimit: 10 },
           },
           y: {
-            grid: { color: 'rgba(255,255,255,.03)' },
+            grid: { color: tc.grid },
             ticks: {
-              color: '#606070', font: { size: 9 },
+              color: tc.tick, font: { size: 9 },
               callback: v => unit === '%' ? `${Number(v).toFixed(0)}%` : `$${Number(v).toFixed(0)}`,
             },
           },
@@ -70,7 +73,7 @@ export function CumulativeChart({ labels, data, unit = '$', color = '#10B981', c
     }
     chartRef.current = new Chart(ref.current, config)
     return () => chartRef.current?.destroy()
-  }, [labels, data, unit, color, colorFade])
+  }, [labels, data, unit, color, colorFade, themeVersion])
   if (data.length === 0) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'var(--txt3)', fontSize: '11px' }}>
