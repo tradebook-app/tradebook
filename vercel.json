@@ -1,12 +1,3 @@
 {
-  "crons": [
-    {
-      "path": "/api/scanner/cache?token=sleektrade123",
-      "schedule": "0 1 * * 1-5"
-    },
-    {
-      "path": "/api/cron/enrich?token=sleektrade123",
-      "schedule": "0 * * * *"
-    }
-  ]
+  "crons": []
 }
