@@ -13,7 +13,7 @@ export function WinLossReport({ trades }: Props) {
 
   let curStreak = 0, maxWinStreak = 0, maxLossStreak = 0, curType = ''
   ;[...closed].reverse().forEach(t => {
-    const type = t.pnl > 0 ? 'win' : 'loss'
+    const type = t.pnl > 0 ? 'win' : t.pnl < 0 ? 'loss' : 'be'
     if (type === curType) { curStreak++ } else { curStreak = 1; curType = type }
     if (type === 'win'  && curStreak > maxWinStreak)  maxWinStreak  = curStreak
     if (type === 'loss' && curStreak > maxLossStreak) maxLossStreak = curStreak
