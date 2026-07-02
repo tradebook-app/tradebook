@@ -14,7 +14,7 @@ function AccountSwitcher() {
       className="fi"
       value={selectedAccountId || ''}
       onChange={e => setSelectedAccountId(e.target.value || null)}
-      style={{ fontSize: '11px', width: 'auto', minWidth: '130px', padding: '5px 10px', background: 'var(--bg4)', border: '1px solid var(--brd2)', borderRadius: 'var(--r)', color: 'var(--txt)' }}
+      style={{ fontSize: '11px', width: 'auto', minWidth: '130px', padding: '5px 14px', background: 'var(--bg4)', border: '1px solid var(--brd2)', borderRadius: '999px', color: 'var(--txt)' }}
     >
       <option value="">All Accounts</option>
       {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
