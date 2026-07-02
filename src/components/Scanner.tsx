@@ -162,7 +162,11 @@ export function Scanner() {
   const load = useCallback(async (key: string, url: string, setter: (d:any)=>void) => {
     setLoading(l=>({...l,[key]:true})); setError(e=>({...e,[key]:''}));
     try {
-      const res = await fetch(url); const data = await res.json();
+      const res = await fetch(url);
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); }
+      catch { throw new Error(res.ok ? 'Server returned an invalid response.' : `Server error (${res.status}). Try again.`); }
       if (data.error) throw new Error(data.error);
       setter(data);
     } catch(e:any) { setError(err=>({...err,[key]:e.message})); }
