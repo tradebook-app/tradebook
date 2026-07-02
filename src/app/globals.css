@@ -54,6 +54,15 @@ input:focus {
   --txt3: #606070;
   --txt4: #44444F;
 
+  /* Bar chart fills (Reports: Day&Time, Symbols, Setups, Risk). TradeZella's
+     light-mode bars are solid/saturated, not pale — same idea here, values
+     differ per theme since a translucent fill that reads fine on a near-
+     black background nearly disappears on white. */
+  --bar-green-1: rgba(16,185,129,.75);
+  --bar-green-2: rgba(16,185,129,.35);
+  --bar-red-1:   rgba(239,68,68,.75);
+  --bar-red-2:   rgba(239,68,68,.35);
+
   --mono: 'JetBrains Mono', monospace;
   --sans: 'Inter', sans-serif;
   --r:  8px;
@@ -93,6 +102,11 @@ input:focus {
   --txt2: #43435A;
   --txt3: #6B6B82;
   --txt4: #A8A8B8;
+
+  --bar-green-1: rgba(5,150,105,.9);
+  --bar-green-2: rgba(5,150,105,.5);
+  --bar-red-1:   rgba(220,38,38,.9);
+  --bar-red-2:   rgba(220,38,38,.5);
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────── */

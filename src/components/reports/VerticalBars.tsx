@@ -19,7 +19,7 @@ export function VerticalBars({ items, zone = 95 }: { items: Item[]; zone?: numbe
               {pos && it.value !== 0 && (
                 <>
                   <span style={{ fontSize: '10px', fontWeight: 800, fontFamily: 'var(--mono)', color: 'var(--ac)', marginBottom: '3px', whiteSpace: 'nowrap' }}>{fmtPnl(it.value, true)}</span>
-                  <div style={{ width: '64%', maxWidth: '44px', height: `${barH}px`, minHeight: '3px', background: 'linear-gradient(180deg, rgba(16,185,129,.65), rgba(16,185,129,.28))', borderRadius: '4px 4px 0 0' }} />
+                  <div style={{ width: '64%', maxWidth: '44px', height: `${barH}px`, minHeight: '3px', background: 'linear-gradient(180deg, var(--bar-green-1), var(--bar-green-2))', borderRadius: '4px 4px 0 0' }} />
                 </>
               )}
             </div>
@@ -29,7 +29,7 @@ export function VerticalBars({ items, zone = 95 }: { items: Item[]; zone?: numbe
             <div style={{ height: `${zone + 22}px`, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center' }}>
               {!pos && (
                 <>
-                  <div style={{ width: '64%', maxWidth: '44px', height: `${barH}px`, minHeight: '3px', background: 'linear-gradient(0deg, rgba(239,68,68,.65), rgba(239,68,68,.28))', borderRadius: '0 0 4px 4px' }} />
+                  <div style={{ width: '64%', maxWidth: '44px', height: `${barH}px`, minHeight: '3px', background: 'linear-gradient(0deg, var(--bar-red-1), var(--bar-red-2))', borderRadius: '0 0 4px 4px' }} />
                   <span style={{ fontSize: '10px', fontWeight: 800, fontFamily: 'var(--mono)', color: 'var(--red)', marginTop: '3px', whiteSpace: 'nowrap' }}>{fmtPnl(it.value, true)}</span>
                 </>
               )}

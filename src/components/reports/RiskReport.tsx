@@ -116,9 +116,9 @@ export function RiskReport({ trades }: Props) {
                 </div>
                 <div style={{
                   width: '100%', height: `${barH}px`,
-                  background: isPos ? 'rgba(16,185,129,.5)' : 'rgba(239,68,68,.5)',
+                  background: isPos ? 'var(--bar-green-1)' : 'var(--bar-red-1)',
                   borderRadius: '3px 3px 0 0', minHeight: b.count ? '4px' : '0',
-                  border: isPos ? '1px solid rgba(16,185,129,.6)' : '1px solid rgba(239,68,68,.6)',
+                  border: isPos ? '1px solid var(--ac)' : '1px solid var(--red)',
                 }} />
                 <div style={{ fontSize: '9px', fontWeight: 600, color: 'var(--txt2, #b8b8c4)', marginTop: '6px', textAlign: 'center' }}>{b.label}</div>
               </div>
