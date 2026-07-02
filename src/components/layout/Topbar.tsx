@@ -1,6 +1,6 @@
 'use client'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { DateRangeFilter } from '@/lib/types'
 import { DateRangePicker } from './DateRangePicker'
 import { ProfileMenu } from './ProfileMenu'
@@ -8,17 +8,98 @@ import { useAccounts } from '@/components/AccountProvider'
 
 function AccountSwitcher() {
   const { accounts, selectedAccountId, setSelectedAccountId, loading } = useAccounts()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    if (open) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
   if (loading || accounts.length <= 1) return null // nothing to switch between
+
+  const label = selectedAccountId
+    ? accounts.find(a => a.id === selectedAccountId)?.name || 'All Accounts'
+    : 'All Accounts'
+
+  function select(id: string | null) {
+    setSelectedAccountId(id)
+    setOpen(false)
+  }
+
   return (
-    <select
-      className="fi"
-      value={selectedAccountId || ''}
-      onChange={e => setSelectedAccountId(e.target.value || null)}
-      style={{ fontSize: '11px', width: 'auto', minWidth: '130px', padding: '5px 14px', background: 'var(--bg4)', border: '1px solid var(--brd2)', borderRadius: '999px', color: 'var(--txt)' }}
-    >
-      <option value="">All Accounts</option>
-      {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-    </select>
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '7px',
+          background: open ? 'var(--bg5)' : 'var(--bg4)',
+          border: `1px solid ${open ? 'var(--ac)' : 'var(--brd2)'}`,
+          borderRadius: '999px',
+          color: 'var(--txt)',
+          fontSize: '11.5px', fontWeight: 600,
+          padding: '0 14px',
+          height: '32px',
+          boxSizing: 'border-box',
+          fontFamily: 'var(--sans)',
+          cursor: 'pointer',
+          transition: '.12s',
+        }}
+      >
+        {label}
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ transition: '.15s', transform: open ? 'rotate(180deg)' : 'none', marginLeft: '2px' }}>
+          <path d="m6 9 6 6 6-6"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: '170px',
+          background: 'var(--bg3)', border: '1px solid var(--brd2)', borderRadius: '16px',
+          boxShadow: '0 16px 40px rgba(0,0,0,.35)', overflow: 'hidden', zIndex: 300, padding: '6px',
+        }}>
+          <button
+            onClick={() => select(null)}
+            style={{
+              display: 'block', width: '100%', textAlign: 'left',
+              padding: '9px 12px', borderRadius: '11px', border: 'none',
+              background: !selectedAccountId ? 'var(--ac-d)' : 'transparent',
+              color: !selectedAccountId ? 'var(--ac2)' : 'var(--txt2)',
+              fontSize: '12px', fontWeight: !selectedAccountId ? 700 : 500,
+              cursor: 'pointer', fontFamily: 'var(--sans)', transition: '.1s',
+            }}
+            onMouseEnter={e => { if (selectedAccountId) e.currentTarget.style.background = 'var(--bg4)' }}
+            onMouseLeave={e => { if (selectedAccountId) e.currentTarget.style.background = 'transparent' }}
+          >
+            All Accounts
+          </button>
+          {accounts.map(a => {
+            const active = selectedAccountId === a.id
+            return (
+              <button
+                key={a.id}
+                onClick={() => select(a.id)}
+                style={{
+                  display: 'block', width: '100%', textAlign: 'left',
+                  padding: '9px 12px', borderRadius: '11px', border: 'none',
+                  background: active ? 'var(--ac-d)' : 'transparent',
+                  color: active ? 'var(--ac2)' : 'var(--txt2)',
+                  fontSize: '12px', fontWeight: active ? 700 : 500,
+                  cursor: 'pointer', fontFamily: 'var(--sans)', transition: '.1s',
+                }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg4)' }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
+              >
+                {a.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }
 type Props = {
