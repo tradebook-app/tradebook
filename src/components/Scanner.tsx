@@ -24,7 +24,7 @@ function RkBadge({ v }: { v: number | null }) {
 }
 
 type GapStock   = { ticker:string; name:string; gap:number; prePrice:number; preVol:number; prevClose:number; float:number|null; adr:number; atr:number; avgVol:number|null; mktCap:number|null; dollarVol:number|null; sector:string|null; industry:string|null; theme:string|null; isPreMarket:boolean; isPostMarket:boolean };
-type MomStock   = { ticker:string; name:string; price:number; m1:number; m3:number; m6:number; adr:number; atrPct:number; atr:number; rs:number; epsRank:number|null; revRank:number|null; sector:string|null; industry:string|null; theme:string|null; d50:number|null; d200:number|null; isEtf?:boolean };
+type MomStock   = { ticker:string; name:string; price:number; m1:number|null; m3:number|null; m6:number|null; adr:number; atrPct:number; atr:number; rs:number; epsRank:number|null; revRank:number|null; sector:string|null; industry:string|null; theme:string|null; d50:number|null; d200:number|null; isEtf?:boolean };
 type SectorData = { name:string; etf:string; price:number; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number };
 type Theme      = { name:string; etf:string; sector:string; pct:number; pct1d:number; pct1w:number; pct1m:number; pct3m:number; pct6m:number; pctYtd:number; price:number; stocks:any[] };
 type ThemeResponse = { sectors: SectorData[]; themes: Theme[] };
@@ -245,9 +245,9 @@ export function Scanner() {
   const filteredMom = momData
     .filter(r=>
       (mIncludeEtfs||!r.isEtf) &&
-      (mM1===''||r.m1>=mM1) &&
-      (mM3===''||r.m3>=mM3) &&
-      (mM6===''||r.m6>=mM6) &&
+      (mM1===''||(r.m1!=null && r.m1>=mM1)) &&
+      (mM3===''||(r.m3!=null && r.m3>=mM3)) &&
+      (mM6===''||(r.m6!=null && r.m6>=mM6)) &&
       (mAdr===''||r.adr>=mAdr) &&
       (mPMin===''||r.price>=mPMin) &&
       (mPMax===''||r.price<=mPMax) &&
@@ -266,7 +266,7 @@ export function Scanner() {
     .sort((a:any,b:any) => {
       const dir=mSortAsc?1:-1;
       if (mSortCol==='ticker') return dir*a.ticker.localeCompare(b.ticker);
-      if (mSortCol==='m1') return dir*(a.m1-b.m1); if (mSortCol==='m3') return dir*(a.m3-b.m3); if (mSortCol==='m6') return dir*(a.m6-b.m6);
+      if (mSortCol==='m1') return a.m1==null?1:b.m1==null?-1:dir*(a.m1-b.m1); if (mSortCol==='m3') return a.m3==null?1:b.m3==null?-1:dir*(a.m3-b.m3); if (mSortCol==='m6') return a.m6==null?1:b.m6==null?-1:dir*(a.m6-b.m6);
       if (mSortCol==='adr') return dir*(a.adr-b.adr); if (mSortCol==='atr') return dir*(a.atr-b.atr);
       if (mSortCol==='rs') return dir*(a.rs-b.rs);
       if (mSortCol==='epsRank') return dir*((a.epsRank??-1)-(b.epsRank??-1));

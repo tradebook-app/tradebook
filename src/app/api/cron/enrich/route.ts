@@ -212,14 +212,19 @@ export async function GET(request: Request) {
 async function saveRanked(all: any[], supabase: any) {
   const allEps      = all.map(r => r.epsCombined).filter((v): v is number => v !== null);
   const allRev      = all.map(r => r.revGrowth).filter((v): v is number => v !== null);
-  const allRsScores = all.map(r => r.rsScore ?? r.m6); // fallback to m6 for old data
+  const allRsScores = all
+    .map(r => r.rsScore ?? r.m6) // fallback to m6 for old data
+    .filter((v): v is number => v !== null && v !== undefined);
 
-  const reranked = all.map(r => ({
-    ...r,
-    rs:      rank99(r.rsScore ?? r.m6, allRsScores, true),
-    epsRank: r.epsCombined != null ? rank99(r.epsCombined, allEps, true) : null,
-    revRank: r.revGrowth   != null ? rank99(r.revGrowth,   allRev, true) : null,
-  })).sort((a, b) => b.rs - a.rs);
+  const reranked = all.map(r => {
+    const rsBasis = r.rsScore ?? r.m6; // may be null for recent IPOs lacking price history
+    return {
+      ...r,
+      rs:      rsBasis != null ? rank99(rsBasis, allRsScores, true) : 1,
+      epsRank: r.epsCombined != null ? rank99(r.epsCombined, allEps, true) : null,
+      revRank: r.revGrowth   != null ? rank99(r.revGrowth,   allRev, true) : null,
+    };
+  }).sort((a, b) => b.rs - a.rs);
 
   await supabase.from('scanner_cache').upsert({
     id: 'momentum', data: reranked, updated_at: new Date().toISOString(),

@@ -113,21 +113,27 @@ function perf(bars: any[], days: number): number {
 // after) exactly N calendar months ago, rather than a fixed trading-day count.
 // This avoids drift from holidays/weekends causing 1-10%+ mismatches vs TV,
 // especially around volatile weeks that a fixed-count offset can miss or hit.
-function perfCalendar(bars: any[], monthsBack: number): number {
-  if (!bars || bars.length < 2) return 0;
+function perfCalendar(bars: any[], monthsBack: number): number | null {
+  if (!bars || bars.length < 2) return null;
   const latest = bars[0];
-  if (!latest?.c || !latest?.t) return perf(bars, monthsBack === 1 ? 21 : monthsBack === 3 ? 63 : 126); // fallback if timestamps missing (old cache entries)
+  if (!latest?.c || !latest?.t) return null;
 
   const targetDate = new Date(latest.t);
   targetDate.setMonth(targetDate.getMonth() - monthsBack);
   const targetTime = targetDate.getTime();
 
-  // bars sorted desc (most recent first) — find first bar at or before target date
-  let pastBar = bars.find((b: any) => b.t != null && b.t <= targetTime);
-  if (!pastBar) pastBar = bars[bars.length - 1]; // fallback: oldest bar we have
+  // If our oldest available bar is more recent than the target date, we
+  // don't have enough real history to answer this (e.g. a stock that IPO'd
+  // 2 weeks ago has no real "3 months ago" price). Falling back to the
+  // oldest bar we DO have would silently compare today's price to IPO-day
+  // price and mislabel it as a legitimate 3M/6M return — exactly how a
+  // fresh listing like SPCX produced a fabricated +600%+ reading.
+  const oldestBar = bars[bars.length - 1];
+  if (!oldestBar?.t || oldestBar.t > targetTime) return null;
 
+  const pastBar = bars.find((b: any) => b.t != null && b.t <= targetTime);
   const past = pastBar?.c;
-  if (!past || past === 0) return 0;
+  if (!past || past === 0) return null;
   return ((latest.c - past) / Math.abs(past)) * 100;
 }
 
@@ -222,8 +228,12 @@ export async function GET(request: Request) {
       const m1     = perfCalendar(bars, 1);
       const m3     = perfCalendar(bars, 3);
       const m6     = perfCalendar(bars, 6);
-      // Weighted RS score: 40% 1M + 35% 3M + 25% 6M (favors recent momentum)
-      const rsScore = (m1 * 0.40) + (m3 * 0.35) + (m6 * 0.25);
+      // Weighted RS score: 40% 1M + 35% 3M + 25% 6M (favors recent momentum).
+      // If any component is null (not enough price history — e.g. a recent
+      // IPO), don't fabricate a blended score from partial data.
+      const rsScore = (m1 != null && m3 != null && m6 != null)
+        ? (m1 * 0.40) + (m3 * 0.35) + (m6 * 0.25)
+        : null;
       const atrPct = price > 0 && high && low ? ((high - low) / price) * 100 : 0;
       const adr    = calcADR(bars, 20);
       const atr    = calcATR(bars, 14);
@@ -242,10 +252,10 @@ export async function GET(request: Request) {
         high:        parseFloat(high.toFixed(2)),
         low:         parseFloat(low.toFixed(2)),
         vwap:        parseFloat(vwap.toFixed(2)),
-        m1:          parseFloat(m1.toFixed(1)),
-        m3:          parseFloat(m3.toFixed(1)),
-        m6:          parseFloat(m6.toFixed(1)),
-        rsScore:     parseFloat(rsScore.toFixed(2)),
+        m1:          m1 != null ? parseFloat(m1.toFixed(1)) : null,
+        m3:          m3 != null ? parseFloat(m3.toFixed(1)) : null,
+        m6:          m6 != null ? parseFloat(m6.toFixed(1)) : null,
+        rsScore:     rsScore != null ? parseFloat(rsScore.toFixed(2)) : null,
         adr,
         atr,
         atrPct:      parseFloat(atrPct.toFixed(2)),
@@ -269,10 +279,10 @@ export async function GET(request: Request) {
       });
     }
 
-    const allRsScores = results.map(r => r.rsScore);
+    const allRsScores = results.map(r => r.rsScore).filter((v): v is number => v !== null);
     const ranked = results.map(r => ({
       ...r,
-      rs:      rank99(r.rsScore, allRsScores, true),
+      rs:      r.rsScore != null ? rank99(r.rsScore, allRsScores, true) : 1,
       epsRank: null,
       revRank: null,
     })).sort((a, b) => b.rs - a.rs);
