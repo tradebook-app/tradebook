@@ -8,6 +8,7 @@ import {
 } from '@/lib/noteService'
 import { fetchTrades, getScreenshotUrl } from '@/lib/tradeService'
 import { Modal } from '@/components/ui/Modal'
+import { CardMenu } from '@/components/ui/CardMenu'
 
 type Props = { userId: string }
 type Cat   = 'all' | 'trade' | 'my'
@@ -203,8 +204,7 @@ export function Notebook({ userId }: Props) {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '9px', color: 'var(--txt4)' }}>{fmtDate(n.created_at)}</span>
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => openEdit(n)} style={{ background: 'none', border: 'none', color: 'var(--txt3)', cursor: 'pointer', fontSize: '11px', padding: '2px 6px' }}>✎</button>
-                      <button onClick={() => handleDelete(n.id)} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '11px', padding: '2px 6px', opacity: .6 }}>✕</button>
+                      <CardMenu onEdit={() => openEdit(n)} onDelete={() => handleDelete(n.id)} />
                     </div>
                   </div>
                 </div>

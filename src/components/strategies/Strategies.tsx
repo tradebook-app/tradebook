@@ -8,6 +8,7 @@ import {
 } from '@/lib/strategyService'
 import { calcStrategyStats, fmtPnl } from '@/lib/analytics'
 import { Modal } from '@/components/ui/Modal'
+import { CardMenu } from '@/components/ui/CardMenu'
 import { StrategyDetail } from '@/components/strategies/StrategyDetail'
 
 type Props = { userId: string; trades: TradeRow[] }
@@ -206,14 +207,7 @@ export function Strategies({ userId, trades }: Props) {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                     <div style={{ fontSize: '14px', fontWeight: 700 }}>{s.name}</div>
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button
-                        onClick={e => { e.stopPropagation(); openEdit(s) }}
-                        style={{ background: 'none', border: 'none', color: 'var(--txt3)', cursor: 'pointer', fontSize: '12px', padding: '2px 4px' }}
-                      >✎</button>
-                      <button
-                        onClick={e => { e.stopPropagation(); handleDelete(s.id) }}
-                        style={{ background: 'none', border: 'none', color: 'var(--txt3)', cursor: 'pointer', fontSize: '12px', padding: '2px 4px' }}
-                      >✕</button>
+                      <CardMenu onEdit={() => openEdit(s)} onDelete={() => handleDelete(s.id)} />
                     </div>
                   </div>
 
@@ -271,14 +265,7 @@ export function Strategies({ userId, trades }: Props) {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
-                        <button
-                          onClick={e => { e.stopPropagation(); openEdit(s) }}
-                          style={{ background: 'none', border: 'none', color: 'var(--txt3)', cursor: 'pointer', fontSize: '12px', padding: '2px 6px' }}
-                        >✎</button>
-                        <button
-                          onClick={e => { e.stopPropagation(); handleDelete(s.id) }}
-                          style={{ background: 'none', border: 'none', color: 'var(--txt3)', cursor: 'pointer', fontSize: '12px', padding: '2px 6px' }}
-                        >✕</button>
+                        <CardMenu onEdit={() => openEdit(s)} onDelete={() => handleDelete(s.id)} />
                       </div>
                     </td>
                   </tr>
