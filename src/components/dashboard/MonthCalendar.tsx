@@ -38,6 +38,9 @@ export function MonthCalendar({ days, trades }: Props) {
   const prefix = `${year}-${String(month + 1).padStart(2, '0')}`
   const monthDays = days.filter(d => d.date.startsWith(prefix))
   const monthPnl  = monthDays.reduce((s, d) => s + d.pnl, 0)
+  const tradedDays = monthDays.filter(d => d.trades > 0)
+  const bestDay  = tradedDays.length ? tradedDays.reduce((a, b) => b.pnl > a.pnl ? b : a) : null
+  const worstDay = tradedDays.length ? tradedDays.reduce((a, b) => b.pnl < a.pnl ? b : a) : null
 
   const weeks = useMemo(() => {
     const w: Record<number, { pnl: number; days: Set<number> }> = {}
@@ -187,6 +190,34 @@ export function MonthCalendar({ days, trades }: Props) {
               </div>
             )
           })}
+        </div>
+      </div>
+
+      {/* Monthly stats — fills the space below the calendar grid instead of
+          leaving it empty, and gives the card a natural fitted height
+          (the Drawdown card next to it matches via align-items: stretch,
+          so this also fixes that card looking artificially tall). */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px',
+        marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--brd)',
+      }}>
+        <div>
+          <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', fontWeight: 600 }}>Best day</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--mono)', color: bestDay ? 'var(--ac)' : 'var(--txt3)' }}>
+            {bestDay ? fmtK(bestDay.pnl) : '—'}
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', fontWeight: 600 }}>Worst day</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--mono)', color: worstDay ? 'var(--red)' : 'var(--txt3)' }}>
+            {worstDay ? fmtK(worstDay.pnl) : '—'}
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', fontWeight: 600 }}>Trading days</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--txt)' }}>
+            {tradedDays.length}
+          </div>
         </div>
       </div>
 
