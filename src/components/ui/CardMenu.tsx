@@ -9,20 +9,38 @@ type Props = {
 
 export function CardMenu({ onEdit, onDelete }: Props) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        btnRef.current && !btnRef.current.contains(e.target as Node)
+      ) setOpen(false)
     }
     if (open) document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
 
+  function toggle() {
+    if (!open && btnRef.current) {
+      // Fixed positioning (not absolute) so the dropdown renders relative to
+      // the viewport instead of the card — cards use overflow:hidden to
+      // round their thumbnail image corners, which was clipping an absolute
+      // dropdown before it could ever show.
+      const r = btnRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + 4, left: r.right - 110 })
+    }
+    setOpen(v => !v)
+  }
+
   return (
-    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+    <div style={{ position: 'relative', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
       <button
-        onClick={() => setOpen(v => !v)}
+        ref={btnRef}
+        onClick={toggle}
         aria-label="Card options"
         style={{
           width: '24px', height: '24px', borderRadius: '6px',
@@ -36,11 +54,14 @@ export function CardMenu({ onEdit, onDelete }: Props) {
       </button>
 
       {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 4px)', right: 0, minWidth: '110px',
-          background: 'var(--bg4)', border: '1px solid var(--brd2)', borderRadius: '8px',
-          boxShadow: '0 8px 20px rgba(0,0,0,.35)', overflow: 'hidden', zIndex: 20, padding: '4px',
-        }}>
+        <div
+          ref={menuRef}
+          style={{
+            position: 'fixed', top: `${pos.top}px`, left: `${pos.left}px`, minWidth: '110px',
+            background: 'var(--bg4)', border: '1px solid var(--brd2)', borderRadius: '8px',
+            boxShadow: '0 8px 20px rgba(0,0,0,.35)', overflow: 'hidden', zIndex: 1000, padding: '4px',
+          }}
+        >
           <button
             onClick={() => { setOpen(false); onEdit() }}
             style={{
