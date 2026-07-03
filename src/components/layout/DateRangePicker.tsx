@@ -33,6 +33,15 @@ function CalendarIcon() {
 export function DateRangePicker({ filter, onFilterChange }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  // Draft state so typing/picking a date doesn't touch the real filter (and
+  // therefore the whole dashboard) until "Apply" is actually clicked. Before
+  // this, selecting "Custom Range" alone — with no dates picked yet — set
+  // filter.range to 'custom' immediately, and picking only a "from" date
+  // with no "to" left the dashboard filtering on an incomplete range with
+  // nothing to stop it, which is what broke the calendar/drawdown layout.
+  const [draftFrom, setDraftFrom] = useState(filter.from || '')
+  const [draftTo,   setDraftTo]   = useState(filter.to   || '')
+  const [showCustomInputs, setShowCustomInputs] = useState(filter.range === 'custom')
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -44,9 +53,10 @@ export function DateRangePicker({ filter, onFilterChange }: Props) {
 
   function selectPreset(range: DateRange) {
     if (range === 'custom') {
-      onFilterChange({ ...filter, range })
+      setShowCustomInputs(true)
       return
     }
+    setShowCustomInputs(false)
     onFilterChange({ range })
     setOpen(false)
   }
@@ -127,12 +137,12 @@ export function DateRangePicker({ filter, onFilterChange }: Props) {
             Custom Range
           </button>
 
-          {filter.range === 'custom' && (
+          {showCustomInputs && (
             <div style={{ padding: '10px 8px 6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <input
                 type="date"
-                value={filter.from || ''}
-                onChange={e => onFilterChange({ ...filter, from: e.target.value })}
+                value={draftFrom}
+                onChange={e => setDraftFrom(e.target.value)}
                 style={{
                   background: 'var(--bg5)', border: '1px solid var(--brd3)', borderRadius: '10px',
                   color: 'var(--txt)', fontSize: '11px', padding: '7px 10px', fontFamily: 'var(--sans)', outline: 'none',
@@ -141,17 +151,25 @@ export function DateRangePicker({ filter, onFilterChange }: Props) {
               <div style={{ textAlign: 'center', color: 'var(--txt3)', fontSize: '10px' }}>to</div>
               <input
                 type="date"
-                value={filter.to || ''}
-                onChange={e => onFilterChange({ ...filter, to: e.target.value })}
+                value={draftTo}
+                onChange={e => setDraftTo(e.target.value)}
                 style={{
                   background: 'var(--bg5)', border: '1px solid var(--brd3)', borderRadius: '10px',
                   color: 'var(--txt)', fontSize: '11px', padding: '7px 10px', fontFamily: 'var(--sans)', outline: 'none',
                 }}
               />
               <button
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  // Only actually apply once both ends of the range are set —
+                  // this is the fix. Nothing about the dashboard's filtering
+                  // changes until this fires.
+                  if (!draftFrom || !draftTo) return
+                  onFilterChange({ range: 'custom', from: draftFrom, to: draftTo })
+                  setOpen(false)
+                }}
+                disabled={!draftFrom || !draftTo}
                 className="btn btn-p"
-                style={{ marginTop: '4px', borderRadius: '10px' }}
+                style={{ marginTop: '4px', borderRadius: '10px', opacity: (!draftFrom || !draftTo) ? 0.5 : 1, cursor: (!draftFrom || !draftTo) ? 'default' : 'pointer' }}
               >Apply</button>
             </div>
           )}
