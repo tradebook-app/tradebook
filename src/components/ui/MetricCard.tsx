@@ -84,7 +84,7 @@ function InfoTooltip({ text }: InfoTooltipProps) {
       {open && (
         <div style={{
           position: 'absolute',
-          bottom: '18px',
+          top: '18px',
           left: 0,
           width: '180px',
           background: 'var(--bg4)',
