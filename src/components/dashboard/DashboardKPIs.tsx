@@ -41,6 +41,7 @@ export function DashboardKPIs({ kpi, openCount, openPnl }: Props) {
               </span>
             </div>
           }
+          tooltip="Total realized profit and loss across all closed trades in the selected period."
         />
         <MetricCard
           label="Trade Win %"
@@ -57,6 +58,7 @@ export function DashboardKPIs({ kpi, openCount, openPnl }: Props) {
             </div>
           }
           gauge={{ pct: kpi.winRate, color: kpi.winRate >= 50 ? 'var(--ac)' : 'var(--red)' }}
+          tooltip="Percentage of closed trades that were winners, out of all wins, losses, and breakevens."
         />
         <MetricCard
           label="Profit Factor"
@@ -84,7 +86,7 @@ export function DashboardKPIs({ kpi, openCount, openPnl }: Props) {
                 </div>
               : undefined
           }
-          gauge={{ pct: Math.min(kpi.avgWinLossRatio / 3 * 100, 100), color: kpi.avgWinLossRatio >= 1 ? 'var(--ac)' : 'var(--red)' }}
+          winLossBar={{ avgWin: kpi.avgWin, avgLoss: kpi.avgLoss }}
           tooltip="Average win size ÷ Average loss size"
         />
       </div>
