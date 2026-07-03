@@ -9,10 +9,14 @@ type Props = { trades: TradeRow[] }
 export function SetupReport({ trades }: Props) {
   const closed = closedTrades(trades)
 
-  const bySetup: Record<string, { pnl: number; trades: number; wins: number; losses: number; grossWin: number; grossLoss: number }> = {}
+  const bySetup: Record<string, { label: string; pnl: number; trades: number; wins: number; losses: number; grossWin: number; grossLoss: number }> = {}
   closed.forEach(t => {
-    const key = t.setup || 'No Setup'
-    if (!bySetup[key]) bySetup[key] = { pnl: 0, trades: 0, wins: 0, losses: 0, grossWin: 0, grossLoss: 0 }
+    const raw = (t.setup || 'No Setup').trim()
+    // Group case-insensitively ("Bull Flag" and "Bull flag" are the same
+    // strategy) — otherwise inconsistent capitalization from manual entry
+    // or older trades silently fragments one strategy's stats into two rows.
+    const key = raw.toLowerCase()
+    if (!bySetup[key]) bySetup[key] = { label: raw, pnl: 0, trades: 0, wins: 0, losses: 0, grossWin: 0, grossLoss: 0 }
     bySetup[key].pnl    += t.pnl
     bySetup[key].trades += 1
     if (t.pnl > 0) { bySetup[key].wins++; bySetup[key].grossWin  += t.pnl }
@@ -20,7 +24,7 @@ export function SetupReport({ trades }: Props) {
   })
 
   const rows = Object.entries(bySetup)
-    .map(([setup, s]) => ({ setup, ...s, wr: s.trades ? (s.wins / s.trades) * 100 : 0, pf: s.grossLoss < 0 ? s.grossWin / Math.abs(s.grossLoss) : s.grossWin }))
+    .map(([, s]) => ({ setup: s.label, ...s, wr: s.trades ? (s.wins / s.trades) * 100 : 0, pf: s.grossLoss < 0 ? s.grossWin / Math.abs(s.grossLoss) : s.grossWin }))
     .sort((a, b) => b.pnl - a.pnl)
 
   if (!rows.length) {

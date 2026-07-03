@@ -1,16 +1,56 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 
 const R_TARGETS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50]
 
 export function PositionSize() {
   const [account, setAccount] = useState('')
   const [riskPct, setRiskPct] = useState('')
+  const [riskDollarStr, setRiskDollarStr] = useState('') // raw text shown in the $ box while typing
   const [maxPct,  setMaxPct]  = useState('')
+  const [maxDollarStr, setMaxDollarStr] = useState('')   // raw text shown in the $ box while typing
   const [entry,   setEntry]   = useState('')
   const [stop,    setStop]    = useState('')
   const [side,    setSide]    = useState<'Long' | 'Short'>('Long')
+
+  // Each $/% pair keeps its OWN raw typed text and only ever reformats the
+  // OTHER field in the pair. Previously both $ boxes derived their displayed
+  // value from a rounded recalculation (`.toFixed(2)`) that ran on every
+  // keystroke — typing "500" would get rewritten mid-type into "5.00" before
+  // you finished typing, since each digit re-triggered the round-trip
+  // through the % field and back. This way the field you're actively typing
+  // into is never rewritten out from under you.
+  function handleRiskDollarChange(v: string) {
+    setRiskDollarStr(v)
+    const acc = parseFloat(account) || 0
+    setRiskPct(acc > 0 ? String((parseFloat(v) || 0) / acc * 100) : '0')
+  }
+  function handleRiskPctChange(v: string) {
+    setRiskPct(v)
+    const acc = parseFloat(account) || 0
+    setRiskDollarStr(acc > 0 && v ? (acc * (parseFloat(v) || 0) / 100).toFixed(2) : '')
+  }
+  function handleMaxDollarChange(v: string) {
+    setMaxDollarStr(v)
+    const acc = parseFloat(account) || 0
+    setMaxPct(acc > 0 ? String((parseFloat(v) || 0) / acc * 100) : '0')
+  }
+  function handleMaxPctChange(v: string) {
+    setMaxPct(v)
+    const acc = parseFloat(account) || 0
+    setMaxDollarStr(acc > 0 && v ? (acc * (parseFloat(v) || 0) / 100).toFixed(0) : '')
+  }
+
+  // If Account Size changes after a risk % is already set, the $ boxes
+  // would otherwise sit stale (still showing the dollar amount for the OLD
+  // account size) until the user retyped something. Keep them in sync.
+  useEffect(() => {
+    const acc = parseFloat(account) || 0
+    if (riskPct) setRiskDollarStr(acc > 0 ? (acc * (parseFloat(riskPct) || 0) / 100).toFixed(2) : '')
+    if (maxPct)  setMaxDollarStr(acc > 0 ? (acc * (parseFloat(maxPct)  || 0) / 100).toFixed(0) : '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account])
 
   const c = useMemo(() => {
     const acc = parseFloat(account) || 0
@@ -42,11 +82,6 @@ export function PositionSize() {
 
     return { acc, dR, actualRisk, capped, maxD, sd, sh, pv, pa, targets }
   }, [account, riskPct, maxPct, entry, stop, side])
-
-  // derived dollar displays for the linked inputs
-  const acc = parseFloat(account) || 0
-  const riskDollar = acc > 0 && riskPct ? (acc * (parseFloat(riskPct) || 0) / 100).toFixed(2) : ''
-  const maxDollar  = acc > 0 && maxPct  ? (acc * (parseFloat(maxPct)  || 0) / 100).toFixed(0) : ''
 
   const lbl: React.CSSProperties = { display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '5px' }
   const affix: React.CSSProperties = { background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)', padding: '8px 10px', fontSize: '11px', color: 'var(--txt3)', fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center' }
@@ -99,13 +134,13 @@ export function PositionSize() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
             <div style={{ display: 'flex' }}>
               <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
-              <input className="fi" type="number" value={riskDollar}
-                onChange={e => setRiskPct(acc > 0 ? String((parseFloat(e.target.value) || 0) / acc * 100) : '0')}
+              <input className="fi" type="number" value={riskDollarStr}
+                onChange={e => handleRiskDollarChange(e.target.value)}
                 style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
             </div>
             <div style={{ display: 'flex' }}>
               <input className="fi" type="number" value={riskPct} step="0.1"
-                onChange={e => setRiskPct(e.target.value)}
+                onChange={e => handleRiskPctChange(e.target.value)}
                 style={{ fontFamily: 'var(--mono)', borderRadius: 'var(--r) 0 0 var(--r)' }} />
               <span style={{ ...affix, borderLeft: 0, borderRadius: '0 var(--r) var(--r) 0' }}>%</span>
             </div>
@@ -118,13 +153,13 @@ export function PositionSize() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
             <div style={{ display: 'flex' }}>
               <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
-              <input className="fi" type="number" value={maxDollar}
-                onChange={e => setMaxPct(acc > 0 ? String((parseFloat(e.target.value) || 0) / acc * 100) : '0')}
+              <input className="fi" type="number" value={maxDollarStr}
+                onChange={e => handleMaxDollarChange(e.target.value)}
                 style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
             </div>
             <div style={{ display: 'flex' }}>
               <input className="fi" type="number" value={maxPct}
-                onChange={e => setMaxPct(e.target.value)}
+                onChange={e => handleMaxPctChange(e.target.value)}
                 style={{ fontFamily: 'var(--mono)', borderRadius: 'var(--r) 0 0 var(--r)' }} />
               <span style={{ ...affix, borderLeft: 0, borderRadius: '0 var(--r) var(--r) 0' }}>%</span>
             </div>
