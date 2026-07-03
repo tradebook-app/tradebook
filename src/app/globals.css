@@ -358,7 +358,15 @@ input[type='number'] {
     max-width: 400px;
     margin: 0 auto;
   }
+
+  /* Trade View: the 13-column table is unusable on a phone screen (forces
+     horizontal scroll, tiny text). Swap it for a stacked card list instead
+     — same data, reflowed to fit one column. */
+  .desktop-table-wrap { display: none !important; }
+  .mobile-trade-cards { display: flex !important; }
 }
+
+.mobile-trade-cards { display: none; flex-direction: column; gap: 8px; }
 
 /* ─── Reports tab bar ────────────────────────────────────────────────────── */
 .reports-tab-bar {

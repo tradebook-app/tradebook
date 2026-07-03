@@ -151,8 +151,8 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
         <button onClick={handleDeleteFiltered} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', padding: '0 14px', height: '32px', boxSizing: 'border-box', background: 'rgba(239,68,68,.12)', color: 'var(--red)', border: '1px solid rgba(239,68,68,.25)', borderRadius: '999px', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}>🗑 Delete All</button>
       </div>
 
-      {/* Table */}
-      <div style={{ overflowX: 'auto' }}>
+      {/* Table — desktop/tablet only, see .mobile-trade-cards below for phone */}
+      <div className="desktop-table-wrap" style={{ overflowX: 'auto' }}>
         <table className="tbl">
           <thead>
             <tr>
@@ -193,6 +193,48 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile card list — same data as the table, reflowed to one column.
+          Hidden on desktop; CSS in globals.css swaps these at 768px. */}
+      <div className="mobile-trade-cards">
+        {filtered.length === 0 ? (
+          <div className="empty">No trades found. Add your first trade using the "+ Add Trade" button.</div>
+        ) : filtered.map(t => {
+          const roi = t.entry && t.shares ? (t.pnl / (t.entry * t.shares)) * 100 : 0
+          const rm  = t.risk > 0 ? t.pnl / t.risk : null
+          const isW = t.pnl > 0, isL = t.pnl < 0
+          return (
+            <div
+              key={t.id}
+              onClick={() => setSelected(t)}
+              style={{
+                background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)',
+                padding: '12px 14px', cursor: 'pointer',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                    <span style={{ fontWeight: 700, fontFamily: 'var(--mono)', fontSize: '14px' }}>{t.symbol}</span>
+                    <span style={isW ? badgeWin : isL ? badgeLoss : badgeBe}>{isW ? 'WIN' : isL ? 'LOSS' : 'BE'}</span>
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--txt2)' }}>{fmtDate(t.date)} · {t.type}{t.setup ? ` · ${t.setup}` : ''}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: '14px', color: isW ? 'var(--ac)' : isL ? 'var(--red)' : 'var(--txt)' }}>{fmtPnl(t.pnl)}</div>
+                  <div style={{ fontSize: '10px', color: roi >= 0 ? 'var(--ac)' : 'var(--red)' }}>{roi.toFixed(2)}%</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--txt2)', fontFamily: 'var(--mono)' }}>
+                <span>Entry {t.entry ? `$${t.entry}` : '—'}</span>
+                <span>Exit {t.exit ? `$${t.exit}` : '—'}</span>
+                <span>{t.shares || 0} sh</span>
+                <span>{rm !== null ? `${rm.toFixed(2)}R` : '—'}</span>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       <TradePanel
