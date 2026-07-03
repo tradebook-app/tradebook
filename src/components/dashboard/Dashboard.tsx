@@ -120,6 +120,11 @@ export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }
           gap: 12px;
           margin-bottom: 12px;
           align-items: stretch;
+          height: 430px;
+        }
+        .dash-bottom-row > div {
+          height: 100%;
+          overflow-y: auto;
         }
         @media (max-width: 768px) {
           .dash-chart-row {
@@ -129,6 +134,10 @@ export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }
           .dash-bottom-row {
             grid-template-columns: 1fr;
             gap: 10px;
+            height: auto;
+          }
+          .dash-bottom-row > div {
+            height: 380px;
           }
         }
       `}</style>
