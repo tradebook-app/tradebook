@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 async function fetchTwelveData(symbol: string, interval: string, apiKey: string, startDate?: string | null, endDate?: string | null) {
   const url = new URL('https://api.twelvedata.com/time_series');
   url.searchParams.set('symbol', symbol);
@@ -34,7 +36,6 @@ export async function GET(req: NextRequest) {
     let interval = requestedInterval;
     let data = await fetchTwelveData(symbol, interval, apiKey, startDate, endDate);
 
-    // Fall back to daily if the requested interval has no data
     if (data.status === 'error' && interval !== '1day') {
       data = await fetchTwelveData(symbol, '1day', apiKey, startDate, endDate);
       interval = '1day';
