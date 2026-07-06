@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import type { TradeRow } from '@/lib/types'
+import TradeChart, { Candle, TradeMarker } from '@/components/charts/TradeChart'
 
 type Props = {
   trades: TradeRow[]
@@ -81,9 +82,19 @@ function MiniChart({ trades }: { trades: TradeRow[] }) {
   )
 }
 
+type DetailTab = 'chart' | 'details'
+type ChartTimeframe = '15min' | '1h' | '1day'
+
 function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trade: TradeRow, trades: TradeRow[], onClose: () => void, onEdit: (t: TradeRow) => void, onNavigate: (t: TradeRow) => void }) {
   const pnlColor = trade.pnl > 0 ? 'var(--ac)' : trade.pnl < 0 ? 'var(--red)' : 'var(--txt3)'
   const currentIndex = trades.findIndex(t => t.id === trade.id)
+
+  const [detailTab, setDetailTab] = useState<DetailTab>('details')
+  const [candles, setCandles] = useState<Candle[]>([])
+  const [chartLoading, setChartLoading] = useState(false)
+  const [chartError, setChartError] = useState<string | null>(null)
+  const [chartInterval, setChartInterval] = useState<string>('15min')
+  const [selectedTimeframe, setSelectedTimeframe] = useState<ChartTimeframe>('15min')
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -94,6 +105,84 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [currentIndex, trades, onNavigate, onClose])
+
+  // Reset chart state when the selected trade changes
+  useEffect(() => {
+    setDetailTab('details')
+    setCandles([])
+    setChartError(null)
+    setSelectedTimeframe('15min')
+  }, [trade.id])
+
+  // Fetch candle data when Chart tab is opened or timeframe changes
+  useEffect(() => {
+    if (detailTab !== 'chart') return
+
+    setChartLoading(true)
+    setChartError(null)
+    setCandles([])
+
+    const tradeDate = new Date(trade.date)
+    const paddedStart = new Date(tradeDate)
+    paddedStart.setDate(paddedStart.getDate() - 10)
+    const startDate = paddedStart.toISOString().slice(0, 10)
+    const endDate = new Date().toISOString().slice(0, 10)
+
+    const params = new URLSearchParams({ symbol: trade.symbol, interval: selectedTimeframe })
+    if (startDate) params.set('start', startDate)
+    if (endDate) params.set('end', endDate)
+
+    fetch(`/api/candles?${params.toString()}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          setChartError(data.error)
+        } else {
+          setCandles(data.candles || [])
+          setChartInterval(data.interval || selectedTimeframe)
+        }
+      })
+      .catch(() => setChartError('Failed to load chart data'))
+      .finally(() => setChartLoading(false))
+  }, [detailTab, trade, selectedTimeframe])
+
+  const markers: TradeMarker[] = useMemo(() => {
+    const isIntraday = chartInterval !== '1day'
+    const formatTime = (d: string): string | number => {
+      if (isIntraday) {
+        const iso = d.slice(0, 10) + 'T' + (d.slice(11) || '00:00:00') + 'Z'
+        return Math.floor(new Date(iso).getTime() / 1000)
+      }
+      return d.slice(0, 10)
+    }
+    const result: TradeMarker[] = []
+    if (trade.date) {
+      result.push({
+        time: formatTime(trade.date),
+        position: trade.type === 'Short' ? 'aboveBar' : 'belowBar',
+        color: '#3b82f6',
+        shape: trade.type === 'Short' ? 'arrowDown' : 'arrowUp',
+        text: `Entry $${trade.entry}`,
+      })
+    }
+    if (trade.exit) {
+      const isWin = trade.pnl > 0
+      result.push({
+        time: formatTime(trade.date),
+        position: trade.type === 'Short' ? 'belowBar' : 'aboveBar',
+        color: isWin ? '#22c55e' : '#ef4444',
+        shape: trade.type === 'Short' ? 'arrowUp' : 'arrowDown',
+        text: `Exit $${trade.exit}`,
+      })
+    }
+    return result
+  }, [trade, chartInterval])
+
+  const TIMEFRAMES: { key: ChartTimeframe; label: string }[] = [
+    { key: '15min', label: '15m' },
+    { key: '1h',    label: '1H' },
+    { key: '1day',  label: '1D' },
+  ]
 
   const rows = [
     { l: 'Symbol', v: trade.symbol },
@@ -109,7 +198,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
   ]
 
   return (
-    <div style={{ width: '260px', flexShrink: 0, background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ width: '420px', flexShrink: 0, background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--brd)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
@@ -139,25 +228,65 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
         </div>
       </div>
 
-      {/* Details */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        {rows.map(r => (
-          <div key={r.l} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 16px', borderBottom: '1px solid var(--brd2)' }}>
-            <span style={{ fontSize: '11px', color: 'var(--txt3)' }}>{r.l}</span>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--txt)', fontFamily: ['Entry','Exit','Commission','Risk 1R'].includes(r.l) ? 'var(--mono)' : 'var(--sans)' }}>{r.v}</span>
-          </div>
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--brd)', padding: '0 16px' }}>
+        {(['chart', 'details'] as const).map(k => (
+          <button key={k} onClick={() => setDetailTab(k)} style={{ padding: '9px 14px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none', borderBottom: `2px solid ${detailTab === k ? 'var(--ac)' : 'transparent'}`, color: detailTab === k ? 'var(--ac2)' : 'var(--txt3)', fontFamily: 'var(--sans)', textTransform: 'capitalize' }}>{k}</button>
         ))}
-        {trade.notes && (
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--brd2)' }}>
-            <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px' }}>Notes</div>
-            <div style={{ fontSize: '11px', color: 'var(--txt2)', lineHeight: 1.6 }}>{trade.notes}</div>
+      </div>
+
+      {/* Body */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {detailTab === 'chart' && (
+          <div style={{ padding: '14px 16px' }}>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+              {TIMEFRAMES.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedTimeframe(key)}
+                  style={{
+                    padding: '4px 10px', fontSize: '10px', fontWeight: 700, borderRadius: '5px', cursor: 'pointer',
+                    border: `1px solid ${selectedTimeframe === key ? 'var(--ac)' : 'var(--brd)'}`,
+                    background: selectedTimeframe === key ? 'var(--ac-d)' : 'var(--bg3)',
+                    color: selectedTimeframe === key ? 'var(--ac)' : 'var(--txt2)',
+                    fontFamily: 'var(--mono)',
+                  }}
+                >{label}</button>
+              ))}
+            </div>
+            {chartLoading ? (
+              <div style={{ color: 'var(--txt3)', fontSize: '11px', padding: '20px 0', textAlign: 'center' }}>Loading chart…</div>
+            ) : chartError ? (
+              <div style={{ color: 'var(--red)', fontSize: '11px', padding: '20px 0', textAlign: 'center' }}>{chartError}</div>
+            ) : candles.length === 0 ? (
+              <div style={{ color: 'var(--txt3)', fontSize: '11px', padding: '20px 0', textAlign: 'center' }}>No chart data available.</div>
+            ) : (
+              <TradeChart candles={candles} markers={markers} height={460} />
+            )}
           </div>
         )}
-        {trade.screenshot_url && (
-          <div style={{ padding: '12px 16px' }}>
-            <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '8px' }}>Screenshot</div>
-            <img src={trade.screenshot_url} alt="Trade screenshot" style={{ width: '100%', borderRadius: '6px', border: '1px solid var(--brd)' }} />
-          </div>
+
+        {detailTab === 'details' && (
+          <>
+            {rows.map(r => (
+              <div key={r.l} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 16px', borderBottom: '1px solid var(--brd2)' }}>
+                <span style={{ fontSize: '11px', color: 'var(--txt3)' }}>{r.l}</span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--txt)', fontFamily: ['Entry','Exit','Commission','Risk 1R'].includes(r.l) ? 'var(--mono)' : 'var(--sans)' }}>{r.v}</span>
+              </div>
+            ))}
+            {trade.notes && (
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--brd2)' }}>
+                <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px' }}>Notes</div>
+                <div style={{ fontSize: '11px', color: 'var(--txt2)', lineHeight: 1.6 }}>{trade.notes}</div>
+              </div>
+            )}
+            {trade.screenshot_url && (
+              <div style={{ padding: '12px 16px' }}>
+                <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '8px' }}>Screenshot</div>
+                <img src={trade.screenshot_url} alt="Trade screenshot" style={{ width: '100%', borderRadius: '6px', border: '1px solid var(--brd)' }} />
+              </div>
+            )}
+          </>
         )}
       </div>
 

@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import type { TradeRow } from '@/lib/types'
 import { fmtPnl, fmtDate, holdTime } from '@/lib/analytics'
 import { getScreenshotUrl } from '@/lib/tradeService'
+import TradeChart, { Candle, TradeMarker } from '@/components/charts/TradeChart'
 
 type Props = {
   trade: TradeRow | null
@@ -14,11 +15,17 @@ type Props = {
   onNavigate: (trade: TradeRow) => void
 }
 
-type Tab = 'stats' | 'notes' | 'screenshot' | 'tags'
+type Tab = 'chart' | 'stats' | 'notes' | 'screenshot' | 'tags'
+type ChartTimeframe = '15min' | '1h' | '1day'
 
 export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigate }: Props) {
   const [tab, setTab] = useState<Tab>('stats')
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
+  const [candles, setCandles] = useState<Candle[]>([])
+  const [chartLoading, setChartLoading] = useState(false)
+  const [chartError, setChartError] = useState<string | null>(null)
+  const [chartInterval, setChartInterval] = useState<string>('15min')
+  const [selectedTimeframe, setSelectedTimeframe] = useState<ChartTimeframe>('15min')
 
   const currentIndex = trade ? trades.findIndex(t => t.id === trade.id) : -1
 
@@ -29,6 +36,9 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
       setScreenshotUrl(null)
     }
     setTab('stats')
+    setCandles([])
+    setChartError(null)
+    setSelectedTimeframe('15min')
   }, [trade])
 
   // Keyboard navigation
@@ -49,6 +59,71 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
     return () => document.removeEventListener('keydown', onKey)
   }, [trade, currentIndex, trades, onNavigate, onClose])
 
+  // Fetch candle data whenever Chart tab is open, trade changes, or timeframe changes
+  useEffect(() => {
+    if (tab !== 'chart' || !trade) return
+
+    setChartLoading(true)
+    setChartError(null)
+    setCandles([])
+
+    const tradeDate = new Date(trade.date)
+    const paddedStart = new Date(tradeDate)
+    paddedStart.setDate(paddedStart.getDate() - 10)
+    const startDate = paddedStart.toISOString().slice(0, 10)
+    const endDate = new Date().toISOString().slice(0, 10)
+
+    const params = new URLSearchParams({ symbol: trade.symbol, interval: selectedTimeframe })
+    if (startDate) params.set('start', startDate)
+    if (endDate) params.set('end', endDate)
+
+    fetch(`/api/candles?${params.toString()}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          setChartError(data.error)
+        } else {
+          setCandles(data.candles || [])
+          setChartInterval(data.interval || selectedTimeframe)
+        }
+      })
+      .catch(() => setChartError('Failed to load chart data'))
+      .finally(() => setChartLoading(false))
+  }, [tab, trade, selectedTimeframe])
+
+  const markers: TradeMarker[] = useMemo(() => {
+    if (!trade) return []
+    const isIntraday = chartInterval !== '1day'
+    const formatTime = (d: string): string | number => {
+      if (isIntraday) {
+        const iso = d.slice(0, 10) + 'T' + (d.slice(11) || '00:00:00') + 'Z'
+        return Math.floor(new Date(iso).getTime() / 1000)
+      }
+      return d.slice(0, 10)
+    }
+    const result: TradeMarker[] = []
+    if (trade.date) {
+      result.push({
+        time: formatTime(trade.date),
+        position: trade.type === 'Short' ? 'aboveBar' : 'belowBar',
+        color: '#3b82f6',
+        shape: trade.type === 'Short' ? 'arrowDown' : 'arrowUp',
+        text: `Entry $${trade.entry}`,
+      })
+    }
+    if (trade.exit_date && trade.exit) {
+      const isWin = trade.pnl > 0
+      result.push({
+        time: formatTime(trade.exit_date),
+        position: trade.type === 'Short' ? 'belowBar' : 'aboveBar',
+        color: isWin ? '#22c55e' : '#ef4444',
+        shape: trade.type === 'Short' ? 'arrowUp' : 'arrowDown',
+        text: `Exit $${trade.exit}`,
+      })
+    }
+    return result
+  }, [trade, chartInterval])
+
   if (!trade) return null
 
   const isWin  = trade.pnl > 0
@@ -62,10 +137,17 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
   const statusLabel = isWin ? 'WIN' : isLoss ? 'LOSS' : 'BE'
 
   const TABS: { key: Tab; label: string }[] = [
+    { key: 'chart',      label: 'Chart' },
     { key: 'stats',      label: 'Stats' },
     { key: 'notes',      label: 'Notes' },
     { key: 'screenshot', label: 'Screenshot' },
     { key: 'tags',       label: 'Tags' },
+  ]
+
+  const TIMEFRAMES: { key: ChartTimeframe; label: string }[] = [
+    { key: '15min', label: '15m' },
+    { key: '1h',    label: '1H' },
+    { key: '1day',  label: '1D' },
   ]
 
   const STATS = [
@@ -88,7 +170,7 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
   return (
     <div style={{
       position: 'fixed', top: 0, right: 0,
-      width: '440px', maxWidth: '100vw', height: '100vh',
+      width: '560px', maxWidth: '100vw', height: '100vh',
       background: 'var(--bg2)',
       borderLeft: '1px solid var(--brd)',
       zIndex: 151, overflowY: 'auto',
@@ -163,6 +245,47 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
 
       {/* Tab body */}
       <div style={{ padding: '16px 20px' }}>
+        {tab === 'chart' && (
+          <>
+            {/* Timeframe selector */}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+              {TIMEFRAMES.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedTimeframe(key)}
+                  style={{
+                    padding: '5px 12px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    border: `1px solid ${selectedTimeframe === key ? 'var(--ac)' : 'var(--brd)'}`,
+                    background: selectedTimeframe === key ? 'var(--ac-d)' : 'var(--bg3)',
+                    color: selectedTimeframe === key ? 'var(--ac)' : 'var(--txt2)',
+                    fontFamily: 'var(--mono)',
+                  }}
+                >{label}</button>
+              ))}
+            </div>
+
+            {chartLoading ? (
+              <div style={{ color: 'var(--txt3)', fontSize: '11px', padding: '20px 0', textAlign: 'center' }}>Loading chart…</div>
+            ) : chartError ? (
+              <div style={{ color: 'var(--red)', fontSize: '11px', padding: '20px 0', textAlign: 'center' }}>{chartError}</div>
+            ) : candles.length === 0 ? (
+              <div style={{ color: 'var(--txt3)', fontSize: '11px', padding: '20px 0', textAlign: 'center' }}>No chart data available.</div>
+            ) : (
+              <>
+                <TradeChart candles={candles} markers={markers} height={480} />
+                {chartInterval !== selectedTimeframe && (
+                  <div style={{ fontSize: '9px', color: 'var(--txt3)', marginTop: '6px', textAlign: 'center' }}>
+                    Showing {chartInterval === '1day' ? 'daily' : chartInterval} data — {selectedTimeframe === '1day' ? 'daily' : selectedTimeframe} unavailable for this date range.
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
         {tab === 'stats' && STATS.map(([label, val], i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid var(--brd)' }}>
             <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{label}</span>
@@ -177,7 +300,6 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
       {/* Footer */}
       <div style={{ padding: '14px 20px', borderTop: '1px solid var(--brd)', display: 'flex', gap: '8px', position: 'sticky', bottom: 0, background: 'var(--bg2)' }}>
         <button className="btn btn-o" onClick={onClose}>Close</button>
-        <button className="btn btn-o" onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=${trade.symbol}`, '_blank')} style={{ color: 'var(--blue)', borderColor: 'rgba(59,130,246,.3)' }}>📊 TradingView</button>
         <button className="btn btn-d" onClick={() => { if (confirm('Delete this trade?')) { onDelete(trade.id); onClose() } }} style={{ marginLeft: 'auto' }}>🗑 Delete</button>
         <button className="btn btn-p" onClick={() => onEdit(trade)}>✎ Edit</button>
       </div>
