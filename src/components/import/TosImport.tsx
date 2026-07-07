@@ -16,6 +16,7 @@ type ParsedTrade = {
   date: string
   entry: number
   exit: number
+  exitDate: string
   shares: number
   pnl: number
   entryTime: string
@@ -138,6 +139,7 @@ function parseTOS(text: string, existingTrades: TradeRow[]): ParsedTrade[] {
           date: dateStr,
           entry: parseFloat(avgEntry.toFixed(4)),
           exit: parseFloat(price.toFixed(4)),
+          exitDate: datetime.toISOString(),
           shares: tradeQty,
           pnl,
           entryTime: entryDatetime.toLocaleTimeString(),
@@ -208,7 +210,7 @@ export function TosImport({ userId, existingTrades, onImported }: Props) {
     let count = 0
     for (const t of toImport) {
       const inserted = await insertTrade({
-        symbol: t.symbol, type: t.type, date: t.date, exit_date: null,
+        symbol: t.symbol, type: t.type, date: t.date, exit_date: t.exitDate,
         entry: t.entry, exit: t.exit, shares: t.shares, pnl: t.pnl,
         risk: 0, commission: t.commission, setup: null, grade: null,
         tags: [], notes: null, screenshot_url: null,

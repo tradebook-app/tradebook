@@ -16,6 +16,7 @@ type ParsedTrade = {
   date:       string
   entry:      number
   exit:       number
+  exitDate:   string | null
   shares:     number
   pnl:        number
   commission: number
@@ -168,6 +169,10 @@ export function TradeStationImport({ userId, existingTrades, onImported }: Props
       const tradeDate = allDates[0] || new Date().toISOString()
       const [symbol]  = mapKey.split('-')
 
+      // Exit side is whichever side closes the position (sells for a long, buys for a short)
+      const closingSide = isLong ? sells : buys
+      const exitDate = closingSide.length > 0 ? closingSide.map(x => x.date).sort().slice(-1)[0] : null
+
       const sig = `${symbol}-${tradeDate.substring(0, 10)}-${parseFloat(pnl.toFixed(2))}`
 
       trades.push({
@@ -176,6 +181,7 @@ export function TradeStationImport({ userId, existingTrades, onImported }: Props
         date:       tradeDate,
         entry:      parseFloat(entry.toFixed(4)),
         exit:       parseFloat(exit.toFixed(4)),
+        exitDate,
         shares:     matchQty,
         pnl:        parseFloat(pnl.toFixed(2)),
         commission: parseFloat(totalComm.toFixed(2)),
@@ -232,7 +238,7 @@ export function TradeStationImport({ userId, existingTrades, onImported }: Props
         symbol:         t.symbol,
         type:           t.type,
         date:           t.date,
-        exit_date:      null,
+        exit_date:      t.exitDate,
         entry:          t.entry,
         exit:           t.exit || null,
         shares:         t.shares,

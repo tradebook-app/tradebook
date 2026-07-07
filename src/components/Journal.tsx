@@ -168,7 +168,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
     if (trade.exit) {
       const isWin = trade.pnl > 0
       result.push({
-        time: formatTime(trade.date),
+        time: formatTime(trade.exit_date || trade.date),
         position: trade.type === 'Short' ? 'belowBar' : 'aboveBar',
         color: isWin ? '#22c55e' : '#ef4444',
         shape: trade.type === 'Short' ? 'arrowUp' : 'arrowDown',

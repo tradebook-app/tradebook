@@ -16,6 +16,7 @@ type ParsedTrade = {
   date:       string
   entry:      number
   exit:       number
+  exitDate:   string | null
   shares:     number
   pnl:        number
   commission: number
@@ -184,6 +185,8 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
 
       // Use earliest date
       const tradeDate = g.legs.map(l => l.date).sort()[0]
+      // Use latest closing-leg date as the exit timestamp (only if the trade actually has closes)
+      const exitDate = closes.length > 0 ? closes.map(l => l.date).sort().slice(-1)[0] : null
 
       const sig = `${g.symbol}-${tradeDate.substring(0, 10)}-${parseFloat(pnl.toFixed(2))}`
 
@@ -193,6 +196,7 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
         date:       tradeDate,
         entry:      parseFloat(entry.toFixed(4)),
         exit:       parseFloat(exit.toFixed(4)),
+        exitDate,
         shares:     matchQty,
         pnl:        parseFloat(pnl.toFixed(2)),
         commission: parseFloat(totalComm.toFixed(2)),
@@ -252,7 +256,7 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
         symbol:         t.symbol,
         type:           t.type,
         date:           t.date,
-        exit_date:      null,
+        exit_date:      t.exitDate,
         entry:          t.entry,
         exit:           t.exit || null,
         shares:         t.shares,
