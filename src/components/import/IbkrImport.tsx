@@ -57,8 +57,8 @@ function parseIBKR(text: string, existingTrades: TradeRow[]): ParsedTrade[] {
     const rawTime     = cols[6] || ''
     const qty         = parseFloat(cols[7]) || 0
     const price       = parseFloat(cols[8]) || 0
-    const commission  = Math.abs(parseFloat(cols[11]) || 0)
-    const realizedPnl = parseFloat(cols[13]) || 0
+    const commission  = Math.abs(parseFloat(cols[10]) || 0)
+    const realizedPnl = parseFloat(cols[12]) || 0
 
     if (!symbol || !rawTime || qty === 0) continue
 
