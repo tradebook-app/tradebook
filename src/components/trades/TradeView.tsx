@@ -152,7 +152,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
       </div>
 
       {/* Table — desktop/tablet only, see .mobile-trade-cards below for phone */}
-      <div className="desktop-table-wrap" style={{ overflowX: 'auto' }}>
+      <div className="desktop-table-wrap" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 320px)' }}>
         <table className="tbl">
           <thead>
             <tr>
