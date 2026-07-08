@@ -20,42 +20,38 @@ export type ParsedIbkrTrade = {
   duplicate: boolean
 }
 
-// Shared IBKR Activity Statement / Flex Query CSV parser.
-// Used by both the client-side CSV upload flow (IbkrImport.tsx) and the
-// server-side auto-sync route (api/broker/ibkr/sync) — pass whichever
-// Supabase client is appropriate (browser client vs. service-role client).
-export async function parseIBKR(
-  text: string,
-  existingTrades: TradeRow[],
-  userId: string,
-  supabase: DbClient
-): Promise<{ trades: ParsedIbkrTrade[]; carriedForward: { symbol: string; side: string; qty: number }[] }> {
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+type Execution = {
+  datetime: Date
+  symbol: string
+  qty: number       // signed: positive = buy, negative = sell
+  price: number
+  commission: number
+  realizedPnl: number
+}
 
-  type Execution = {
-    datetime: Date
-    symbol: string
-    qty: number
-    price: number
-    commission: number
-    realizedPnl: number
+// ── Quote-aware CSV line splitter (shared by both formats) ──────────────────
+function splitCsvLine(line: string): string[] {
+  const cols: string[] = []
+  let current = ''
+  let inQuote = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') { inQuote = !inQuote; continue }
+    if (ch === ',' && !inQuote) { cols.push(current.trim()); current = ''; continue }
+    current += ch
   }
+  cols.push(current.trim())
+  return cols
+}
 
+// ── Format A: IBKR Activity Statement export (multi-section report) ─────────
+// Lines look like: Trades,Data,Order,Stocks,USD,AAPL,"2026-01-01, 09:30:00",100,150.00,...
+function extractFromActivityStatement(lines: string[]): Execution[] {
   const executions: Execution[] = []
 
   for (const line of lines) {
     if (!line.startsWith('Trades,Data,Order,Stocks,')) continue
-
-    const cols: string[] = []
-    let current = ''
-    let inQuote = false
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i]
-      if (ch === '"') { inQuote = !inQuote; continue }
-      if (ch === ',' && !inQuote) { cols.push(current.trim()); current = ''; continue }
-      current += ch
-    }
-    cols.push(current.trim())
+    const cols = splitCsvLine(line)
 
     const symbol      = (cols[5] || '').toUpperCase().trim()
     const rawTime      = cols[6] || ''
@@ -65,15 +61,113 @@ export async function parseIBKR(
     const realizedPnl = parseFloat(cols[12]) || 0
 
     if (!symbol || !rawTime || qty === 0) continue
-
     const dt = new Date(rawTime)
     if (isNaN(dt.getTime())) continue
 
     executions.push({ datetime: dt, symbol, qty, price, commission, realizedPnl })
   }
 
+  return executions
+}
+
+// ── Format B: Flex Query CSV export (flat single table, header + data rows) ─
+// Header row has plain column names like Symbol, DateTime, Quantity, TradePrice,
+// IBCommission, FifoPnlRealized — in whatever order the user's query happens to include.
+function findCol(header: string[], candidates: string[]): number {
+  const normalized = header.map(h => h.toLowerCase().replace(/[^a-z]/g, ''))
+  for (const cand of candidates) {
+    const target = cand.toLowerCase().replace(/[^a-z]/g, '')
+    const idx = normalized.indexOf(target)
+    if (idx !== -1) return idx
+  }
+  return -1
+}
+
+// IBKR Flex DateTime format: "20260101;093000" (date;time) or just "20260101"
+function parseFlexDateTime(raw: string): Date | null {
+  if (!raw) return null
+  const [datePart, timePart] = raw.split(';')
+  if (!datePart || datePart.length < 8) return null
+  const y = parseInt(datePart.substring(0, 4))
+  const mo = parseInt(datePart.substring(4, 6)) - 1
+  const d = parseInt(datePart.substring(6, 8))
+  if (!timePart) return new Date(y, mo, d)
+  const h  = parseInt(timePart.substring(0, 2)) || 0
+  const mi = parseInt(timePart.substring(2, 4)) || 0
+  const s  = parseInt(timePart.substring(4, 6)) || 0
+  return new Date(y, mo, d, h, mi, s)
+}
+
+function extractFromFlexCsv(lines: string[]): Execution[] {
+  if (lines.length < 2) return []
+
+  const header = splitCsvLine(lines[0]).map(h => h.trim())
+  const firstCol = (header[0] || '').toLowerCase()
+  if (!firstCol.includes('clientaccountid') && findCol(header, ['Symbol']) === -1) return []
+
+  const symbolIdx      = findCol(header, ['Symbol'])
+  const dateTimeIdx     = findCol(header, ['DateTime', 'Date/Time'])
+  const tradeDateIdx    = findCol(header, ['TradeDate', 'Trade Date'])
+  const qtyIdx          = findCol(header, ['Quantity'])
+  const priceIdx        = findCol(header, ['TradePrice', 'T. Price', 'Price'])
+  const commissionIdx   = findCol(header, ['IBCommission', 'Commission', 'Comm/Fee'])
+  const realizedPnlIdx  = findCol(header, ['FifoPnlRealized', 'RealizedPL', 'Realized P/L'])
+
+  const missing: string[] = []
+  if (symbolIdx === -1) missing.push('Symbol')
+  if (dateTimeIdx === -1 && tradeDateIdx === -1) missing.push('Date/Time (or Trade Date)')
+  if (qtyIdx === -1) missing.push('Quantity')
+  if (priceIdx === -1) missing.push('Trade Price')
+  if (realizedPnlIdx === -1) missing.push('Realized P/L (FifoPnlRealized)')
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Your Flex Query is missing required fields: ${missing.join(', ')}. Go back to IBKR → edit your Flex Query → Trades section → make sure these fields are checked, then try again.`
+    )
+  }
+
+  const executions: Execution[] = []
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitCsvLine(lines[i])
+    if (cols.length < header.length - 2) continue // malformed/short row, skip
+    if ((cols[0] || '').toLowerCase() === firstCol) continue // repeated header (multi-section export), skip
+
+    const symbol = (cols[symbolIdx] || '').toUpperCase().trim()
+    const qty    = parseFloat(cols[qtyIdx]) || 0
+    const price  = parseFloat(cols[priceIdx]) || 0
+    if (!symbol || qty === 0) continue
+
+    const rawDt = dateTimeIdx !== -1 ? cols[dateTimeIdx] : cols[tradeDateIdx]
+    const dt = parseFlexDateTime(rawDt)
+    if (!dt || isNaN(dt.getTime())) continue
+
+    const commission  = commissionIdx  !== -1 ? Math.abs(parseFloat(cols[commissionIdx]) || 0) : 0
+    const realizedPnl = parseFloat(cols[realizedPnlIdx]) || 0
+
+    executions.push({ datetime: dt, symbol, qty, price, commission, realizedPnl })
+  }
+
+  return executions
+}
+
+// ── Shared position-tracking / matching engine (format-agnostic) ────────────
+export async function parseIBKR(
+  text: string,
+  existingTrades: TradeRow[],
+  userId: string,
+  supabase: DbClient
+): Promise<{ trades: ParsedIbkrTrade[]; carriedForward: { symbol: string; side: string; qty: number }[] }> {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+
+  const isActivityStatement = lines.some(l => l.startsWith('Trades,Data,Order,Stocks,') || l.startsWith('Trades,Header,'))
+
+  const executions = isActivityStatement
+    ? extractFromActivityStatement(lines)
+    : extractFromFlexCsv(lines)
+
   if (executions.length === 0) {
-    throw new Error('No trade executions found. Make sure this is an IBKR Activity Statement (or Flex Query) with trade data in the standard Trades section format.')
+    throw new Error('No trade executions found. Make sure this is an IBKR Activity Statement or Flex Query CSV with Symbol, Quantity, Trade Price, Date/Time, and Realized P/L fields included.')
   }
 
   executions.sort((a, b) => a.datetime.getTime() - b.datetime.getTime())
