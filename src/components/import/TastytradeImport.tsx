@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { TradeRow } from '@/lib/types'
 import { insertTrade } from '@/lib/tradeService'
+import { fetchOpenLegs, replaceOpenLeg } from '@/lib/legMatcher'
 
 type Props = {
   userId: string
@@ -30,8 +31,9 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
   const [importing, setImporting] = useState(false)
   const [imported,  setImported]  = useState(0)
   const [error,     setError]     = useState('')
+  const [notice,    setNotice]    = useState('')
 
-  function parseCSV(text: string): ParsedTrade[] {
+  async function parseCSV(text: string): Promise<{ trades: ParsedTrade[]; carriedForward: { symbol: string; side: string; qty: number }[] }> {
     const lines = text.trim().split('\n').filter(l => l.trim())
     if (lines.length < 2) throw new Error('File appears empty')
 
@@ -151,14 +153,28 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
     })
 
     const trades: ParsedTrade[] = []
+    const carriedForward: { symbol: string; side: string; qty: number }[] = []
 
-    Object.values(groups).forEach(g => {
-      if (g.legs.length === 0) return
+    const symbolsInFile = [...new Set(Object.values(groups).map(g => g.symbol))]
+    const storedLegsBySymbol = await fetchOpenLegs(userId, symbolsInFile)
+    const usedStoredLeg = new Set<string>()  // symbols whose carried-forward leg has already been applied to a group
 
-      const opens  = g.legs.filter(l => l.action.toLowerCase().includes('open'))
-      const closes = g.legs.filter(l => l.action.toLowerCase().includes('close'))
+    for (const g of Object.values(groups)) {
+      if (g.legs.length === 0) continue
 
-      if (opens.length === 0 && closes.length === 0) return
+      const fileOpens  = g.legs.filter(l => l.action.toLowerCase().includes('open'))
+      const closes     = g.legs.filter(l => l.action.toLowerCase().includes('close'))
+
+      const storedLegs  = usedStoredLeg.has(g.symbol) ? [] : (storedLegsBySymbol[g.symbol] || [])
+      const consumedIds = storedLegs.map(l => l.id)
+      if (storedLegs.length > 0) usedStoredLeg.add(g.symbol)
+      const syntheticOpens: Leg[] = storedLegs.map(l => ({
+        action: l.side === 'Long' ? 'Buy to Open' : 'Sell to Open',
+        qty: l.qty, price: l.price, value: 0, date: l.opened_at, commission: l.commission,
+      }))
+      const opens = [...syntheticOpens, ...fileOpens]
+
+      if (opens.length === 0 && closes.length === 0) continue
 
       // Determine trade direction
       const firstAction = (opens[0] || closes[0])?.action.toLowerCase() || ''
@@ -167,57 +183,81 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
 
       const tradeType: 'Long' | 'Short' = isLong ? 'Long' : 'Short'
 
-      // Calculate totals
-      const openQty   = opens.reduce((s, l)  => s + l.qty, 0)
-      const closeQty  = closes.reduce((s, l) => s + l.qty, 0)
-      const matchQty  = Math.max(openQty, closeQty) || g.legs.reduce((s, l) => s + l.qty, 0)
+      const openQty  = opens.reduce((s, l)  => s + l.qty, 0)
+      const closeQty = closes.reduce((s, l) => s + l.qty, 0)
+      const matchQty = Math.min(openQty, closeQty)
 
-      const avgOpenPrice  = opens.length  > 0 ? opens.reduce((s, l)  => s + l.price * l.qty, 0) / (openQty  || 1) : 0
-      const avgClosePrice = closes.length > 0 ? closes.reduce((s, l) => s + l.price * l.qty, 0) / (closeQty || 1) : 0
+      const avgOpenPrice  = openQty  > 0 ? opens.reduce((s, l)  => s + l.price * l.qty, 0) / openQty  : 0
+      const avgClosePrice = closeQty > 0 ? closes.reduce((s, l) => s + l.price * l.qty, 0) / closeQty : 0
 
-      // P&L = sum of all values (Tastytrade signs them: sells positive, buys negative)
-      const totalValue = g.legs.reduce((s, l) => s + l.value, 0)
-      const totalComm  = g.legs.reduce((s, l) => s + l.commission, 0)
-      const pnl        = totalValue - totalComm
+      const totalOpenComm  = opens.reduce((s, l)  => s + l.commission, 0)
+      const totalCloseComm = closes.reduce((s, l) => s + l.commission, 0)
 
-      const entry = isLong ? avgOpenPrice  : avgClosePrice
-      const exit  = isLong ? avgClosePrice : avgOpenPrice
+      if (matchQty > 0) {
+        const entry = isLong ? avgOpenPrice  : avgClosePrice
+        const exit  = isLong ? avgClosePrice : avgOpenPrice
+        const commUsed = totalOpenComm * (matchQty / openQty) + totalCloseComm * (matchQty / closeQty)
+        const pnl = (avgClosePrice - avgOpenPrice) * matchQty * (isLong ? 1 : -1) - commUsed
 
-      // Use earliest date
-      const tradeDate = g.legs.map(l => l.date).sort()[0]
-      // Use latest closing-leg date as the exit timestamp (only if the trade actually has closes)
-      const exitDate = closes.length > 0 ? closes.map(l => l.date).sort().slice(-1)[0] : null
+        const tradeDate = opens.map(l => l.date).sort()[0]
+        const exitDate  = closes.map(l => l.date).sort().slice(-1)[0] || null
+        const sig = `${g.symbol}-${tradeDate.substring(0, 10)}-${parseFloat(pnl.toFixed(2))}`
 
-      const sig = `${g.symbol}-${tradeDate.substring(0, 10)}-${parseFloat(pnl.toFixed(2))}`
+        trades.push({
+          symbol:     g.symbol,
+          type:       tradeType,
+          date:       tradeDate,
+          entry:      parseFloat(entry.toFixed(4)),
+          exit:       parseFloat(exit.toFixed(4)),
+          exitDate,
+          shares:     matchQty,
+          pnl:        parseFloat(pnl.toFixed(2)),
+          commission: parseFloat(commUsed.toFixed(2)),
+          duplicate:  existingSigs.has(sig),
+        })
+      }
 
-      trades.push({
-        symbol:     g.symbol,
-        type:       tradeType,
-        date:       tradeDate,
-        entry:      parseFloat(entry.toFixed(4)),
-        exit:       parseFloat(exit.toFixed(4)),
-        exitDate,
-        shares:     matchQty,
-        pnl:        parseFloat(pnl.toFixed(2)),
-        commission: parseFloat(totalComm.toFixed(2)),
-        duplicate:  existingSigs.has(sig),
-      })
-    })
+      const netQty = openQty - matchQty
+      if (netQty > 0) {
+        const leftoverComm = totalOpenComm * (netQty / openQty)
+        await replaceOpenLeg(userId, g.symbol, consumedIds, {
+          symbol: g.symbol, side: tradeType, qty: netQty,
+          price: avgOpenPrice, opened_at: opens.map(l => l.date).sort()[0],
+          commission: leftoverComm,
+        }, 'Tastytrade')
+        carriedForward.push({ symbol: g.symbol, side: tradeType, qty: netQty })
+      } else if (consumedIds.length > 0) {
+        await replaceOpenLeg(userId, g.symbol, consumedIds, null, 'Tastytrade')
+      }
+    }
 
-    if (trades.length === 0) throw new Error('No trades found. Make sure you exported the Transactions tab (not Orders) and the file contains Trade type rows.')
+    if (trades.length === 0 && carriedForward.length === 0) {
+      throw new Error('No trades found. Make sure you exported the Transactions tab (not Orders) and the file contains Trade type rows.')
+    }
 
-    return trades.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    return {
+      trades: trades.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+      carriedForward,
+    }
   }
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setError('')
+    setNotice('')
     const reader = new FileReader()
-    reader.onload = ev => {
+    reader.onload = async ev => {
       try {
-        const text   = ev.target?.result as string
-        const trades = parseCSV(text)
+        const text = ev.target?.result as string
+        const { trades, carriedForward } = await parseCSV(text)
+
+        if (trades.length === 0) {
+          const desc = carriedForward.map(c => `${c.qty} sh ${c.symbol} (${c.side})`).join(', ')
+          setNotice(`No trades completed yet — ${desc} saved and waiting for the closing execution in a future import.`)
+          return
+        }
+
         setParsed(trades)
         const sel = new Set<number>()
         trades.forEach((t, i) => { if (!t.duplicate) sel.add(i) })
@@ -280,7 +320,7 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
 
   function reset() {
     setStep('upload'); setParsed([]); setSelected(new Set())
-    setImported(0); setError('')
+    setImported(0); setError(''); setNotice('')
   }
 
   // ── Done ────────────────────────────────────────────────────────────────
@@ -424,6 +464,11 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
       {error && (
         <div style={{ marginTop: '12px', background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: 'var(--red)' }}>
           ⚠️ {error}
+        </div>
+      )}
+      {notice && (
+        <div style={{ marginTop: '12px', background: 'rgba(59,130,246,.1)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: '#3B82F6' }}>
+          ℹ️ {notice}
         </div>
       )}
     </div>

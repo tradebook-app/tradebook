@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { TradeRow } from '@/lib/types'
 import { insertTrade } from '@/lib/tradeService'
+import { fetchOpenLegs, replaceOpenLeg } from '@/lib/legMatcher'
 
 type Props = {
   userId: string
@@ -26,7 +27,7 @@ type ParsedTrade = {
   duplicate: boolean
 }
 
-function parseTOS(text: string, existingTrades: TradeRow[]): ParsedTrade[] {
+async function parseTOS(text: string, existingTrades: TradeRow[], userId: string): Promise<{ trades: ParsedTrade[]; carriedForward: { symbol: string; side: string; qty: number }[] }> {
   const lines = text.split('\n').map(l => l.trim())
 
   const sectionIdx = lines.findIndex(l => l.includes('Account Trade History'))
@@ -101,6 +102,24 @@ function parseTOS(text: string, existingTrades: TradeRow[]): ParsedTrade[] {
 
   const trades: ParsedTrade[] = []
   const positions: Record<string, OpenPosition | null> = {}
+  const consumedLegIds: Record<string, string[]> = {}
+
+  const symbolsInFile = [...new Set(executions.map(e => e.symbol))]
+  const storedLegsBySymbol = await fetchOpenLegs(userId, symbolsInFile)
+
+  for (const symbol of symbolsInFile) {
+    const legs = storedLegsBySymbol[symbol]
+    if (!legs || legs.length === 0) continue
+    const totalQty  = legs.reduce((s, l) => s + l.qty, 0)
+    const totalCost = legs.reduce((s, l) => s + l.qty * l.price, 0)
+    const earliest  = legs.map(l => new Date(l.opened_at)).sort((a, b) => a.getTime() - b.getTime())[0]
+    positions[symbol] = {
+      side: legs[0].side as 'Long' | 'Short',
+      entries: [{ qty: totalQty, price: totalCost / totalQty, datetime: earliest }],
+      remainingQty: totalQty,
+    }
+    consumedLegIds[symbol] = legs.map(l => l.id)
+  }
 
   for (const exec of executions) {
     const { symbol, side, qty, price, datetime } = exec
@@ -158,8 +177,30 @@ function parseTOS(text: string, existingTrades: TradeRow[]): ParsedTrade[] {
     }
   }
 
-  if (trades.length === 0) throw new Error('No complete trades found. Make sure your TOS export has both entry and exit orders.')
-  return trades
+  const carriedForward: { symbol: string; side: string; qty: number }[] = []
+
+  for (const symbol of symbolsInFile) {
+    const pos = positions[symbol]
+    const consumed = consumedLegIds[symbol] || []
+
+    if (pos && pos.remainingQty > 0) {
+      const totalShares = pos.entries.reduce((s, e) => s + e.qty, 0)
+      const totalCost   = pos.entries.reduce((s, e) => s + e.qty * e.price, 0)
+      const earliest    = pos.entries[0].datetime
+
+      await replaceOpenLeg(userId, symbol, consumed, {
+        symbol, side: pos.side, qty: pos.remainingQty,
+        price: totalCost / totalShares, opened_at: earliest.toISOString(),
+        commission: 0,
+      }, 'TOS')
+
+      carriedForward.push({ symbol, side: pos.side, qty: pos.remainingQty })
+    } else if (consumed.length > 0) {
+      await replaceOpenLeg(userId, symbol, consumed, null, 'TOS')
+    }
+  }
+
+  return { trades, carriedForward }
 }
 
 export function TosImport({ userId, existingTrades, onImported }: Props) {
@@ -169,16 +210,25 @@ export function TosImport({ userId, existingTrades, onImported }: Props) {
   const [importing, setImporting] = useState(false)
   const [imported,  setImported]  = useState(0)
   const [error,     setError]     = useState('')
+  const [notice,    setNotice]    = useState('')
   const [dragOver,  setDragOver]  = useState(false)
 
   function handleFile(file: File | undefined) {
     if (!file) return
     setError('')
+    setNotice('')
     const reader = new FileReader()
-    reader.onload = ev => {
+    reader.onload = async ev => {
       try {
-        const text   = ev.target?.result as string
-        const trades = parseTOS(text, existingTrades)
+        const text = ev.target?.result as string
+        const { trades, carriedForward } = await parseTOS(text, existingTrades, userId)
+
+        if (trades.length === 0) {
+          const desc = carriedForward.map(c => `${c.qty} sh ${c.symbol} (${c.side})`).join(', ')
+          setNotice(`No trades completed yet — ${desc} saved and waiting for the closing execution in a future import.`)
+          return
+        }
+
         setParsed(trades)
         const sel = new Set<number>()
         trades.forEach((t, i) => { if (!t.duplicate) sel.add(i) })
@@ -225,7 +275,7 @@ export function TosImport({ userId, existingTrades, onImported }: Props) {
 
   function reset() {
     setStep('upload'); setParsed([]); setSelected(new Set())
-    setImported(0); setError('')
+    setImported(0); setError(''); setNotice('')
   }
 
   function formatHold(mins: number) {
@@ -358,6 +408,11 @@ export function TosImport({ userId, existingTrades, onImported }: Props) {
         {error && (
           <div style={{ marginTop: '12px', background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: 'var(--red)' }}>
             ⚠️ {error}
+          </div>
+        )}
+        {notice && (
+          <div style={{ marginTop: '12px', background: 'rgba(59,130,246,.1)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: '#3B82F6' }}>
+            ℹ️ {notice}
           </div>
         )}
       </div>

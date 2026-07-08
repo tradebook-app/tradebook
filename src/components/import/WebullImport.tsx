@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { TradeRow } from '@/lib/types'
 import { insertTrade } from '@/lib/tradeService'
+import { fetchOpenLegs, replaceOpenLeg } from '@/lib/legMatcher'
 
 type Props = {
   userId: string
@@ -29,8 +30,9 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
   const [importing, setImporting] = useState(false)
   const [imported,  setImported]  = useState(0)
   const [error,     setError]     = useState('')
+  const [notice,    setNotice]    = useState('')
 
-  function parseCSV(text: string): ParsedTrade[] {
+  async function parseCSV(text: string): Promise<{ trades: ParsedTrade[]; carriedForward: { symbol: string; side: string; qty: number }[] }> {
     const lines = text.trim().split('\n').filter(l => l.trim())
     if (lines.length < 2) throw new Error('File appears empty')
 
@@ -131,84 +133,114 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
 
     // Step 3: Match buys to sells to produce completed trades
     const trades: ParsedTrade[] = []
+    const carriedForward: { symbol: string; side: string; qty: number }[] = []
 
     // Collect all unique symbol-date keys
     const allKeys = new Set([...Object.keys(buyMap), ...Object.keys(sellMap)])
 
-    allKeys.forEach(mapKey => {
-      const buys  = buyMap[mapKey]  || []
-      const sells = sellMap[mapKey] || []
+    const symbolsInFile = [...new Set(Object.values(orderGroups).map(g => g.symbol))]
+    const storedLegsBySymbol = await fetchOpenLegs(userId, symbolsInFile)
+    const usedStoredLeg = new Set<string>()
 
-      if (buys.length === 0 && sells.length === 0) return
+    for (const mapKey of allKeys) {
+      const [symbol] = mapKey.split('-')
+      let buys  = buyMap[mapKey]  || []
+      let sells = sellMap[mapKey] || []
+
+      if (buys.length === 0 && sells.length === 0) continue
+
+      const storedLegs  = usedStoredLeg.has(symbol) ? [] : (storedLegsBySymbol[symbol] || [])
+      const consumedIds = storedLegs.map(l => l.id)
+      if (storedLegs.length > 0) usedStoredLeg.add(symbol)
+
+      for (const leg of storedLegs) {
+        const entry = { qty: leg.qty, avgPrice: leg.price, date: leg.opened_at }
+        if (leg.side === 'Long') buys = [entry, ...buys]
+        else sells = [entry, ...sells]
+      }
 
       // Compute totals for this symbol-date
       const totalBuyQty   = buys.reduce((s, b)  => s + b.qty, 0)
       const totalSellQty  = sells.reduce((s, s2) => s + s2.qty, 0)
-      const avgBuyPrice   = buys.length  > 0 ? buys.reduce((s,  b) => s + b.avgPrice * b.qty, 0)  / (totalBuyQty  || 1) : 0
-      const avgSellPrice  = sells.length > 0 ? sells.reduce((s, s2) => s + s2.avgPrice * s2.qty, 0) / (totalSellQty || 1) : 0
+      const avgBuyPrice   = totalBuyQty  > 0 ? buys.reduce((s,  b) => s + b.avgPrice * b.qty, 0)  / totalBuyQty  : 0
+      const avgSellPrice  = totalSellQty > 0 ? sells.reduce((s, s2) => s + s2.avgPrice * s2.qty, 0) / totalSellQty : 0
 
       // Determine if Long or Short
-      // Long:  bought first, then sold  → P&L = (sell - buy) * qty
-      // Short: sold first, then covered → P&L = (sell - buy) * qty (same formula, Webull shows short side as sell)
       const isLong   = totalBuyQty >= totalSellQty
-      const matchQty = Math.min(totalBuyQty, totalSellQty) || Math.max(totalBuyQty, totalSellQty)
-
-      let pnl   = 0
-      let entry = 0
-      let exit  = 0
+      const matchQty = Math.min(totalBuyQty, totalSellQty)
       const tradeType: 'Long' | 'Short' = isLong ? 'Long' : 'Short'
 
-      if (isLong) {
-        entry = avgBuyPrice
-        exit  = avgSellPrice
-        pnl   = (avgSellPrice - avgBuyPrice) * matchQty
-      } else {
-        // Short trade: entry = sell price, exit = buy (cover) price
-        entry = avgSellPrice
-        exit  = avgBuyPrice
-        pnl   = (avgSellPrice - avgBuyPrice) * matchQty
+      if (matchQty > 0) {
+        const entry = isLong ? avgBuyPrice  : avgSellPrice
+        const exit  = isLong ? avgSellPrice : avgBuyPrice
+        const pnl   = (avgSellPrice - avgBuyPrice) * matchQty * (isLong ? 1 : -1)
+
+        const allDates  = [...buys, ...sells].map(x => x.date).sort()
+        const tradeDate = allDates[0] || new Date().toISOString()
+
+        const closingSide = isLong ? sells : buys
+        const exitDate = closingSide.length > 0 ? closingSide.map(x => x.date).sort().slice(-1)[0] : null
+
+        const sig = `${symbol}-${tradeDate.substring(0, 10)}-${parseFloat(pnl.toFixed(2))}`
+
+        trades.push({
+          symbol,
+          type:      tradeType,
+          date:      tradeDate,
+          entry:     parseFloat(entry.toFixed(4)),
+          exit:      parseFloat(exit.toFixed(4)),
+          exitDate,
+          shares:    matchQty,
+          pnl:       parseFloat(pnl.toFixed(2)),
+          duplicate: existingSigs.has(sig),
+        })
       }
 
-      // Use earliest date from buys or sells
-      const allDates = [...buys, ...sells].map(x => x.date).sort()
-      const tradeDate = allDates[0] || new Date().toISOString()
+      const openingQty   = isLong ? totalBuyQty : totalSellQty
+      const openingPrice = isLong ? avgBuyPrice : avgSellPrice
+      const openingDates = (isLong ? buys : sells).map(x => x.date).sort()
+      const netQty = openingQty - matchQty
 
-      const [symbol] = mapKey.split('-')
+      if (netQty > 0) {
+        await replaceOpenLeg(userId, symbol, consumedIds, {
+          symbol, side: tradeType, qty: netQty,
+          price: openingPrice, opened_at: openingDates[0] || new Date().toISOString(),
+          commission: 0,
+        }, 'Webull')
+        carriedForward.push({ symbol, side: tradeType, qty: netQty })
+      } else if (consumedIds.length > 0) {
+        await replaceOpenLeg(userId, symbol, consumedIds, null, 'Webull')
+      }
+    }
 
-      // Exit side is whichever side closes the position (sells for a long, buys for a short/cover)
-      const closingSide = isLong ? sells : buys
-      const exitDate = closingSide.length > 0 ? closingSide.map(x => x.date).sort().slice(-1)[0] : null
+    if (trades.length === 0 && carriedForward.length === 0) {
+      throw new Error('No completed trades found. Make sure the file contains filled orders.')
+    }
 
-      const sig = `${symbol}-${tradeDate.substring(0, 10)}-${parseFloat(pnl.toFixed(2))}`
-
-      trades.push({
-        symbol,
-        type:      tradeType,
-        date:      tradeDate,
-        entry:     parseFloat(entry.toFixed(4)),
-        exit:      parseFloat(exit.toFixed(4)),
-        exitDate,
-        shares:    matchQty,
-        pnl:       parseFloat(pnl.toFixed(2)),
-        duplicate: existingSigs.has(sig),
-      })
-    })
-
-    if (trades.length === 0) throw new Error('No completed trades found. Make sure the file contains filled orders.')
-
-    return trades.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    return {
+      trades: trades.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+      carriedForward,
+    }
   }
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setError('')
+    setNotice('')
 
     const reader = new FileReader()
-    reader.onload = ev => {
+    reader.onload = async ev => {
       try {
-        const text   = ev.target?.result as string
-        const trades = parseCSV(text)
+        const text = ev.target?.result as string
+        const { trades, carriedForward } = await parseCSV(text)
+
+        if (trades.length === 0) {
+          const desc = carriedForward.map(c => `${c.qty} sh ${c.symbol} (${c.side})`).join(', ')
+          setNotice(`No trades completed yet — ${desc} saved and waiting for the closing execution in a future import.`)
+          return
+        }
+
         setParsed(trades)
         const sel = new Set<number>()
         trades.forEach((t, i) => { if (!t.duplicate) sel.add(i) })
@@ -271,7 +303,7 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
 
   function reset() {
     setStep('upload'); setParsed([]); setSelected(new Set())
-    setImported(0); setError('')
+    setImported(0); setError(''); setNotice('')
   }
 
   // ── Done screen ──────────────────────────────────────────────────────────
@@ -460,6 +492,15 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
           padding: '10px 14px', fontSize: '11px', color: 'var(--red)',
         }}>
           ⚠️ {error}
+        </div>
+      )}
+      {notice && (
+        <div style={{
+          marginTop: '12px', background: 'rgba(59,130,246,.1)',
+          border: '1px solid rgba(59,130,246,.2)', borderRadius: 'var(--r)',
+          padding: '10px 14px', fontSize: '11px', color: '#3B82F6',
+        }}>
+          ℹ️ {notice}
         </div>
       )}
     </div>

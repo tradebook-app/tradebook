@@ -223,6 +223,20 @@ export type SupportChatUsageRow = {
 
 // ─── Supabase Database type (for typed client) ───────────────────────────────
 
+export type OpenLegRow = {
+  id: string
+  user_id: string
+  symbol: string
+  side: 'Long' | 'Short'
+  qty: number
+  price: number
+  opened_at: string
+  commission: number
+  broker: string
+  created_at: string
+}
+export type OpenLegInsert = Omit<OpenLegRow, 'id' | 'created_at'>
+
 export type Database = {
   public: {
     Tables: {
@@ -255,6 +269,11 @@ export type Database = {
         Row: SupportChatUsageRow
         Insert: SupportChatUsageRow
         Update: Partial<SupportChatUsageRow>
+      }
+      open_legs: {
+        Row: OpenLegRow
+        Insert: OpenLegInsert
+        Update: Partial<OpenLegInsert>
       }
     }
   }
