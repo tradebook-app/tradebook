@@ -15,9 +15,7 @@ function extractXmlTag(xml: string, tag: string): string | null {
 }
 
 async function requestFlexStatement(token: string, queryId: string): Promise<{ referenceCode: string; url: string }> {
-  const res = await fetch(`${FLEX_BASE}/SendRequest?t=${encodeURIComponent(token)}&q=${encodeURIComponent(queryId)}&v=3`, {
-    headers: { 'User-Agent': 'Sleektrade/1.0' },
-  })
+  const res = await fetch(`${FLEX_BASE}/SendRequest?t=${encodeURIComponent(token)}&q=${encodeURIComponent(queryId)}&v=3`)
   const xml = await res.text()
 
   const status = extractXmlTag(xml, 'Status')
@@ -37,9 +35,7 @@ async function requestFlexStatement(token: string, queryId: string): Promise<{ r
 async function fetchFlexStatement(url: string, referenceCode: string, token: string): Promise<string> {
   const maxAttempts = 6
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const res = await fetch(`${url}?q=${encodeURIComponent(referenceCode)}&t=${encodeURIComponent(token)}&v=3`, {
-      headers: { 'User-Agent': 'Sleektrade/1.0' },
-    })
+    const res = await fetch(`${url}?q=${encodeURIComponent(referenceCode)}&t=${encodeURIComponent(token)}&v=3`)
     const body = await res.text()
 
     // A still-generating or error response comes back wrapped in <FlexStatementResponse>...</FlexStatementResponse>
@@ -91,12 +87,30 @@ export async function POST() {
     const { referenceCode, url } = await requestFlexStatement(token, connection.flex_query_id)
     const reportText = await fetchFlexStatement(url, referenceCode, token)
 
+    // If the Flex Query is misconfigured to return XML instead of CSV, catch it early with a specific, actionable message.
+    if (reportText.trim().startsWith('<')) {
+      const preview = reportText.trim().substring(0, 400)
+      const msg = `Your Flex Query is returning XML, not CSV. Go back to IBKR → edit your Flex Query → set Format to CSV, then sync again. (Raw response started with: ${preview})`
+      await markResult('error', msg)
+      return NextResponse.json({ error: msg }, { status: 502 })
+    }
+
     const { data: existingTrades } = await supabase
       .from('trades')
       .select('*')
       .eq('user_id', user.id)
 
-    const { trades, carriedForward } = await parseIBKR(reportText, (existingTrades || []) as TradeRow[], user.id, supabase)
+    let parsedResult
+    try {
+      parsedResult = await parseIBKR(reportText, (existingTrades || []) as TradeRow[], user.id, supabase)
+    } catch (parseErr: any) {
+      // Attach a raw preview so we can see exactly what IBKR sent back instead of guessing.
+      const preview = reportText.trim().substring(0, 500)
+      const msg = `${parseErr.message} (Raw response preview: ${preview || '[empty response]'})`
+      await markResult('error', msg)
+      return NextResponse.json({ error: msg }, { status: 502 })
+    }
+    const { trades, carriedForward } = parsedResult
 
     let imported = 0
     for (const t of trades) {
