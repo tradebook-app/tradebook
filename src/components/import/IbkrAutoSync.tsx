@@ -117,33 +117,35 @@ export function IbkrAutoSync({ onImported }: Props) {
 
   return (
     <div style={{ padding: '8px' }}>
-      <div style={card}>
-        <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>Connect Interactive Brokers</div>
-        <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: '16px' }}>
-          You'll need two things from IBKR's Client Portal: a Flex Query ID and a Flex Web Service Token. Takes about 5–10 minutes, one time only.
+      <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px', textAlign: 'center' }}>Connect Interactive Brokers</div>
+      <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: '20px', textAlign: 'center' }}>
+        You'll need two things from IBKR's Client Portal: a Flex Query ID and a Flex Web Service Token.
+      </div>
+
+      <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div style={{ ...card, flex: '1 1 320px', maxWidth: 'none', margin: 0 }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '14px' }}>Your credentials</div>
+          <input className="fi" placeholder="Flex Web Service Token" value={flexToken} onChange={e => setFlexToken(e.target.value)} style={{ width: '100%', marginBottom: '10px' }} type="password" />
+          <input className="fi" placeholder="Flex Query ID" value={flexQueryId} onChange={e => setFlexQueryId(e.target.value)} style={{ width: '100%', marginBottom: '14px' }} />
+          {formError && (
+            <div style={{ marginBottom: '12px', background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: 'var(--red)' }}>
+              ⚠️ {formError}
+            </div>
+          )}
+          <button className="btn btn-p" onClick={handleConnect} disabled={saving || !flexToken.trim() || !flexQueryId.trim()} style={{ width: '100%' }}>
+            {saving ? 'Connecting...' : 'Connect'}
+          </button>
         </div>
 
-        <SetupGuide />
-
-        <div style={{ marginTop: '18px' }} />
-        <input className="fi" placeholder="Flex Web Service Token" value={flexToken} onChange={e => setFlexToken(e.target.value)} style={{ width: '100%', marginBottom: '10px' }} type="password" />
-        <input className="fi" placeholder="Flex Query ID" value={flexQueryId} onChange={e => setFlexQueryId(e.target.value)} style={{ width: '100%', marginBottom: '14px' }} />
-        {formError && (
-          <div style={{ marginBottom: '12px', background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: 'var(--red)' }}>
-            ⚠️ {formError}
-          </div>
-        )}
-        <button className="btn btn-p" onClick={handleConnect} disabled={saving || !flexToken.trim() || !flexQueryId.trim()}>
-          {saving ? 'Connecting...' : 'Connect'}
-        </button>
+        <div style={{ flex: '1 1 380px' }}>
+          <SetupGuide />
+        </div>
       </div>
     </div>
   )
 }
 
 function SetupGuide() {
-  const [open, setOpen] = useState(true)
-
   const step = (n: number, title: string, body: React.ReactNode) => (
     <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
       <div style={{
@@ -160,16 +162,11 @@ function SetupGuide() {
 
   return (
     <div style={{ border: '1px solid var(--brd)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--bg3)', border: 'none', cursor: 'pointer', color: 'var(--txt)' }}
-      >
+      <div style={{ padding: '12px 14px', background: 'var(--bg3)' }}>
         <span style={{ fontSize: '12px', fontWeight: 700 }}>📋 Step-by-step setup guide</span>
-        <span style={{ fontSize: '11px', color: 'var(--txt3)' }}>{open ? 'Hide' : 'Show'}</span>
-      </button>
+      </div>
 
-      {open && (
-        <div style={{ padding: '16px 14px' }}>
+      <div style={{ padding: '16px 14px' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '10px' }}>
             Part 1 — Create the Flex Query
           </div>
@@ -200,10 +197,9 @@ function SetupGuide() {
           </div>
 
           <div style={{ fontSize: '11px', color: 'var(--txt3)', marginTop: '14px' }}>
-            Now paste both values into the fields below and click Connect.
+            Once you have both values, paste them into the form.
           </div>
         </div>
-      )}
     </div>
   )
 }
