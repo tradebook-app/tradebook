@@ -241,8 +241,9 @@ export type BrokerConnectionRow = {
   id: string
   user_id: string
   broker: string
-  flex_token_enc: string
-  flex_query_id: string
+  flex_token_enc: string | null
+  flex_query_id: string | null
+  credentials_enc: string | null   // generic encrypted JSON blob for brokers needing multiple secrets (e.g. Tastytrade)
   last_synced_at: string | null
   last_status: string | null
   last_error: string | null
