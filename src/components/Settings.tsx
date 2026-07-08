@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useAccounts } from '@/components/AccountProvider'
 
-type Tab = 'profile' | 'security' | 'accounts' | 'subscription'
+type Tab = 'profile' | 'security' | 'accounts' | 'connections' | 'subscription'
 
 const TRADER_TYPES = ['Day trader', 'Swing trader', 'Futures trader', 'Options trader', 'Crypto trader', 'Forex trader']
 
@@ -258,7 +258,7 @@ export function Settings({ userEmail }: { userEmail?: string }) {
         {/* SIDEBAR */}
         <div className="settings-sidebar">
           <div className="settings-section-label" style={{ fontSize: '10px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', padding: '0 10px', marginBottom: '8px' }}>User</div>
-          {([['profile', '👤', 'Profile'], ['security', '🔒', 'Security'], ['accounts', '🏦', 'Trading Accounts'], ['subscription', '💳', 'Subscription']] as const).map(([t, icon, label]) => (
+          {([['profile', '👤', 'Profile'], ['security', '🔒', 'Security'], ['accounts', '🏦', 'Trading Accounts'], ['connections', '🔌', 'Broker Sync'], ['subscription', '💳', 'Subscription']] as const).map(([t, icon, label]) => (
             <button key={t} onClick={() => setTab(t)} style={{
               display: 'flex', alignItems: 'center', gap: '8px',
               padding: '9px 14px', borderRadius: 'var(--r)',
@@ -396,6 +396,8 @@ export function Settings({ userEmail }: { userEmail?: string }) {
           )}
 
           {tab === 'accounts' && <AccountsTab />}
+
+          {tab === 'connections' && <ConnectionsTab />}
 
           {tab === 'subscription' && (
             <div>
@@ -583,6 +585,121 @@ function AccountsTab() {
           <button onClick={handleAdd} disabled={adding || !newName.trim()}
             style={{ fontSize: '12px', fontWeight: 700, color: '#000', background: 'var(--ac2)', border: 'none', borderRadius: '8px', padding: '9px 18px', cursor: adding ? 'default' : 'pointer', opacity: adding || !newName.trim() ? 0.6 : 1 }}>
             {adding ? 'Adding...' : '+ Add Account'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ConnectionsTab() {
+  type ConnStatus = {
+    flex_query_id: string
+    last_synced_at: string | null
+    last_status: string | null
+    last_error: string | null
+    created_at: string
+  } | null
+
+  const [connection, setConnection] = useState<ConnStatus>(undefined as any)
+  const [loading, setLoading] = useState(true)
+  const [flexToken, setFlexToken] = useState('')
+  const [flexQueryId, setFlexQueryId] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [syncResult, setSyncResult] = useState<string | null>(null)
+
+  async function loadStatus() {
+    setLoading(true)
+    const res = await fetch('/api/broker/ibkr/status')
+    const json = await res.json()
+    setConnection(json.connection || null)
+    setLoading(false)
+  }
+
+  useEffect(() => { loadStatus() }, [])
+
+  async function handleConnect() {
+    setFormError(null)
+    setSaving(true)
+    const res = await fetch('/api/broker/ibkr/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ flexToken, flexQueryId }),
+    })
+    const json = await res.json()
+    setSaving(false)
+    if (!res.ok) { setFormError(json.error || 'Failed to connect.'); return }
+    setFlexToken('')
+    setFlexQueryId('')
+    await loadStatus()
+  }
+
+  async function handleDisconnect() {
+    if (!confirm('Disconnect IBKR? You can reconnect anytime with a new token.')) return
+    await fetch('/api/broker/ibkr/disconnect', { method: 'POST' })
+    await loadStatus()
+  }
+
+  async function handleSync() {
+    setSyncing(true)
+    setSyncResult(null)
+    const res = await fetch('/api/broker/ibkr/sync', { method: 'POST' })
+    const json = await res.json()
+    setSyncing(false)
+    if (!res.ok) { setSyncResult(`Error: ${json.error}`); await loadStatus(); return }
+    const parts = [`${json.imported} trade${json.imported !== 1 ? 's' : ''} imported`]
+    if (json.skippedDuplicates > 0) parts.push(`${json.skippedDuplicates} duplicate${json.skippedDuplicates !== 1 ? 's' : ''} skipped`)
+    if (json.carriedForward?.length > 0) {
+      const cf = json.carriedForward.map((c: any) => `${c.qty} sh ${c.symbol}`).join(', ')
+      parts.push(`still open: ${cf}`)
+    }
+    setSyncResult(parts.join(' · '))
+    await loadStatus()
+  }
+
+  return (
+    <div>
+      <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>Broker Sync</div>
+      <div style={{ fontSize: '13px', color: 'var(--txt3)', marginBottom: '24px' }}>
+        Connect Interactive Brokers to pull trades automatically instead of uploading CSVs by hand.
+      </div>
+
+      {loading ? (
+        <div style={{ fontSize: '13px', color: 'var(--txt3)' }}>Loading...</div>
+      ) : connection ? (
+        <div style={{ padding: '16px', background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700 }}>Interactive Brokers — connected</div>
+            <button onClick={handleDisconnect} style={{ fontSize: '12px', color: 'var(--red)', background: 'transparent', border: 'none', cursor: 'pointer' }}>Disconnect</button>
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '4px' }}>Query ID: {connection.flex_query_id}</div>
+          <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '14px' }}>
+            {connection.last_synced_at
+              ? `Last synced ${new Date(connection.last_synced_at).toLocaleString()} — ${connection.last_status === 'success' ? 'success' : `failed: ${connection.last_error}`}`
+              : 'Never synced yet'}
+          </div>
+          <button onClick={handleSync} disabled={syncing}
+            style={{ fontSize: '12px', fontWeight: 700, color: '#000', background: 'var(--ac2)', border: 'none', borderRadius: '8px', padding: '9px 18px', cursor: syncing ? 'default' : 'pointer', opacity: syncing ? 0.6 : 1 }}>
+            {syncing ? 'Syncing...' : 'Sync Now'}
+          </button>
+          {syncResult && (
+            <div style={{ marginTop: '10px', fontSize: '12px', color: syncResult.startsWith('Error') ? 'var(--red)' : 'var(--ac2)' }}>{syncResult}</div>
+          )}
+        </div>
+      ) : (
+        <div style={{ padding: '16px', background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r)' }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '10px' }}>Connect Interactive Brokers</div>
+          <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '14px', lineHeight: 1.6 }}>
+            In IBKR Client Portal: Performance & Reports → Flex Queries → create a Trades Flex Query with the standard Trades fields (Symbol, Date/Time, Quantity, T. Price, Proceeds, Comm/Fee, Basis, Realized P/L, Code), format <strong>CSV</strong>. Then Settings → Flex Web Service → enable it and generate a token.
+          </div>
+          <input className="fi" placeholder="Flex Web Service Token" value={flexToken} onChange={e => setFlexToken(e.target.value)} style={{ width: '100%', marginBottom: '8px' }} type="password" />
+          <input className="fi" placeholder="Flex Query ID" value={flexQueryId} onChange={e => setFlexQueryId(e.target.value)} style={{ width: '100%', marginBottom: '8px' }} />
+          {formError && <div style={{ fontSize: '12px', color: 'var(--red)', marginBottom: '8px' }}>{formError}</div>}
+          <button onClick={handleConnect} disabled={saving || !flexToken.trim() || !flexQueryId.trim()}
+            style={{ fontSize: '12px', fontWeight: 700, color: '#000', background: 'var(--ac2)', border: 'none', borderRadius: '8px', padding: '9px 18px', cursor: saving ? 'default' : 'pointer', opacity: saving || !flexToken.trim() || !flexQueryId.trim() ? 0.6 : 1 }}>
+            {saving ? 'Connecting...' : 'Connect'}
           </button>
         </div>
       )}

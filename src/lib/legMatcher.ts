@@ -1,4 +1,7 @@
 import { createClient } from '@/lib/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+type DbClient = SupabaseClient<any, any, any>
 
 export type OpenLeg = {
   id: string
@@ -11,11 +14,14 @@ export type OpenLeg = {
   broker: string
 }
 
-// Fetch all stored open legs for this user, grouped by symbol, for a set of symbols
-// appearing in the file currently being imported.
-export async function fetchOpenLegs(userId: string, symbols: string[]): Promise<Record<string, OpenLeg[]>> {
+// ── Client-agnostic core (works with either the browser client or a server/service-role client) ──
+
+export async function fetchOpenLegsWithClient(
+  supabase: DbClient,
+  userId: string,
+  symbols: string[]
+): Promise<Record<string, OpenLeg[]>> {
   if (symbols.length === 0) return {}
-  const supabase = createClient()
   const { data, error } = await supabase
     .from('open_legs')
     .select('*')
@@ -33,16 +39,14 @@ export async function fetchOpenLegs(userId: string, symbols: string[]): Promise<
   return bySymbol
 }
 
-// Replace all stored open legs for a symbol with a new leftover leg (or none, if fully closed).
-export async function replaceOpenLeg(
+export async function replaceOpenLegWithClient(
+  supabase: DbClient,
   userId: string,
   symbol: string,
   consumedIds: string[],
   leftover: Omit<OpenLeg, 'id' | 'broker'> | null,
   broker: string
 ): Promise<void> {
-  const supabase = createClient()
-
   if (consumedIds.length > 0) {
     await supabase.from('open_legs').delete().in('id', consumedIds)
   }
@@ -59,4 +63,20 @@ export async function replaceOpenLeg(
       broker,
     })
   }
+}
+
+// ── Browser-only convenience wrappers (used by the existing client-side CSV importers) ──
+
+export async function fetchOpenLegs(userId: string, symbols: string[]): Promise<Record<string, OpenLeg[]>> {
+  return fetchOpenLegsWithClient(createClient(), userId, symbols)
+}
+
+export async function replaceOpenLeg(
+  userId: string,
+  symbol: string,
+  consumedIds: string[],
+  leftover: Omit<OpenLeg, 'id' | 'broker'> | null,
+  broker: string
+): Promise<void> {
+  return replaceOpenLegWithClient(createClient(), userId, symbol, consumedIds, leftover, broker)
 }

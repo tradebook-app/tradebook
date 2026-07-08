@@ -237,6 +237,20 @@ export type OpenLegRow = {
 }
 export type OpenLegInsert = Omit<OpenLegRow, 'id' | 'created_at'>
 
+export type BrokerConnectionRow = {
+  id: string
+  user_id: string
+  broker: string
+  flex_token_enc: string
+  flex_query_id: string
+  last_synced_at: string | null
+  last_status: string | null
+  last_error: string | null
+  created_at: string
+  updated_at: string
+}
+export type BrokerConnectionInsert = Omit<BrokerConnectionRow, 'id' | 'created_at' | 'updated_at'> & { updated_at?: string }
+
 export type Database = {
   public: {
     Tables: {
@@ -274,6 +288,11 @@ export type Database = {
         Row: OpenLegRow
         Insert: OpenLegInsert
         Update: Partial<OpenLegInsert>
+      }
+      broker_connections: {
+        Row: BrokerConnectionRow
+        Insert: BrokerConnectionInsert
+        Update: Partial<BrokerConnectionInsert>
       }
     }
   }
