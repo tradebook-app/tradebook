@@ -15,7 +15,9 @@ function extractXmlTag(xml: string, tag: string): string | null {
 }
 
 async function requestFlexStatement(token: string, queryId: string): Promise<{ referenceCode: string; url: string }> {
-  const res = await fetch(`${FLEX_BASE}/SendRequest?t=${encodeURIComponent(token)}&q=${encodeURIComponent(queryId)}&v=3`)
+  const res = await fetch(`${FLEX_BASE}/SendRequest?t=${encodeURIComponent(token)}&q=${encodeURIComponent(queryId)}&v=3`, {
+    headers: { 'User-Agent': 'Sleektrade/1.0' },
+  })
   const xml = await res.text()
 
   const status = extractXmlTag(xml, 'Status')
@@ -35,7 +37,9 @@ async function requestFlexStatement(token: string, queryId: string): Promise<{ r
 async function fetchFlexStatement(url: string, referenceCode: string, token: string): Promise<string> {
   const maxAttempts = 6
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const res = await fetch(`${url}?q=${encodeURIComponent(referenceCode)}&t=${encodeURIComponent(token)}&v=3`)
+    const res = await fetch(`${url}?q=${encodeURIComponent(referenceCode)}&t=${encodeURIComponent(token)}&v=3`, {
+      headers: { 'User-Agent': 'Sleektrade/1.0' },
+    })
     const body = await res.text()
 
     // A still-generating or error response comes back wrapped in <FlexStatementResponse>...</FlexStatementResponse>

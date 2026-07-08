@@ -119,9 +119,13 @@ export function IbkrAutoSync({ onImported }: Props) {
     <div style={{ padding: '8px' }}>
       <div style={card}>
         <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>Connect Interactive Brokers</div>
-        <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: '18px', lineHeight: 1.6 }}>
-          In IBKR Client Portal: Performance &amp; Reports → Flex Queries → create a Trades Flex Query with the standard Trades fields (Symbol, Date/Time, Quantity, T. Price, Proceeds, Comm/Fee, Basis, Realized P/L, Code), format <strong>CSV</strong>. Then Settings → Flex Web Service → enable it and generate a token.
+        <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: '16px' }}>
+          You'll need two things from IBKR's Client Portal: a Flex Query ID and a Flex Web Service Token. Takes about 5–10 minutes, one time only.
         </div>
+
+        <SetupGuide />
+
+        <div style={{ marginTop: '18px' }} />
         <input className="fi" placeholder="Flex Web Service Token" value={flexToken} onChange={e => setFlexToken(e.target.value)} style={{ width: '100%', marginBottom: '10px' }} type="password" />
         <input className="fi" placeholder="Flex Query ID" value={flexQueryId} onChange={e => setFlexQueryId(e.target.value)} style={{ width: '100%', marginBottom: '14px' }} />
         {formError && (
@@ -133,6 +137,73 @@ export function IbkrAutoSync({ onImported }: Props) {
           {saving ? 'Connecting...' : 'Connect'}
         </button>
       </div>
+    </div>
+  )
+}
+
+function SetupGuide() {
+  const [open, setOpen] = useState(true)
+
+  const step = (n: number, title: string, body: React.ReactNode) => (
+    <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
+      <div style={{
+        flexShrink: 0, width: '22px', height: '22px', borderRadius: '999px',
+        background: 'var(--ac-d)', color: 'var(--ac2)', fontSize: '11px', fontWeight: 800,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '1px',
+      }}>{n}</div>
+      <div>
+        <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '2px' }}>{title}</div>
+        <div style={{ fontSize: '11px', color: 'var(--txt3)', lineHeight: 1.6 }}>{body}</div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div style={{ border: '1px solid var(--brd)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--bg3)', border: 'none', cursor: 'pointer', color: 'var(--txt)' }}
+      >
+        <span style={{ fontSize: '12px', fontWeight: 700 }}>📋 Step-by-step setup guide</span>
+        <span style={{ fontSize: '11px', color: 'var(--txt3)' }}>{open ? 'Hide' : 'Show'}</span>
+      </button>
+
+      {open && (
+        <div style={{ padding: '16px 14px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '10px' }}>
+            Part 1 — Create the Flex Query
+          </div>
+
+          {step(1, 'Log into IBKR Client Portal', 'Use a browser at ibkr.com and log in — this must be Client Portal, not the Trader Workstation desktop app.')}
+          {step(2, 'Go to Flex Queries', 'Click Performance & Reports (left menu) → Flex Queries.')}
+          {step(3, 'Create a new Activity Flex Query', 'Click the "+" icon. Give it any name, e.g. "Sleektrade Sync".')}
+          {step(4, 'Add the Trades section', 'Under "Sections", enable Trades, then select these fields specifically: Symbol, Date/Time, Quantity, T. Price, Proceeds, Comm/Fee, Basis, Realized P/L, Code.')}
+
+          <div style={{ background: 'rgba(234,179,8,.1)', border: '1px solid rgba(234,179,8,.25)', borderRadius: 'var(--r)', padding: '10px 12px', margin: '4px 0 14px 34px', fontSize: '11px', color: '#EAB308' }}>
+            ⚠️ Set <strong>Format to CSV</strong>, not XML. Most tutorials online default to XML — Sleektrade needs CSV to read it correctly.
+          </div>
+
+          {step(5, 'Set the date range', 'Choose "Last 30 Calendar Days" (or longer). This controls how far back each sync can look.')}
+          {step(6, 'Save and copy the Query ID', 'Click Continue → Create. Back on the Flex Queries list, find your new query and note the numeric ID next to it — that\'s your Query ID.')}
+
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.05em', margin: '18px 0 10px' }}>
+            Part 2 — Get your Flex Web Service Token
+          </div>
+
+          {step(7, 'Open Flex Web Service Configuration', 'Still under Performance & Reports → Flex Queries, find "Flex Web Service Configuration" (a separate section on the same page).')}
+          {step(8, 'Enable it', 'Check the box next to Flex Web Service Status, then click Save.')}
+          {step(9, 'Generate a token', 'Set the expiration to the longest option available (up to 1 year) so you don\'t have to reconnect often. Leave the IP field blank unless you want to restrict access. Click Generate New Token.')}
+          {step(10, 'Copy the token', 'Copy the long string shown as "Current Token" — this is your Flex Web Service Token.')}
+
+          <div style={{ background: 'rgba(59,130,246,.1)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 'var(--r)', padding: '10px 12px', marginTop: '6px', fontSize: '11px', color: '#3B82F6', lineHeight: 1.6 }}>
+            ℹ️ This token is read-only — it can only pull reports. It can't place trades, move money, or change anything in your IBKR account.
+          </div>
+
+          <div style={{ fontSize: '11px', color: 'var(--txt3)', marginTop: '14px' }}>
+            Now paste both values into the fields below and click Connect.
+          </div>
+        </div>
+      )}
     </div>
   )
 }
