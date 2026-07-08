@@ -89,8 +89,7 @@ export async function POST() {
 
     // If the Flex Query is misconfigured to return XML instead of CSV, catch it early with a specific, actionable message.
     if (reportText.trim().startsWith('<')) {
-      const preview = reportText.trim().substring(0, 400)
-      const msg = `Your Flex Query is returning XML, not CSV. Go back to IBKR → edit your Flex Query → set Format to CSV, then sync again. (Raw response started with: ${preview})`
+      const msg = 'Your Flex Query is returning XML, not CSV. Go back to IBKR → edit your Flex Query → set Format to CSV, then sync again.'
       await markResult('error', msg)
       return NextResponse.json({ error: msg }, { status: 502 })
     }
@@ -104,9 +103,7 @@ export async function POST() {
     try {
       parsedResult = await parseIBKR(reportText, (existingTrades || []) as TradeRow[], user.id, supabase)
     } catch (parseErr: any) {
-      // Attach a raw preview so we can see exactly what IBKR sent back instead of guessing.
-      const preview = reportText.trim().substring(0, 500)
-      const msg = `${parseErr.message} (Raw response preview: ${preview || '[empty response]'})`
+      const msg = parseErr.message
       await markResult('error', msg)
       return NextResponse.json({ error: msg }, { status: 502 })
     }
