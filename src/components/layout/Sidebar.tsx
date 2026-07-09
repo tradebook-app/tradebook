@@ -11,6 +11,7 @@ const NAV = [
   { href: '/trades',        icon: '⫐',  label: 'Trade View' },
   { href: '/journal',       icon: '◫',  label: 'Journal' },
   { href: '/position-size', icon: '⊞',  label: 'Position Size' },
+  { href: '/referrals',     icon: '🎁', label: 'Refer & Earn' },
   { href: '/notebook',      icon: '☰',  label: 'Notebook',      tier: 'pro' },
   { href: '/reports',       icon: '◩',  label: 'Reports',       tier: 'pro' },
   { href: '/strategies',    icon: '◇',  label: 'Strategies',    tier: 'pro' },
@@ -18,7 +19,6 @@ const NAV = [
 
 const TOOLS = [
   { href: '/ai-analysis',   icon: '🤖', label: 'Sleek AI' },
-  { href: '/referrals',     icon: '🎁', label: 'Refer & Earn' },
 ]
 
 type Props = {
