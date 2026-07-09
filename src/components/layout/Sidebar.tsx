@@ -173,6 +173,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
           background: pathname === '/referrals' ? 'var(--ac-d)' : 'transparent',
           textDecoration: 'none',
           color: pathname === '/referrals' ? 'var(--ac2)' : 'var(--txt2)',
+          marginBottom: '68px', // clears the fixed chat bubble (bottom:16px, 42px tall) which floats over this corner
         }}>
           <span style={{ fontSize: '13px', width: '16px', textAlign: 'center' }}>🎁</span>
           Refer & Earn
