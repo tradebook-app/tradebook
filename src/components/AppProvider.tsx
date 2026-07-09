@@ -21,6 +21,7 @@ import { PlanProvider, usePlan } from '@/components/PlanProvider'
 import { AccountProvider, useAccounts } from '@/components/AccountProvider'
 import { UpgradeWall, UpgradeBanner } from '@/components/UpgradeWall'
 import { Settings } from '@/components/Settings'
+import { ReferralsPage } from '@/components/ReferralsPage'
 import { Journal } from '@/components/Journal'
 import { AIAnalysis } from '@/components/AIAnalysis'
 import { Billing } from '@/components/Billing'
@@ -97,6 +98,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/billing':       'Billing',
   '/import':        'Import Trades',
   '/settings':      'Settings',
+  '/referrals':     'Refer & Earn',
 }
 
 // Pages whose trade lists should respect the account switcher in the topbar.
@@ -137,6 +139,7 @@ function AppInner({
     if (pathname === '/notebook')     return <GatedNotebook userId={userId} />
     if (pathname === '/import')       return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
     if (pathname === '/settings')     return <Settings userEmail={userEmail} />
+    if (pathname === '/referrals')    return <ReferralsPage />
     if (pathname === '/ai-analysis')  return <GatedAIAnalysis trades={scopedTrades} />
     if (pathname === '/billing')      return <Billing />
 
