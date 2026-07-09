@@ -14,6 +14,7 @@ import { MonthCalendar } from './MonthCalendar'
 import { RecentTrades } from './RecentTrades'
 import { OpenPositions } from './OpenPositions'
 import { TradePanel } from '@/components/trades/TradePanel'
+import { ResyncBar } from './ResyncBar'
 
 type Props = {
   trades: TradeRow[]
@@ -141,6 +142,7 @@ export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }
           }
         }
       `}</style>
+      <ResyncBar onReload={onReload} />
       {/* KPI cards */}
       <DashboardKPIs kpi={kpi} openCount={open.length} openPnl={openPnl} />
 
