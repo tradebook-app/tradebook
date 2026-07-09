@@ -42,7 +42,7 @@ export function ReferralsPage() {
   }
 
   return (
-    <div>
+    <div style={{ maxWidth: '760px' }}>
       <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>Refer & Earn</div>
       <div style={{ fontSize: '13px', color: 'var(--txt3)', marginBottom: '24px' }}>
         Earn 20% of what your referrals pay for their first 6 months. New users get nothing extra yet — ask us about a signup discount if you want one added.

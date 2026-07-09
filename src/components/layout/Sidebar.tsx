@@ -11,7 +11,6 @@ const NAV = [
   { href: '/trades',        icon: '⫐',  label: 'Trade View' },
   { href: '/journal',       icon: '◫',  label: 'Journal' },
   { href: '/position-size', icon: '⊞',  label: 'Position Size' },
-  { href: '/referrals',     icon: '🎁', label: 'Refer & Earn' },
   { href: '/notebook',      icon: '☰',  label: 'Notebook',      tier: 'pro' },
   { href: '/reports',       icon: '◩',  label: 'Reports',       tier: 'pro' },
   { href: '/strategies',    icon: '◇',  label: 'Strategies',    tier: 'pro' },
@@ -167,6 +166,17 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
       </div>
 
       <div style={{ marginTop: 'auto' }}>
+        <Link href="/referrals" style={{
+          display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px',
+          cursor: 'pointer', fontSize: '12px', fontWeight: 500, transition: '.1s',
+          borderLeft: `2px solid ${pathname === '/referrals' ? 'var(--ac)' : 'transparent'}`,
+          background: pathname === '/referrals' ? 'var(--ac-d)' : 'transparent',
+          textDecoration: 'none',
+          color: pathname === '/referrals' ? 'var(--ac2)' : 'var(--txt2)',
+        }}>
+          <span style={{ fontSize: '13px', width: '16px', textAlign: 'center' }}>🎁</span>
+          Refer & Earn
+        </Link>
         <ContactWidget userEmail={userEmail} displayName={displayName} />
       </div>
     </nav>
