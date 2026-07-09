@@ -252,6 +252,20 @@ export type BrokerConnectionRow = {
 }
 export type BrokerConnectionInsert = Omit<BrokerConnectionRow, 'id' | 'created_at' | 'updated_at'> & { updated_at?: string }
 
+export type ReferralCommissionRow = {
+  id: string
+  referrer_id: string
+  referred_user_id: string
+  stripe_invoice_id: string
+  gross_amount: number
+  commission_amount: number
+  status: string
+  available_at: string
+  paid_at: string | null
+  created_at: string
+}
+export type ReferralCommissionInsert = Omit<ReferralCommissionRow, 'id' | 'created_at'>
+
 export type Database = {
   public: {
     Tables: {
@@ -294,6 +308,11 @@ export type Database = {
         Row: BrokerConnectionRow
         Insert: BrokerConnectionInsert
         Update: Partial<BrokerConnectionInsert>
+      }
+      referral_commissions: {
+        Row: ReferralCommissionRow
+        Insert: ReferralCommissionInsert
+        Update: Partial<ReferralCommissionInsert>
       }
     }
   }

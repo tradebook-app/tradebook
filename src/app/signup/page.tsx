@@ -10,6 +10,13 @@ function SignupForm() {
   const searchParams = useSearchParams()
   const plan = searchParams.get('plan')
   const billing = searchParams.get('billing')
+  const refParam = searchParams.get('ref')
+
+  useEffect(() => {
+    if (refParam && typeof window !== 'undefined') {
+      localStorage.setItem('referral_code', refParam)
+    }
+  }, [refParam])
 
   const [email, setEmail]         = useState('')
   const [password, setPassword]   = useState('')
@@ -65,11 +72,21 @@ function SignupForm() {
 
     const redirectTo = getAuthRedirectUrl()
 
-    const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } })
+    const { data: signUpData, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } })
 
     if (error) { setError(error.message); setLoading(false); return }
 
     fetch('/api/welcome', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) }).catch(() => {})
+
+    const storedRefCode = typeof window !== 'undefined' ? localStorage.getItem('referral_code') : null
+    if (storedRefCode && signUpData.user) {
+      fetch('/api/referrals/attribute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: signUpData.user.id, code: storedRefCode }),
+      }).catch(() => {})
+      localStorage.removeItem('referral_code')
+    }
 
     setSuccess(true)
     setLoading(false)
