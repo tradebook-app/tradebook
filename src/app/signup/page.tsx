@@ -42,15 +42,27 @@ function SignupForm() {
 
   function getAuthRedirectUrl(): string {
     const intent = getPaidPlanIntent()
+
+    // Google OAuth redirects the browser away and back through a server route
+    // (/auth/callback), which can't read localStorage. So the ref code has to
+    // travel as a URL param instead — Supabase preserves extra query params
+    // on redirectTo through the whole OAuth round-trip (same pattern already
+    // used here for `next`).
+    const effectiveRef =
+      refParam || (typeof window !== 'undefined' ? localStorage.getItem('referral_code') : null)
+
+    const params = new URLSearchParams()
     if (intent) {
       if (typeof window !== 'undefined') {
         localStorage.setItem('signup_plan', intent.plan)
         localStorage.setItem('signup_billing', intent.billing)
       }
-      const upgradePath = `/auth/upgrade?plan=${intent.plan}&billing=${intent.billing}`
-      return `${window.location.origin}/auth/callback?next=${encodeURIComponent(upgradePath)}`
+      params.set('next', `/auth/upgrade?plan=${intent.plan}&billing=${intent.billing}`)
     }
-    return `${window.location.origin}/auth/callback`
+    if (effectiveRef) params.set('ref', effectiveRef)
+
+    const query = params.toString()
+    return `${window.location.origin}/auth/callback${query ? `?${query}` : ''}`
   }
 
   async function handleGoogleSignup() {
