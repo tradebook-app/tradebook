@@ -17,11 +17,89 @@ function fmtUSD(n: number): string {
   return `${n >= 0 ? '+' : '-'}$${Math.abs(n).toFixed(2)}`
 }
 
+type GroupedRow = {
+  key: string
+  legs: TradeRow[]
+  isGroup: boolean
+  symbol: string
+  type: 'Long' | 'Short'
+  avgEntry: number
+  lastExit: number | null
+  totalShares: number
+  totalPnl: number
+  grade: string | null
+  setup: string | null
+}
+
+function buildGroupedRows(trades: TradeRow[]): GroupedRow[] {
+  const groups: Record<string, TradeRow[]> = {}
+  const singles: TradeRow[] = []
+
+  for (const t of trades) {
+    if (t.trade_group_id) {
+      if (!groups[t.trade_group_id]) groups[t.trade_group_id] = []
+      groups[t.trade_group_id].push(t)
+    } else {
+      singles.push(t)
+    }
+  }
+
+  const rows: GroupedRow[] = []
+
+  for (const legs of Object.values(groups)) {
+    const sortedByExit = [...legs].sort((a, b) => (a.exit_date || a.date).localeCompare(b.exit_date || b.date))
+    const totalShares = legs.reduce((s, l) => s + l.shares, 0)
+    const totalCost = legs.reduce((s, l) => s + l.entry * l.shares, 0)
+    const lastLeg = sortedByExit[sortedByExit.length - 1]
+
+    rows.push({
+      key: legs[0].trade_group_id as string,
+      legs: sortedByExit,
+      isGroup: legs.length > 1,
+      symbol: legs[0].symbol,
+      type: legs[0].type,
+      avgEntry: totalShares > 0 ? totalCost / totalShares : 0,
+      lastExit: lastLeg?.exit ?? null,
+      totalShares,
+      totalPnl: legs.reduce((s, l) => s + l.pnl, 0),
+      grade: lastLeg?.grade ?? null,
+      setup: lastLeg?.setup ?? null,
+    })
+  }
+
+  for (const t of singles) {
+    rows.push({
+      key: t.id,
+      legs: [t],
+      isGroup: false,
+      symbol: t.symbol,
+      type: t.type,
+      avgEntry: t.entry,
+      lastExit: t.exit,
+      totalShares: t.shares,
+      totalPnl: t.pnl,
+      grade: t.grade,
+      setup: t.setup,
+    })
+  }
+
+  return rows
+}
+
 export function MonthCalendar({ days, trades }: Props) {
   const now = new Date()
   const [year,  setYear]  = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth())
   const [popupDate, setPopupDate] = useState<string | null>(null)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+
+  function toggleGroup(key: string) {
+    setExpandedGroups(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
 
   const byDay = useMemo(() => {
     const map: Record<string, DayStats> = {}
@@ -262,18 +340,52 @@ export function MonthCalendar({ days, trades }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {popupTrades.map((t, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--brd)' }}>
-                      <td style={{ padding: '7px 8px', fontWeight: 700, fontFamily: 'var(--mono)' }}>{t.symbol}</td>
-                      <td style={{ padding: '7px 8px', color: (t.type || 'Long') === 'Short' ? 'var(--red)' : 'var(--ac)' }}>{(t.type || 'Long')}</td>
-                      <td style={{ padding: '7px 8px', color: 'var(--txt3)' }}>{t.setup || '—'}</td>
-                      <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)' }}>{t.entry ? `$${t.entry}` : '—'}</td>
-                      <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)' }}>{t.exit ? `$${t.exit}` : '—'}</td>
-                      <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)' }}>{t.shares || '—'}</td>
-                      <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)', fontWeight: 700, color: (t.pnl || 0) >= 0 ? 'var(--ac)' : 'var(--red)' }}>{fmtUSD(t.pnl || 0)}</td>
-                      <td style={{ padding: '7px 8px', color: 'var(--txt3)' }}>{t.grade || '—'}</td>
-                    </tr>
-                  ))}
+                  {buildGroupedRows(popupTrades).map(row => {
+                    const isExpanded = expandedGroups.has(row.key)
+                    const mainRow = (
+                      <tr
+                        key={row.key}
+                        onClick={() => row.isGroup && toggleGroup(row.key)}
+                        style={{ borderBottom: '1px solid var(--brd)', cursor: row.isGroup ? 'pointer' : 'default' }}
+                      >
+                        <td style={{ padding: '7px 8px', fontWeight: 700, fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {row.isGroup && (
+                            <span style={{ fontSize: '9px', color: 'var(--txt3)', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: '.1s', display: 'inline-block' }}>▶</span>
+                          )}
+                          {row.symbol}
+                          {row.isGroup && (
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '4px', padding: '1px 6px' }}>
+                              {row.legs.length} exits
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '7px 8px', color: row.type === 'Short' ? 'var(--red)' : 'var(--ac)' }}>{row.type}</td>
+                        <td style={{ padding: '7px 8px', color: 'var(--txt3)' }}>{row.setup || '—'}</td>
+                        <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)' }}>{row.avgEntry ? `$${row.avgEntry.toFixed(2)}` : '—'}</td>
+                        <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)' }}>{row.lastExit ? `$${row.lastExit.toFixed(2)}` : '—'}</td>
+                        <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)' }}>{row.totalShares || '—'}</td>
+                        <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)', fontWeight: 700, color: row.totalPnl >= 0 ? 'var(--ac)' : 'var(--red)' }}>{fmtUSD(row.totalPnl)}</td>
+                        <td style={{ padding: '7px 8px', color: 'var(--txt3)' }}>{row.grade || '—'}</td>
+                      </tr>
+                    )
+
+                    if (!row.isGroup || !isExpanded) return mainRow
+
+                    const legRows = row.legs.map((t, i) => (
+                      <tr key={t.id} style={{ borderBottom: '1px solid var(--brd)', background: 'var(--bg3)' }}>
+                        <td style={{ padding: '6px 8px', fontSize: '10px', color: 'var(--txt3)', paddingLeft: '22px' }}>exit {i + 1}</td>
+                        <td />
+                        <td />
+                        <td style={{ padding: '6px 8px', fontFamily: 'var(--mono)', fontSize: '10px', color: 'var(--txt3)' }}>${t.entry.toFixed(2)}</td>
+                        <td style={{ padding: '6px 8px', fontFamily: 'var(--mono)', fontSize: '10px' }}>{t.exit ? `$${t.exit.toFixed(2)}` : '—'}</td>
+                        <td style={{ padding: '6px 8px', fontFamily: 'var(--mono)', fontSize: '10px' }}>{t.shares}</td>
+                        <td style={{ padding: '6px 8px', fontFamily: 'var(--mono)', fontSize: '10px', fontWeight: 700, color: (t.pnl || 0) >= 0 ? 'var(--ac)' : 'var(--red)' }}>{fmtUSD(t.pnl || 0)}</td>
+                        <td />
+                      </tr>
+                    ))
+
+                    return [mainRow, ...legRows]
+                  })}
                 </tbody>
               </table>
             </div>

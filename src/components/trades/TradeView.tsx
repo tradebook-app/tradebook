@@ -17,12 +17,110 @@ type Props = {
   onDeleteFiltered: (ids: string[]) => void
 }
 
+type GroupedRow = {
+  key: string
+  legs: TradeRow[]
+  isGroup: boolean
+  symbol: string
+  type: 'Long' | 'Short'
+  date: string
+  totalShares: number
+  avgEntry: number
+  lastExit: number | null
+  totalPnl: number
+  totalRisk: number
+  grade: string | null
+  setup: string | null
+  tags: string[]
+}
+
+function buildGroupedRows(trades: TradeRow[]): GroupedRow[] {
+  const groups: Record<string, TradeRow[]> = {}
+  const singles: TradeRow[] = []
+
+  for (const t of trades) {
+    if (t.trade_group_id) {
+      if (!groups[t.trade_group_id]) groups[t.trade_group_id] = []
+      groups[t.trade_group_id].push(t)
+    } else {
+      singles.push(t)
+    }
+  }
+
+  const rows: GroupedRow[] = []
+
+  for (const legs of Object.values(groups)) {
+    const sortedByDate = [...legs].sort((a, b) => a.date.localeCompare(b.date))
+    const sortedByExit = [...legs].sort((a, b) => (a.exit_date || a.date).localeCompare(b.exit_date || b.date))
+    const totalShares = legs.reduce((s, l) => s + l.shares, 0)
+    const totalCost = legs.reduce((s, l) => s + l.entry * l.shares, 0)
+    const lastLeg = sortedByExit[sortedByExit.length - 1]
+
+    rows.push({
+      key: legs[0].trade_group_id as string,
+      legs: sortedByExit,
+      isGroup: legs.length > 1,
+      symbol: legs[0].symbol,
+      type: legs[0].type,
+      date: sortedByDate[0].date,
+      totalShares,
+      avgEntry: totalShares > 0 ? totalCost / totalShares : 0,
+      lastExit: lastLeg?.exit ?? null,
+      totalPnl: legs.reduce((s, l) => s + l.pnl, 0),
+      totalRisk: legs.reduce((s, l) => s + (l.risk || 0), 0),
+      grade: lastLeg?.grade ?? null,
+      setup: lastLeg?.setup ?? null,
+      tags: lastLeg?.tags || [],
+    })
+  }
+
+  for (const t of singles) {
+    rows.push({
+      key: t.id,
+      legs: [t],
+      isGroup: false,
+      symbol: t.symbol,
+      type: t.type,
+      date: t.date,
+      totalShares: t.shares,
+      avgEntry: t.entry,
+      lastExit: t.exit,
+      totalPnl: t.pnl,
+      totalRisk: t.risk || 0,
+      grade: t.grade,
+      setup: t.setup,
+      tags: t.tags || [],
+    })
+  }
+
+  return rows
+}
+
 export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, onDeleteFiltered }: Props) {
   const [symFilter,   setSymFilter]   = useState('')
   const [stFilter,    setStFilter]    = useState('all')
   const [sideFilter,  setSideFilter]  = useState('all')
   const [setupFilter, setSetupFilter] = useState('all')
   const [selected,    setSelected]    = useState<TradeRow | null>(null)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+
+  function toggleGroup(key: string) {
+    setExpandedGroups(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
+
+  function handleDeleteGroup(row: GroupedRow) {
+    if (row.legs.length === 1) {
+      if (confirm('Delete?')) onDelete(row.legs[0].id)
+      return
+    }
+    if (confirm(`Delete this trade and all ${row.legs.length} exits? This cannot be undone.`)) {
+      onDeleteFiltered(row.legs.map(l => l.id))
+    }
+  }
 
   const setups = useMemo(() => {
     const s = new Set(trades.map(t => t.setup).filter(Boolean) as string[])
@@ -41,6 +139,8 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
   }, [trades, filter, symFilter, stFilter, sideFilter, setupFilter])
 
   const kpi = useMemo(() => calcKPIs(filterByDate(closedTrades(trades), filter)), [trades, filter])
+
+  const groupedFiltered = useMemo(() => buildGroupedRows(filtered), [filtered])
 
   function handleDeleteFiltered() {
     const closed = trades.filter(t => t.exit && t.exit > 0)
@@ -165,31 +265,73 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
           <tbody>
             {filtered.length === 0 ? (
               <tr><td colSpan={14} className="empty">No trades found. Add your first trade using the "+ Add Trade" button.</td></tr>
-            ) : filtered.map(t => {
-              const roi = t.entry && t.shares ? (t.pnl / (t.entry * t.shares)) * 100 : 0
-              const rm  = t.risk > 0 ? t.pnl / t.risk : null
-              const isW = t.pnl > 0, isL = t.pnl < 0
-              const isActive = selected?.id === t.id
-              return (
-                <tr key={t.id} style={{ cursor: 'pointer', background: isActive ? 'var(--ac-d2)' : undefined }} onClick={() => setSelected(t)}>
-                  <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{fmtDate(t.date)}</td>
-                  <td style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>{t.symbol}</td>
+            ) : groupedFiltered.map(row => {
+              const roi = row.avgEntry && row.totalShares ? (row.totalPnl / (row.avgEntry * row.totalShares)) * 100 : 0
+              const rm  = row.totalRisk > 0 ? row.totalPnl / row.totalRisk : null
+              const isW = row.totalPnl > 0, isL = row.totalPnl < 0
+              const isExpanded = expandedGroups.has(row.key)
+              const isActive = !row.isGroup && selected?.id === row.legs[0].id
+
+              const mainRow = (
+                <tr
+                  key={row.key}
+                  style={{ cursor: 'pointer', background: isActive ? 'var(--ac-d2)' : undefined }}
+                  onClick={() => row.isGroup ? toggleGroup(row.key) : setSelected(row.legs[0])}
+                >
+                  <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{fmtDate(row.date)}</td>
+                  <td style={{ fontWeight: 700, fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {row.isGroup && (
+                      <span style={{ fontSize: '9px', color: 'var(--txt3)', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: '.1s', display: 'inline-block' }}>▶</span>
+                    )}
+                    {row.symbol}
+                    {row.isGroup && (
+                      <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '4px', padding: '1px 6px' }}>
+                        {row.legs.length} exits
+                      </span>
+                    )}
+                  </td>
                   <td><span style={isW ? badgeWin : isL ? badgeLoss : badgeBe}>{isW ? 'WIN' : isL ? 'LOSS' : 'BE'}</span></td>
-                  <td style={{ fontSize: '11px' }}>{t.type}</td>
-                  <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{t.setup || '—'}</td>
-                  <td className="r" style={{ fontFamily: 'var(--mono)' }}>{t.entry ? `$${t.entry}` : ''}</td>
-                  <td className="r" style={{ fontFamily: 'var(--mono)' }}>{t.exit ? `$${t.exit}` : '—'}</td>
-                  <td className="r" style={{ fontFamily: 'var(--mono)' }}>{t.shares || ''}</td>
-                  <td className="r" style={{ fontFamily: 'var(--mono)', color: isW ? 'var(--ac)' : isL ? 'var(--red)' : '', fontWeight: 600 }}>{fmtPnl(t.pnl)}</td>
+                  <td style={{ fontSize: '11px' }}>{row.type}</td>
+                  <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{row.setup || '—'}</td>
+                  <td className="r" style={{ fontFamily: 'var(--mono)' }}>{row.avgEntry ? `$${row.avgEntry.toFixed(2)}` : ''}</td>
+                  <td className="r" style={{ fontFamily: 'var(--mono)' }}>{row.lastExit ? `$${row.lastExit.toFixed(2)}` : '—'}</td>
+                  <td className="r" style={{ fontFamily: 'var(--mono)' }}>{row.totalShares || ''}</td>
+                  <td className="r" style={{ fontFamily: 'var(--mono)', color: isW ? 'var(--ac)' : isL ? 'var(--red)' : '', fontWeight: 600 }}>{fmtPnl(row.totalPnl)}</td>
                   <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px', color: roi >= 0 ? 'var(--ac)' : 'var(--red)' }}>{roi.toFixed(2)}%</td>
                   <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px' }}>{rm !== null ? `${rm.toFixed(2)}R` : '—'}</td>
-                  <td style={{ fontSize: '11px' }}>{t.grade || '—'}</td>
-                  <td>{(t.tags || []).map((tag, i) => <span key={i} className="tag">{tag}</span>)}</td>
+                  <td style={{ fontSize: '11px' }}>{row.grade || '—'}</td>
+                  <td>{row.tags.map((tag, i) => <span key={i} className="tag">{tag}</span>)}</td>
                   <td>
-                    <button className="btn-d" onClick={e => { e.stopPropagation(); if (confirm('Delete?')) onDelete(t.id) }} style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '4px', cursor: 'pointer' }}>✕</button>
+                    <button className="btn-d" onClick={e => { e.stopPropagation(); handleDeleteGroup(row) }} style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '4px', cursor: 'pointer' }}>✕</button>
                   </td>
                 </tr>
               )
+
+              if (!row.isGroup || !isExpanded) return mainRow
+
+              const legRows = row.legs.map((t, i) => {
+                const legActive = selected?.id === t.id
+                return (
+                  <tr key={t.id} style={{ cursor: 'pointer', background: legActive ? 'var(--ac-d2)' : 'var(--bg3)' }} onClick={() => setSelected(t)}>
+                    <td />
+                    <td style={{ fontSize: '10px', color: 'var(--txt3)', paddingLeft: '22px' }}>exit {i + 1}</td>
+                    <td />
+                    <td />
+                    <td />
+                    <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px', color: 'var(--txt3)' }}>${t.entry.toFixed(2)}</td>
+                    <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px' }}>{t.exit ? `$${t.exit.toFixed(2)}` : '—'}</td>
+                    <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px' }}>{t.shares}</td>
+                    <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px', fontWeight: 600, color: t.pnl > 0 ? 'var(--ac)' : t.pnl < 0 ? 'var(--red)' : '' }}>{fmtPnl(t.pnl)}</td>
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                  </tr>
+                )
+              })
+
+              return [mainRow, ...legRows]
             })}
           </tbody>
         </table>
@@ -200,14 +342,14 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
       <div className="mobile-trade-cards">
         {filtered.length === 0 ? (
           <div className="empty">No trades found. Add your first trade using the "+ Add Trade" button.</div>
-        ) : filtered.map(t => {
-          const roi = t.entry && t.shares ? (t.pnl / (t.entry * t.shares)) * 100 : 0
-          const rm  = t.risk > 0 ? t.pnl / t.risk : null
-          const isW = t.pnl > 0, isL = t.pnl < 0
+        ) : groupedFiltered.map(row => {
+          const roi = row.avgEntry && row.totalShares ? (row.totalPnl / (row.avgEntry * row.totalShares)) * 100 : 0
+          const rm  = row.totalRisk > 0 ? row.totalPnl / row.totalRisk : null
+          const isW = row.totalPnl > 0, isL = row.totalPnl < 0
           return (
             <div
-              key={t.id}
-              onClick={() => setSelected(t)}
+              key={row.key}
+              onClick={() => setSelected(row.legs[row.legs.length - 1])}
               style={{
                 background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)',
                 padding: '12px 14px', cursor: 'pointer',
@@ -216,20 +358,25 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-                    <span style={{ fontWeight: 700, fontFamily: 'var(--mono)', fontSize: '14px' }}>{t.symbol}</span>
+                    <span style={{ fontWeight: 700, fontFamily: 'var(--mono)', fontSize: '14px' }}>{row.symbol}</span>
                     <span style={isW ? badgeWin : isL ? badgeLoss : badgeBe}>{isW ? 'WIN' : isL ? 'LOSS' : 'BE'}</span>
+                    {row.isGroup && (
+                      <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', background: 'var(--bg4)', border: '1px solid var(--brd)', borderRadius: '4px', padding: '1px 6px' }}>
+                        {row.legs.length} exits
+                      </span>
+                    )}
                   </div>
-                  <div style={{ fontSize: '10px', color: 'var(--txt2)' }}>{fmtDate(t.date)} · {t.type}{t.setup ? ` · ${t.setup}` : ''}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--txt2)' }}>{fmtDate(row.date)} · {row.type}{row.setup ? ` · ${row.setup}` : ''}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: '14px', color: isW ? 'var(--ac)' : isL ? 'var(--red)' : 'var(--txt)' }}>{fmtPnl(t.pnl)}</div>
+                  <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: '14px', color: isW ? 'var(--ac)' : isL ? 'var(--red)' : 'var(--txt)' }}>{fmtPnl(row.totalPnl)}</div>
                   <div style={{ fontSize: '10px', color: roi >= 0 ? 'var(--ac)' : 'var(--red)' }}>{roi.toFixed(2)}%</div>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--txt2)', fontFamily: 'var(--mono)' }}>
-                <span>Entry {t.entry ? `$${t.entry}` : '—'}</span>
-                <span>Exit {t.exit ? `$${t.exit}` : '—'}</span>
-                <span>{t.shares || 0} sh</span>
+                <span>Entry {row.avgEntry ? `$${row.avgEntry.toFixed(2)}` : '—'}</span>
+                <span>Exit {row.lastExit ? `$${row.lastExit.toFixed(2)}` : '—'}</span>
+                <span>{row.totalShares || 0} sh</span>
                 <span>{rm !== null ? `${rm.toFixed(2)}R` : '—'}</span>
               </div>
             </div>
