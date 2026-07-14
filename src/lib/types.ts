@@ -213,6 +213,7 @@ export type DASParsedTrade = {
   open?: boolean
   entryTime?: number
   exitTime?: number
+  tradeGroupId?: string
 }
 
 export type SupportChatUsageRow = {

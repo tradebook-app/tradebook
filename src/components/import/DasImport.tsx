@@ -2,7 +2,14 @@
 
 import { useState } from 'react'
 import { insertTrade } from '@/lib/tradeService'
+import { fetchOpenLegs, replaceOpenLeg } from '@/lib/legMatcher'
 import type { TradeRow, TradeInsert, DASParsedTrade } from '@/lib/types'
+
+function newGroupId(): string {
+  return (globalThis.crypto as any)?.randomUUID
+    ? globalThis.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
 
 type Props = {
   userId: string
@@ -16,7 +23,7 @@ type Props = {
 //   2) Raw executions (fills)                  → collapse partial fills by order
 //      id, then pair buys/sells into round-trip trades via position tracking
 // ─────────────────────────────────────────────────────────────────────────────
-function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
+async function parseDAS(text: string, userId: string): Promise<{ trades?: DASParsedTrade[]; error?: string; carriedForward?: { symbol: string; side: string; qty: number }[] }> {
   const lines = text.trim().split(/\r?\n/).filter((l) => l.trim())
   if (lines.length < 2) return { error: 'The file looks empty.' }
 
@@ -103,6 +110,7 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
   }
 
   const trades: DASParsedTrade[] = []
+  const carriedForward: { symbol: string; side: string; qty: number }[] = []
 
   if (hasPL && iD !== -1) {
     // ── Mode 1: each row already has a P/L ──
@@ -197,18 +205,29 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
       time: o.time,
     }))
 
-    // Group by symbol + day
-    type Grp = { sym: string; date: Date; execs: Exec[] }
+    // Group by symbol only (not day) — positions now track continuously across
+    // however many days/exits the file contains, and any position still open at
+    // the end of this file is saved so a later import (even on a different day)
+    // can pick up right where this one left off.
+    type Grp = { sym: string; execs: Exec[] }
     const groups: Record<string, Grp> = {}
     execs.forEach((ex) => {
-      const k = `${ex.sym}_${ex.date.toDateString()}`
-      if (!groups[k]) groups[k] = { sym: ex.sym, date: ex.date, execs: [] }
-      groups[k].execs.push(ex)
+      if (!groups[ex.sym]) groups[ex.sym] = { sym: ex.sym, execs: [] }
+      groups[ex.sym].execs.push(ex)
     })
 
-    Object.values(groups).forEach((g) => {
-      const sorted = g.execs.slice().sort((a, b) => a.time - b.time)
-      const trips: DASParsedTrade[] = []
+    const symbolsInFile = Object.keys(groups)
+    const storedLegsBySymbol = await fetchOpenLegs(userId, symbolsInFile)
+
+    for (const g of Object.values(groups)) {
+      // Chronological sort: real calendar date first, then intraday fill order
+      const sorted = g.execs.slice().sort((a, b) => {
+        const dateDiff = a.date.getTime() - b.date.getTime()
+        return dateDiff !== 0 ? dateDiff : a.time - b.time
+      })
+
+      const storedLegs = storedLegsBySymbol[g.sym] || []
+      const consumedIds = storedLegs.map((l) => l.id)
 
       let pos = 0
       let tripSide: 'Long' | 'Short' | null = null
@@ -216,8 +235,23 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
       let tripCost = 0
       let tripCloseShares = 0
       let tripCloseCost = 0
+      let tripEntryDate: Date | undefined
       let tripEntryTime: number | undefined
       let tripExitTime: number | undefined
+      let tripGroupId = ''
+
+      // Seed with a position carried forward from a previous import, if one exists
+      if (storedLegs.length > 0) {
+        const totalQty = storedLegs.reduce((s, l) => s + l.qty, 0)
+        const totalCost = storedLegs.reduce((s, l) => s + l.qty * l.price, 0)
+        const earliest = storedLegs.map((l) => new Date(l.opened_at)).sort((a, b) => a.getTime() - b.getTime())[0]
+        tripSide = storedLegs[0].side as 'Long' | 'Short'
+        tripShares = totalQty
+        tripCost = totalCost
+        tripEntryDate = earliest
+        tripGroupId = storedLegs.find((l) => l.trade_group_id)?.trade_group_id || newGroupId()
+        pos = tripSide === 'Long' ? totalQty : -totalQty
+      }
 
       const flushClose = () => {
         const side = tripSide
@@ -226,9 +260,9 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
           const avgExit = tripCloseCost / tripCloseShares
           const mQ = Math.min(tripShares, tripCloseShares)
           const pl = side === 'Long' ? (avgExit - avgEntry) * mQ : (avgEntry - avgExit) * mQ
-          trips.push({
+          trades.push({
             sym: g.sym,
-            date: g.date,
+            date: tripEntryDate || new Date(),
             side,
             entry: parseFloat(avgEntry.toFixed(4)),
             exit: parseFloat(avgExit.toFixed(4)),
@@ -236,6 +270,7 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
             pl: parseFloat(pl.toFixed(2)),
             entryTime: tripEntryTime,
             exitTime: tripExitTime,
+            tradeGroupId: tripGroupId,
           })
         }
         tripSide = null
@@ -243,8 +278,10 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
         tripCost = 0
         tripCloseShares = 0
         tripCloseCost = 0
+        tripEntryDate = undefined
         tripEntryTime = undefined
         tripExitTime = undefined
+        tripGroupId = ''
       }
 
       sorted.forEach((ex) => {
@@ -255,7 +292,9 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
           tripCost = ex.price * ex.qty
           tripCloseShares = 0
           tripCloseCost = 0
+          tripEntryDate = ex.date
           tripEntryTime = ex.time
+          tripGroupId = newGroupId()
           pos = delta
         } else {
           const closing = (pos > 0 && !ex.isBuy) || (pos < 0 && ex.isBuy)
@@ -277,50 +316,27 @@ function parseDAS(text: string): { trades?: DASParsedTrade[]; error?: string } {
         }
       })
 
-      // Anything left open = an open position (no exit yet)
+      // Anything left open at the end of this file → save it so a future
+      // import (any day) can link its closing exit(s) back to this same trade.
       if (Math.abs(pos) > 0.001 && tripSide) {
-        trips.push({
-          sym: g.sym,
-          date: g.date,
+        await replaceOpenLeg(userId, g.sym, consumedIds, {
+          symbol: g.sym,
           side: tripSide,
-          entry: parseFloat((tripCost / tripShares).toFixed(4)),
-          exit: 0,
-          shares: Math.abs(pos),
-          pl: 0,
-          open: true,
-          entryTime: tripEntryTime,
-        })
+          qty: Math.abs(pos),
+          price: tripCost / tripShares,
+          opened_at: (tripEntryDate || new Date()).toISOString(),
+          commission: 0,
+          trade_group_id: tripGroupId,
+        }, 'DAS')
+        carriedForward.push({ symbol: g.sym, side: tripSide, qty: Math.abs(pos) })
+      } else if (consumedIds.length > 0) {
+        await replaceOpenLeg(userId, g.sym, consumedIds, null, 'DAS')
       }
-
-      // Fallback: nothing paired (e.g. odd ordering) → net buys vs sells
-      if (trips.length === 0) {
-        const bQ = g.execs.filter((e) => e.isBuy).reduce((s, e) => s + e.qty, 0)
-        const sQ = g.execs.filter((e) => !e.isBuy).reduce((s, e) => s + e.qty, 0)
-        const bT = g.execs.filter((e) => e.isBuy).reduce((s, e) => s + e.price * e.qty, 0)
-        const sT = g.execs.filter((e) => !e.isBuy).reduce((s, e) => s + e.price * e.qty, 0)
-        const isLong = bQ >= sQ
-        const mQ = Math.min(bQ, sQ)
-        const aB = bQ > 0 ? bT / bQ : 0
-        const aS = sQ > 0 ? sT / sQ : 0
-        trips.push({
-          sym: g.sym,
-          date: g.date,
-          side: isLong ? 'Long' : 'Short',
-          entry: isLong ? aB : aS,
-          exit: isLong ? aS : aB,
-          shares: mQ,
-          pl: parseFloat(((aS - aB) * mQ).toFixed(2)),
-          entryTime: sorted[0]?.time,
-          exitTime: sorted[sorted.length - 1]?.time,
-        })
-      }
-
-      trades.push(...trips)
-    })
+    }
   }
 
-  if (!trades.length) return { error: 'No valid trades found in this file.' }
-  return { trades }
+  if (!trades.length && !carriedForward.length) return { error: 'No valid trades found in this file.' }
+  return { trades, carriedForward }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -331,6 +347,7 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
   const [parsed, setParsed] = useState<DASParsedTrade[]>([])
   const [selected, setSelected] = useState<boolean[]>([])
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const [defaultRisk, setDefaultRisk] = useState('150')
   const [defaultSetup, setDefaultSetup] = useState('')
@@ -341,16 +358,23 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
   function handleFile(file: File | undefined) {
     if (!file) return
     setError('')
+    setNotice('')
     const reader = new FileReader()
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
-        const res = parseDAS(String(ev.target?.result || ''))
-        if (res.error || !res.trades) {
-          setError(res.error || 'Could not parse the file.')
+        const res = await parseDAS(String(ev.target?.result || ''), userId)
+        if (res.error) {
+          setError(res.error)
           return
         }
-        setParsed(res.trades)
-        setSelected(res.trades.map(() => true))
+        const trades = res.trades || []
+        if (trades.length === 0) {
+          const desc = (res.carriedForward || []).map((c) => `${c.qty} sh ${c.symbol} (${c.side})`).join(', ')
+          setNotice(`No trades completed yet — ${desc} saved and waiting for the closing execution in a future import.`)
+          return
+        }
+        setParsed(trades)
+        setSelected(trades.map(() => true))
         setStep(2)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not read the file.')
@@ -417,7 +441,7 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
         tags: [],
         notes: null,
         screenshot_url: null,
-        trade_group_id: null,
+        trade_group_id: t.tradeGroupId || null,
       }
 
       const inserted = await insertTrade(tradeData, userId)
@@ -436,6 +460,7 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
     setParsed([])
     setSelected([])
     setError('')
+    setNotice('')
     setImportedCount(0)
     setSkippedCount(0)
   }
@@ -575,6 +600,21 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
                 }}
               >
                 ⚠ {error}
+              </div>
+            )}
+            {notice && (
+              <div
+                style={{
+                  background: 'rgba(59,130,246,.1)',
+                  border: '1px solid rgba(59,130,246,.2)',
+                  borderRadius: 'var(--r, 7px)',
+                  padding: '8px 11px',
+                  fontSize: '11px',
+                  color: '#3B82F6',
+                  marginTop: '8px',
+                }}
+              >
+                ℹ️ {notice}
               </div>
             )}
           </>
