@@ -417,6 +417,7 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
         tags: [],
         notes: null,
         screenshot_url: null,
+        trade_group_id: null,
       }
 
       const inserted = await insertTrade(tradeData, userId)

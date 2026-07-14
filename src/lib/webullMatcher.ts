@@ -24,6 +24,13 @@ export type ParsedWebullTrade = {
   pnl:        number
   commission: number
   duplicate:  boolean
+  tradeGroupId: string
+}
+
+function newGroupId(): string {
+  return (globalThis.crypto as any)?.randomUUID
+    ? globalThis.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 // Webull orders only report BUY/SELL, not an explicit open/close flag — same situation
@@ -45,6 +52,7 @@ export async function matchWebullExecutions(
     entries: { qty: number; price: number; date: Date; commission: number }[]
     remainingQty: number
     side: 'Long' | 'Short'
+    tradeGroupId: string
   }
 
   const positions: Record<string, OpenPos | null> = {}
@@ -65,6 +73,7 @@ export async function matchWebullExecutions(
       entries: [{ qty: totalQty, price: totalCost / totalQty, date: earliest, commission: totalComm }],
       remainingQty: totalQty,
       side: legs[0].side as 'Long' | 'Short',
+      tradeGroupId: legs.find(l => l.trade_group_id)?.trade_group_id || newGroupId(),
     }
     consumedLegIds[symbol] = legs.map(l => l.id)
   }
@@ -73,7 +82,7 @@ export async function matchWebullExecutions(
     const { symbol, qty, price, date, commission, isBuy } = exec
 
     if (!positions[symbol]) {
-      positions[symbol] = { entries: [{ qty, price, date, commission }], remainingQty: qty, side: isBuy ? 'Long' : 'Short' }
+      positions[symbol] = { entries: [{ qty, price, date, commission }], remainingQty: qty, side: isBuy ? 'Long' : 'Short', tradeGroupId: newGroupId() }
       continue
     }
 
@@ -108,6 +117,7 @@ export async function matchWebullExecutions(
       pnl,
       commission: parseFloat(totalComm.toFixed(2)),
       duplicate: existingSigs.has(sig),
+      tradeGroupId: pos.tradeGroupId,
     })
 
     pos.remainingQty -= tradeQty
@@ -130,6 +140,7 @@ export async function matchWebullExecutions(
         symbol, side: pos.side, qty: pos.remainingQty,
         price: totalCost / totalShares, opened_at: earliest.toISOString(),
         commission: totalComm,
+        trade_group_id: pos.tradeGroupId,
       }, 'Webull')
 
       carriedForward.push({ symbol, side: pos.side, qty: pos.remainingQty })

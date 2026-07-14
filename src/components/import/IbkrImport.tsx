@@ -73,6 +73,7 @@ export function IbkrImport({ userId, existingTrades, onImported }: Props) {
         entry: t.entry, exit: t.exit, shares: t.shares, pnl: t.pnl,
         risk: 0, commission: t.commission, setup: null, grade: null,
         tags: [], notes: null, screenshot_url: null,
+        trade_group_id: t.tradeGroupId,
       }, userId)
       if (inserted) count++
     }

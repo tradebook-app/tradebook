@@ -186,6 +186,7 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
         tags:           [],
         notes:          'Imported from Tastytrade',
         screenshot_url: null,
+        trade_group_id: t.tradeGroupId,
       }, userId)
       if (inserted) results.push(inserted)
     }

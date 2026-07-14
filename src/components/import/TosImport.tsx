@@ -25,6 +25,13 @@ type ParsedTrade = {
   holdMinutes: number
   commission: number
   duplicate: boolean
+  tradeGroupId: string
+}
+
+function newGroupId(): string {
+  return (globalThis.crypto as any)?.randomUUID
+    ? globalThis.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 async function parseTOS(text: string, existingTrades: TradeRow[], userId: string): Promise<{ trades: ParsedTrade[]; carriedForward: { symbol: string; side: string; qty: number }[] }> {
@@ -98,6 +105,7 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
     side: 'Long' | 'Short'
     entries: { qty: number; price: number; datetime: Date }[]
     remainingQty: number
+    tradeGroupId: string
   }
 
   const trades: ParsedTrade[] = []
@@ -117,6 +125,7 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
       side: legs[0].side as 'Long' | 'Short',
       entries: [{ qty: totalQty, price: totalCost / totalQty, datetime: earliest }],
       remainingQty: totalQty,
+      tradeGroupId: legs.find(l => l.trade_group_id)?.trade_group_id || newGroupId(),
     }
     consumedLegIds[symbol] = legs.map(l => l.id)
   }
@@ -130,6 +139,7 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
         side: isBuy ? 'Long' : 'Short',
         entries: [{ qty, price, datetime }],
         remainingQty: qty,
+        tradeGroupId: newGroupId(),
       }
     } else {
       const pos = positions[symbol]!
@@ -166,6 +176,7 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
           holdMinutes,
           commission: 0,
           duplicate: existingSigs.has(sig),
+          tradeGroupId: pos.tradeGroupId,
         })
 
         pos.remainingQty -= tradeQty
@@ -192,6 +203,7 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
         symbol, side: pos.side, qty: pos.remainingQty,
         price: totalCost / totalShares, opened_at: earliest.toISOString(),
         commission: 0,
+        trade_group_id: pos.tradeGroupId,
       }, 'TOS')
 
       carriedForward.push({ symbol, side: pos.side, qty: pos.remainingQty })
@@ -264,6 +276,7 @@ export function TosImport({ userId, existingTrades, onImported }: Props) {
         entry: t.entry, exit: t.exit, shares: t.shares, pnl: t.pnl,
         risk: 0, commission: t.commission, setup: null, grade: null,
         tags: [], notes: null, screenshot_url: null,
+        trade_group_id: t.tradeGroupId,
       }, userId)
       if (inserted) count++
     }

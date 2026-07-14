@@ -24,6 +24,12 @@ export type TTExecution = {
   commission: number
 }
 
+function newGroupId(): string {
+  return (globalThis.crypto as any)?.randomUUID
+    ? globalThis.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
 // Chronological position-tracking matcher, used by the API-based auto-sync.
 // Unlike the group-based matcher above (which the CSV importer uses and groups
 // legs by order/date), this processes every execution in time order per symbol —
@@ -45,6 +51,7 @@ export async function matchTastytradeExecutionsSequential(
     entries: { qty: number; price: number; date: Date; commission: number }[]
     remainingQty: number
     side: 'Long' | 'Short'
+    tradeGroupId: string
   }
 
   const positions: Record<string, OpenPos | null> = {}
@@ -65,6 +72,7 @@ export async function matchTastytradeExecutionsSequential(
       entries: [{ qty: totalQty, price: totalCost / totalQty, date: earliest, commission: totalComm }],
       remainingQty: totalQty,
       side: legs[0].side as 'Long' | 'Short',
+      tradeGroupId: legs.find(l => l.trade_group_id)?.trade_group_id || newGroupId(),
     }
     consumedLegIds[symbol] = legs.map(l => l.id)
   }
@@ -74,7 +82,7 @@ export async function matchTastytradeExecutionsSequential(
 
     if (isOpen || !positions[symbol]) {
       if (!positions[symbol]) {
-        positions[symbol] = { entries: [{ qty, price, date, commission }], remainingQty: qty, side: isBuy ? 'Long' : 'Short' }
+        positions[symbol] = { entries: [{ qty, price, date, commission }], remainingQty: qty, side: isBuy ? 'Long' : 'Short', tradeGroupId: newGroupId() }
       } else {
         const pos = positions[symbol]!
         pos.entries.push({ qty, price, date, commission })
@@ -107,6 +115,7 @@ export async function matchTastytradeExecutionsSequential(
       pnl,
       commission: parseFloat(totalComm.toFixed(2)),
       duplicate: existingSigs.has(sig),
+      tradeGroupId: pos.tradeGroupId,
     })
 
     pos.remainingQty -= tradeQty
@@ -129,6 +138,7 @@ export async function matchTastytradeExecutionsSequential(
         symbol, side: pos.side, qty: pos.remainingQty,
         price: totalCost / totalShares, opened_at: earliest.toISOString(),
         commission: totalComm,
+        trade_group_id: pos.tradeGroupId,
       }, 'Tastytrade')
 
       carriedForward.push({ symbol, side: pos.side, qty: pos.remainingQty })
@@ -151,6 +161,7 @@ export type ParsedTastytradeTrade = {
   pnl:        number
   commission: number
   duplicate:  boolean
+  tradeGroupId: string
 }
 
 // Shared open/close matching engine for Tastytrade, used by both the CSV importer
@@ -189,6 +200,7 @@ export async function matchTastytradeLegs(
     const storedLegs  = usedStoredLeg.has(g.symbol) ? [] : (storedLegsBySymbol[g.symbol] || [])
     const consumedIds = storedLegs.map(l => l.id)
     if (storedLegs.length > 0) usedStoredLeg.add(g.symbol)
+    const storedGroupId = storedLegs.find(l => l.trade_group_id)?.trade_group_id
     const syntheticOpens: TTLeg[] = storedLegs.map(l => ({
       groupKey: g.symbol, symbol: g.symbol,
       action: l.side === 'Long' ? 'Buy to Open' : 'Sell to Open',
@@ -197,6 +209,8 @@ export async function matchTastytradeLegs(
     const opens = [...syntheticOpens, ...fileOpens]
 
     if (opens.length === 0 && closes.length === 0) continue
+
+    const tradeGroupId = storedGroupId || newGroupId()
 
     const firstAction = (opens[0] || closes[0])?.action.toLowerCase() || ''
     const isLong = firstAction.includes('buy to open') ||
@@ -235,6 +249,7 @@ export async function matchTastytradeLegs(
         pnl:        parseFloat(pnl.toFixed(2)),
         commission: parseFloat(commUsed.toFixed(2)),
         duplicate:  existingSigs.has(sig),
+        tradeGroupId,
       })
     }
 
@@ -245,6 +260,7 @@ export async function matchTastytradeLegs(
         symbol: g.symbol, side: tradeType, qty: netQty,
         price: avgOpenPrice, opened_at: opens.map(l => l.date).sort()[0],
         commission: leftoverComm,
+        trade_group_id: tradeGroupId,
       }, 'Tastytrade')
       carriedForward.push({ symbol: g.symbol, side: tradeType, qty: netQty })
     } else if (consumedIds.length > 0) {

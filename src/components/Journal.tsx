@@ -85,6 +85,85 @@ function MiniChart({ trades }: { trades: TradeRow[] }) {
 type DetailTab = 'chart' | 'details'
 type ChartTimeframe = '15min' | '1h' | '1day'
 
+// Combines trades that share a trade_group_id (partial exits from the same
+// position) into one row for display. Trades with no group id, or that are
+// the only leg in their group, render exactly as a normal single trade.
+type GroupedRow = {
+  key: string
+  legs: TradeRow[]
+  isGroup: boolean
+  symbol: string
+  type: 'Long' | 'Short'
+  date: string
+  totalShares: number
+  avgEntry: number
+  lastExit: number | null
+  lastExitDate: string | null
+  totalPnl: number
+  grade: string | null
+  setup: string | null
+}
+
+function buildGroupedRows(trades: TradeRow[]): GroupedRow[] {
+  const groups: Record<string, TradeRow[]> = {}
+  const singles: TradeRow[] = []
+
+  for (const t of trades) {
+    if (t.trade_group_id) {
+      if (!groups[t.trade_group_id]) groups[t.trade_group_id] = []
+      groups[t.trade_group_id].push(t)
+    } else {
+      singles.push(t)
+    }
+  }
+
+  const rows: GroupedRow[] = []
+
+  for (const legs of Object.values(groups)) {
+    const sortedByDate = [...legs].sort((a, b) => a.date.localeCompare(b.date))
+    const sortedByExit = [...legs].sort((a, b) => (a.exit_date || a.date).localeCompare(b.exit_date || b.date))
+    const totalShares = legs.reduce((s, l) => s + l.shares, 0)
+    const totalCost = legs.reduce((s, l) => s + l.entry * l.shares, 0)
+    const lastLeg = sortedByExit[sortedByExit.length - 1]
+
+    rows.push({
+      key: legs[0].trade_group_id as string,
+      legs: sortedByExit,
+      isGroup: legs.length > 1,
+      symbol: legs[0].symbol,
+      type: legs[0].type,
+      date: sortedByDate[0].date,
+      totalShares,
+      avgEntry: totalShares > 0 ? totalCost / totalShares : 0,
+      lastExit: lastLeg?.exit ?? null,
+      lastExitDate: lastLeg?.exit_date ?? null,
+      totalPnl: legs.reduce((s, l) => s + l.pnl, 0),
+      grade: lastLeg?.grade ?? null,
+      setup: lastLeg?.setup ?? null,
+    })
+  }
+
+  for (const t of singles) {
+    rows.push({
+      key: t.id,
+      legs: [t],
+      isGroup: false,
+      symbol: t.symbol,
+      type: t.type,
+      date: t.date,
+      totalShares: t.shares,
+      avgEntry: t.entry,
+      lastExit: t.exit,
+      lastExitDate: t.exit_date,
+      totalPnl: t.pnl,
+      grade: t.grade,
+      setup: t.setup,
+    })
+  }
+
+  return rows
+}
+
 function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trade: TradeRow, trades: TradeRow[], onClose: () => void, onEdit: (t: TradeRow) => void, onNavigate: (t: TradeRow) => void }) {
   const pnlColor = trade.pnl > 0 ? 'var(--ac)' : trade.pnl < 0 ? 'var(--red)' : 'var(--txt3)'
   const currentIndex = trades.findIndex(t => t.id === trade.id)
@@ -312,6 +391,7 @@ export function Journal({ trades, onEdit }: Props) {
   const [calYear, setCalYear] = useState(new Date().getFullYear())
   const [calMonth, setCalMonth] = useState(new Date().getMonth())
   const [selectedTrade, setSelectedTrade] = useState<TradeRow | null>(null)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
 
   const byDate = useMemo(() => {
     const map: Record<string, TradeRow[]> = {}
@@ -365,64 +445,117 @@ export function Journal({ trades, onEdit }: Props) {
     setSelectedTrade(prev => prev?.id === t.id ? null : t)
   }
 
+  function toggleGroup(key: string) {
+    setExpandedGroups(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
+
   const statStyle = { background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '12px 14px' }
 
-  const tradeTable = (tradesToShow: TradeRow[], showDay = false) => (
-    <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-      <table className="tbl" style={{ width: '100%' }}>
-        <thead>
-          <tr>
-            {showDay && <th>Day</th>}
-            <th>Time</th>
-            <th>Symbol</th>
-            <th>Status</th>
-            <th>Entry</th>
-            <th>Exit</th>
-            <th>Shares</th>
-            <th className="r">P&L</th>
-            <th>Grade</th>
-            <th>Setup</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tradesToShow.sort((a, b) => a.date.localeCompare(b.date)).map(t => {
-            const isActive = selectedTrade?.id === t.id
-            return (
-              <tr
-                key={t.id}
-                onClick={() => handleTradeClick(t)}
-                style={{ cursor: 'pointer', background: isActive ? 'var(--ac-d)' : undefined }}
-              >
-                {showDay && <td style={{ color: 'var(--txt3)' }}>{new Date(t.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</td>}
-                <td style={{ color: 'var(--txt3)' }}>{new Date(t.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
-                <td style={{ fontWeight: 700 }}>{t.symbol}</td>
-                <td>
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    background: t.pnl > 0 ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.15)',
-                    color: t.pnl > 0 ? 'var(--ac)' : 'var(--red)',
-                  }}>
-                    {t.pnl > 0 ? 'Win' : 'Loss'}
-                  </span>
-                </td>
-                <td style={{ fontFamily: 'var(--mono)' }}>${t.entry.toFixed(2)}</td>
-                <td style={{ fontFamily: 'var(--mono)' }}>{t.exit ? '$' + t.exit.toFixed(2) : '—'}</td>
-                <td style={{ fontFamily: 'var(--mono)' }}>{t.shares}</td>
-                <td className="r" style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: t.pnl > 0 ? 'var(--ac)' : t.pnl < 0 ? 'var(--red)' : 'var(--txt3)' }}>
-                  {t.pnl >= 0 ? '+' : ''}{t.pnl.toFixed(2)}
-                </td>
-                <td>{t.grade ? <span style={{ fontSize: '11px', fontWeight: 700, color: t.grade === 'A' || t.grade === 'A+' ? 'var(--ac)' : t.grade === 'B' ? 'var(--blue)' : t.grade === 'C' ? 'var(--orange)' : 'var(--red)' }}>{t.grade}</span> : '—'}</td>
-                <td style={{ color: 'var(--txt2)', fontSize: '11px' }}>{t.setup || '—'}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
+  const tradeTable = (tradesToShow: TradeRow[], showDay = false) => {
+    const rows = buildGroupedRows(tradesToShow).sort((a, b) => a.date.localeCompare(b.date))
+
+    return (
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+        <table className="tbl" style={{ width: '100%' }}>
+          <thead>
+            <tr>
+              {showDay && <th>Day</th>}
+              <th>Time</th>
+              <th>Symbol</th>
+              <th>Status</th>
+              <th>Entry</th>
+              <th>Exit</th>
+              <th>Shares</th>
+              <th className="r">P&L</th>
+              <th>Grade</th>
+              <th>Setup</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(row => {
+              const isExpanded = expandedGroups.has(row.key)
+              const groupRow = (
+                <tr
+                  key={row.key}
+                  onClick={() => row.isGroup ? toggleGroup(row.key) : handleTradeClick(row.legs[0])}
+                  style={{
+                    cursor: 'pointer',
+                    background: !row.isGroup && selectedTrade?.id === row.legs[0].id ? 'var(--ac-d)' : undefined,
+                  }}
+                >
+                  {showDay && <td style={{ color: 'var(--txt3)' }}>{new Date(row.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</td>}
+                  <td style={{ color: 'var(--txt3)' }}>{new Date(row.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
+                  <td style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {row.isGroup && (
+                      <span style={{ fontSize: '9px', color: 'var(--txt3)', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: '.1s', display: 'inline-block' }}>▶</span>
+                    )}
+                    {row.symbol}
+                    {row.isGroup && (
+                      <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '4px', padding: '1px 6px' }}>
+                        {row.legs.length} exits
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      background: row.totalPnl > 0 ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.15)',
+                      color: row.totalPnl > 0 ? 'var(--ac)' : 'var(--red)',
+                    }}>
+                      {row.totalPnl > 0 ? 'Win' : 'Loss'}
+                    </span>
+                  </td>
+                  <td style={{ fontFamily: 'var(--mono)' }}>${row.avgEntry.toFixed(2)}</td>
+                  <td style={{ fontFamily: 'var(--mono)' }}>{row.lastExit ? '$' + row.lastExit.toFixed(2) : '—'}</td>
+                  <td style={{ fontFamily: 'var(--mono)' }}>{row.totalShares}</td>
+                  <td className="r" style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: row.totalPnl > 0 ? 'var(--ac)' : row.totalPnl < 0 ? 'var(--red)' : 'var(--txt3)' }}>
+                    {row.totalPnl >= 0 ? '+' : ''}{row.totalPnl.toFixed(2)}
+                  </td>
+                  <td>{row.grade ? <span style={{ fontSize: '11px', fontWeight: 700, color: row.grade === 'A' || row.grade === 'A+' ? 'var(--ac)' : row.grade === 'B' ? 'var(--blue)' : row.grade === 'C' ? 'var(--orange)' : 'var(--red)' }}>{row.grade}</span> : '—'}</td>
+                  <td style={{ color: 'var(--txt2)', fontSize: '11px' }}>{row.setup || '—'}</td>
+                </tr>
+              )
+
+              if (!row.isGroup || !isExpanded) return groupRow
+
+              const legRows = row.legs.map((t, i) => {
+                const isActive = selectedTrade?.id === t.id
+                return (
+                  <tr
+                    key={t.id}
+                    onClick={() => handleTradeClick(t)}
+                    style={{ cursor: 'pointer', background: isActive ? 'var(--ac-d)' : 'var(--bg3)' }}
+                  >
+                    {showDay && <td />}
+                    <td style={{ color: 'var(--txt3)', fontSize: '11px' }}>{new Date(t.exit_date || t.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td style={{ color: 'var(--txt3)', fontSize: '11px', paddingLeft: '22px' }}>exit {i + 1}</td>
+                    <td />
+                    <td style={{ fontFamily: 'var(--mono)', fontSize: '11px', color: 'var(--txt3)' }}>${t.entry.toFixed(2)}</td>
+                    <td style={{ fontFamily: 'var(--mono)', fontSize: '11px' }}>{t.exit ? '$' + t.exit.toFixed(2) : '—'}</td>
+                    <td style={{ fontFamily: 'var(--mono)', fontSize: '11px' }}>{t.shares}</td>
+                    <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: t.pnl > 0 ? 'var(--ac)' : t.pnl < 0 ? 'var(--red)' : 'var(--txt3)' }}>
+                      {t.pnl >= 0 ? '+' : ''}{t.pnl.toFixed(2)}
+                    </td>
+                    <td />
+                    <td />
+                  </tr>
+                )
+              })
+
+              return [groupRow, ...legRows]
+            })}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', gap: '16px', padding: '20px', height: '100%' }}>

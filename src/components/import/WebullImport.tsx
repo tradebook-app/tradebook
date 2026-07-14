@@ -21,6 +21,13 @@ type ParsedTrade = {
   shares:    number
   pnl:       number
   duplicate: boolean
+  tradeGroupId: string
+}
+
+function newGroupId(): string {
+  return (globalThis.crypto as any)?.randomUUID
+    ? globalThis.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 export function WebullImport({ userId, existingTrades, onImported }: Props) {
@@ -152,6 +159,7 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
       const storedLegs  = usedStoredLeg.has(symbol) ? [] : (storedLegsBySymbol[symbol] || [])
       const consumedIds = storedLegs.map(l => l.id)
       if (storedLegs.length > 0) usedStoredLeg.add(symbol)
+      const tradeGroupId = storedLegs.find(l => l.trade_group_id)?.trade_group_id || newGroupId()
 
       for (const leg of storedLegs) {
         const entry = { qty: leg.qty, avgPrice: leg.price, date: leg.opened_at }
@@ -193,6 +201,7 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
           shares:    matchQty,
           pnl:       parseFloat(pnl.toFixed(2)),
           duplicate: existingSigs.has(sig),
+          tradeGroupId,
         })
       }
 
@@ -206,6 +215,7 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
           symbol, side: tradeType, qty: netQty,
           price: openingPrice, opened_at: openingDates[0] || new Date().toISOString(),
           commission: 0,
+          trade_group_id: tradeGroupId,
         }, 'Webull')
         carriedForward.push({ symbol, side: tradeType, qty: netQty })
       } else if (consumedIds.length > 0) {
@@ -291,6 +301,7 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
         tags:           [],
         notes:          'Imported from Webull',
         screenshot_url: null,
+        trade_group_id: t.tradeGroupId,
       }, userId)
       if (inserted) results.push(inserted)
     }

@@ -22,6 +22,13 @@ type ParsedTrade = {
   pnl:        number
   commission: number
   duplicate:  boolean
+  tradeGroupId: string
+}
+
+function newGroupId(): string {
+  return (globalThis.crypto as any)?.randomUUID
+    ? globalThis.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 export function TradeStationImport({ userId, existingTrades, onImported }: Props) {
@@ -162,6 +169,7 @@ export function TradeStationImport({ userId, existingTrades, onImported }: Props
       const storedLegs  = usedStoredLeg.has(symbol) ? [] : (storedLegsBySymbol[symbol] || [])
       const consumedIds = storedLegs.map(l => l.id)
       if (storedLegs.length > 0) usedStoredLeg.add(symbol)
+      const tradeGroupId = storedLegs.find(l => l.trade_group_id)?.trade_group_id || newGroupId()
 
       // Merge a stored Long leg into buys (opening side of a long), a stored Short leg into sells (opening side of a short)
       for (const leg of storedLegs) {
@@ -206,6 +214,7 @@ export function TradeStationImport({ userId, existingTrades, onImported }: Props
           pnl:        parseFloat(pnl.toFixed(2)),
           commission: parseFloat(commUsed.toFixed(2)),
           duplicate:  existingSigs.has(sig),
+          tradeGroupId,
         })
       }
 
@@ -221,6 +230,7 @@ export function TradeStationImport({ userId, existingTrades, onImported }: Props
           symbol, side: tradeType, qty: netQty,
           price: openingPrice, opened_at: openingDates[0] || new Date().toISOString(),
           commission: openingComm * (netQty / (openingQty || 1)),
+          trade_group_id: tradeGroupId,
         }, 'TradeStation')
         carriedForward.push({ symbol, side: tradeType, qty: netQty })
       } else if (consumedIds.length > 0) {
@@ -302,6 +312,7 @@ export function TradeStationImport({ userId, existingTrades, onImported }: Props
         tags:           [],
         notes:          'Imported from TradeStation',
         screenshot_url: null,
+        trade_group_id: t.tradeGroupId,
       }, userId)
       if (inserted) results.push(inserted)
     }

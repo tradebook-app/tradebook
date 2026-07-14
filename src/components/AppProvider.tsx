@@ -209,7 +209,11 @@ export function AppProvider({ userId, userEmail }: Props) {
   async function handleSave(payload: TradeFormPayload, screenshotFile: File | null) {
     let screenshotUrl: string | null = editTrade?.screenshot_url || null
     if (screenshotFile) screenshotUrl = await uploadScreenshot(screenshotFile, userId)
-    const tradeData = { ...payload, screenshot_url: screenshotUrl }
+    const tradeData = {
+      ...payload,
+      screenshot_url: screenshotUrl,
+      trade_group_id: editTrade ? editTrade.trade_group_id : null,
+    }
     if (editTrade) {
       const updated = await updateTrade(editTrade.id, tradeData)
       if (updated) setTrades(prev => prev.map(t => t.id === editTrade.id ? updated : t))

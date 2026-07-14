@@ -12,6 +12,7 @@ export type OpenLeg = {
   opened_at: string
   commission: number
   broker: string
+  trade_group_id: string | null
 }
 
 // ── Client-agnostic core (works with either the browser client or a server/service-role client) ──
@@ -44,7 +45,7 @@ export async function replaceOpenLegWithClient(
   userId: string,
   symbol: string,
   consumedIds: string[],
-  leftover: Omit<OpenLeg, 'id' | 'broker'> | null,
+  leftover: (Omit<OpenLeg, 'id' | 'broker'>) | null,
   broker: string
 ): Promise<void> {
   if (consumedIds.length > 0) {
@@ -61,6 +62,7 @@ export async function replaceOpenLegWithClient(
       opened_at:  leftover.opened_at,
       commission: leftover.commission,
       broker,
+      trade_group_id: leftover.trade_group_id,
     })
   }
 }
@@ -75,7 +77,7 @@ export async function replaceOpenLeg(
   userId: string,
   symbol: string,
   consumedIds: string[],
-  leftover: Omit<OpenLeg, 'id' | 'broker'> | null,
+  leftover: (Omit<OpenLeg, 'id' | 'broker'>) | null,
   broker: string
 ): Promise<void> {
   return replaceOpenLegWithClient(createClient(), userId, symbol, consumedIds, leftover, broker)

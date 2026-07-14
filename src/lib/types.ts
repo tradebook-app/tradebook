@@ -24,6 +24,7 @@ export type TradeRow = {
   screenshot_url: string | null
   strategy_id: string | null
   account_id: string | null
+  trade_group_id: string | null
   created_at: string
   updated_at: string
 }
