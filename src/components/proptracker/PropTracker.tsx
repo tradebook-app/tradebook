@@ -296,7 +296,6 @@ export function PropTracker({ userId }: Props) {
         <div style={{ fontSize: '12px', color: 'var(--txt2)' }}>
           Track fees, resets, and payouts across your prop firms
         </div>
-        <button className="btn btn-p" onClick={openNewAccount}>+ Add Account</button>
       </div>
 
       {accounts.length === 0 ? (
@@ -306,7 +305,7 @@ export function PropTracker({ userId }: Props) {
           <div style={{ fontSize: '13px', color: 'var(--txt2)', marginBottom: '24px', maxWidth: '380px' }}>
             Add every evaluation, funded seat, or instant funding account. Log fees and payouts against it and this tracks your true net P&amp;L and ROI across firms.
           </div>
-          <button className="btn btn-p" onClick={openNewAccount}>+ Add Your First Account</button>
+          <button className="btn btn-p" onClick={openNewAccount}>+ Add Your Account</button>
         </div>
       ) : (
         <>
@@ -345,6 +344,20 @@ export function PropTracker({ userId }: Props) {
 
           {/* Account cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '12px' }}>
+            <button
+              onClick={openNewAccount}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                background: 'transparent', border: '1px dashed var(--brd2)', borderRadius: 'var(--r2)',
+                padding: '16px', minHeight: '140px', cursor: 'pointer', color: 'var(--txt2)',
+                fontFamily: 'var(--sans)', fontSize: '12px', fontWeight: 600, transition: '.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--ac)'; e.currentTarget.style.color = 'var(--ac2)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--brd2)'; e.currentTarget.style.color = 'var(--txt2)' }}
+            >
+              <span style={{ fontSize: '22px' }}>+</span>
+              Add Account
+            </button>
             {accounts.map(acc => {
               const stats = accountStats[acc.id] || { invested: 0, earned: 0, pnl: 0 }
               const meta = statusMeta(acc.status)
