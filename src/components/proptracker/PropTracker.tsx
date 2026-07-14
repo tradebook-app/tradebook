@@ -339,7 +339,9 @@ export function PropTracker({ userId }: Props) {
                   {totals.pnl >= 0 ? '+' : ''}{fmtMoney(totals.pnl)}
                 </div>
               </div>
-              <CumulativeChart labels={cumulativeChart.labels} data={cumulativeChart.data} />
+              <div style={{ height: '200px', position: 'relative' }}>
+                <CumulativeChart labels={cumulativeChart.labels} data={cumulativeChart.data} />
+              </div>
             </div>
           </div>
 
