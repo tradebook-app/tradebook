@@ -18,6 +18,7 @@ const NAV = [
 
 const TOOLS = [
   { href: '/ai-analysis',   icon: '🤖', label: 'Sleek AI' },
+  { href: '/prop-tracker',  icon: '🏦', label: 'Prop Tracker' },
 ]
 
 type Props = {

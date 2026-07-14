@@ -50,6 +50,33 @@ export type StrategyRow = {
   updated_at: string
 }
 
+export type PropFirmAccountRow = {
+  id: string
+  user_id: string
+  firm_name: string
+  account_size: number
+  currency: string
+  account_type: 'evaluation' | 'funded' | 'instant'
+  status: 'active' | 'passed' | 'failed' | 'reset'
+  start_date: string
+  end_date: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type PropFirmTransactionRow = {
+  id: string
+  account_id: string
+  user_id: string
+  amount: number
+  date: string
+  category: 'fee' | 'reset' | 'payout' | 'other'
+  status: 'reviewed' | 'not_reviewed'
+  description: string | null
+  created_at: string
+}
+
 export type StrategyRuleGroupRow = {
   id: string
   strategy_id: string
@@ -80,11 +107,16 @@ export type TradeInsert = Omit<TradeRow, 'id' | 'user_id' | 'created_at' | 'upda
 export type NoteInsert  = Omit<NoteRow,  'id' | 'user_id' | 'created_at' | 'updated_at'>
 export type StrategyInsert = Omit<StrategyRow, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 
+export type PropFirmAccountInsert = Omit<PropFirmAccountRow, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+export type PropFirmTransactionInsert = Omit<PropFirmTransactionRow, 'id' | 'user_id' | 'created_at'>
+
 // ─── Update Types (all optional) ─────────────────────────────────────────────
 
 export type TradeUpdate    = Partial<TradeInsert>
 export type NoteUpdate     = Partial<NoteInsert>
 export type StrategyUpdate = Partial<StrategyInsert>
+export type PropFirmAccountUpdate = Partial<PropFirmAccountInsert>
+export type PropFirmTransactionUpdate = Partial<PropFirmTransactionInsert>
 
 // ─── UI / Form Types ─────────────────────────────────────────────────────────
 
@@ -315,6 +347,16 @@ export type Database = {
         Row: ReferralCommissionRow
         Insert: ReferralCommissionInsert
         Update: Partial<ReferralCommissionInsert>
+      }
+      prop_firm_accounts: {
+        Row: PropFirmAccountRow
+        Insert: PropFirmAccountInsert & { user_id: string }
+        Update: PropFirmAccountUpdate
+      }
+      prop_firm_transactions: {
+        Row: PropFirmTransactionRow
+        Insert: PropFirmTransactionInsert & { user_id: string }
+        Update: PropFirmTransactionUpdate
       }
     }
   }

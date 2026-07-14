@@ -26,6 +26,7 @@ import { Journal } from '@/components/Journal'
 import { AIAnalysis } from '@/components/AIAnalysis'
 import { Billing } from '@/components/Billing'
 import { Scanner } from '@/components/Scanner'
+import { PropTracker } from '@/components/proptracker/PropTracker'
 
 
 type Props = {
@@ -75,6 +76,13 @@ function GatedScanner() {
   return <Scanner />
 }
 
+function GatedPropTracker({ userId }: { userId: string }) {
+  const { isElite, loading } = usePlan()
+  if (loading) return null
+  if (!isElite) return <UpgradeWall feature="Prop Tracker - Elite Feature" description="Upgrade to Elite to track fees, resets, and payouts across every prop firm account and see your true net P&L and ROI." tier="elite" />
+  return <PropTracker userId={userId} />
+}
+
 function DashboardWithBanner({ trades, filter, onEdit, onDelete, userId, onReload }: any) {
   const { tradeCount, isPro } = usePlan()
   return (
@@ -93,6 +101,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/reports':       'Reports',
   '/strategies':    'Strategies',
   '/scanner':       'Scanner',
+  '/prop-tracker':  'Prop Tracker',
   '/position-size': 'Position Size',
   '/ai-analysis':   'Sleek AI',
   '/billing':       'Billing',
@@ -141,6 +150,7 @@ function AppInner({
     if (pathname === '/settings')     return <Settings userEmail={userEmail} />
     if (pathname === '/referrals')    return <ReferralsPage />
     if (pathname === '/ai-analysis')  return <GatedAIAnalysis trades={scopedTrades} />
+    if (pathname === '/prop-tracker') return <GatedPropTracker userId={userId} />
     if (pathname === '/billing')      return <Billing />
 
     return (
