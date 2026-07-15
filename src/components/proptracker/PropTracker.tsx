@@ -640,31 +640,31 @@ export function PropTracker({ userId }: Props) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Profit Target ($)</label>
-                  <input className="fi" type="number" value={profitTarget} onChange={e => setProfitTarget(e.target.value)} placeholder="3000" />
+                  <input className="fi" type="number" value={profitTarget} onChange={e => setProfitTarget(e.target.value)} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Current Profit ($)</label>
-                  <input className="fi" type="number" value={currentProfit} onChange={e => setCurrentProfit(e.target.value)} placeholder="1800" />
+                  <input className="fi" type="number" value={currentProfit} onChange={e => setCurrentProfit(e.target.value)} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Min Trading Days</label>
-                  <input className="fi" type="number" value={minTradingDays} onChange={e => setMinTradingDays(e.target.value)} placeholder="10" />
+                  <input className="fi" type="number" value={minTradingDays} onChange={e => setMinTradingDays(e.target.value)} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Current Trading Days</label>
-                  <input className="fi" type="number" value={currentTradingDays} onChange={e => setCurrentTradingDays(e.target.value)} placeholder="7" />
+                  <input className="fi" type="number" value={currentTradingDays} onChange={e => setCurrentTradingDays(e.target.value)} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Max Daily Loss ($)</label>
-                  <input className="fi" type="number" value={maxDailyLoss} onChange={e => setMaxDailyLoss(e.target.value)} placeholder="1500" />
+                  <input className="fi" type="number" value={maxDailyLoss} onChange={e => setMaxDailyLoss(e.target.value)} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Today's Daily Loss ($)</label>
-                  <input className="fi" type="number" value={currentDailyLoss} onChange={e => setCurrentDailyLoss(e.target.value)} placeholder="400" />
+                  <input className="fi" type="number" value={currentDailyLoss} onChange={e => setCurrentDailyLoss(e.target.value)} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Max Drawdown ($)</label>
-                  <input className="fi" type="number" value={maxDrawdown} onChange={e => setMaxDrawdown(e.target.value)} placeholder="2000" />
+                  <input className="fi" type="number" value={maxDrawdown} onChange={e => setMaxDrawdown(e.target.value)} />
                 </div>
               </div>
             </div>
