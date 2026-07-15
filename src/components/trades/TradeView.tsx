@@ -279,16 +279,18 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
                   onClick={() => row.isGroup ? toggleGroup(row.key) : setSelected(row.legs[0])}
                 >
                   <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{fmtDate(row.date)}</td>
-                  <td style={{ fontWeight: 700, fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {row.isGroup && (
-                      <span style={{ fontSize: '9px', color: 'var(--txt3)', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: '.1s', display: 'inline-block' }}>▶</span>
-                    )}
-                    {row.symbol}
-                    {row.isGroup && (
-                      <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '4px', padding: '1px 6px' }}>
-                        {row.legs.length} exits
-                      </span>
-                    )}
+                  <td style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {row.isGroup && (
+                        <span style={{ fontSize: '9px', color: 'var(--txt3)', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: '.1s', display: 'inline-block' }}>▶</span>
+                      )}
+                      {row.symbol}
+                      {row.isGroup && (
+                        <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '4px', padding: '1px 6px' }}>
+                          {row.legs.length} exits
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td><span style={isW ? badgeWin : isL ? badgeLoss : badgeBe}>{isW ? 'WIN' : isL ? 'LOSS' : 'BE'}</span></td>
                   <td style={{ fontSize: '11px' }}>{row.type}</td>
