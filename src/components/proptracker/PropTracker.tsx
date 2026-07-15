@@ -450,6 +450,9 @@ export function PropTracker({ userId }: Props) {
                         <div style={{ fontSize: '10px', color: 'var(--txt3)' }}>
                           ${(acc.account_size / 1000).toFixed(0)}k · {ACCOUNT_TYPES.find(t => t.value === acc.account_type)?.label} · Since {fmtDate(acc.start_date)}
                         </div>
+                        {acc.status === 'failed' && acc.failure_reason && (
+                          <div style={{ fontSize: '10px', color: 'var(--red)', marginTop: '2px' }}>Failed: {acc.failure_reason}</div>
+                        )}
                       </div>
                     </div>
                     <span style={{ fontSize: '9px', fontWeight: 700, padding: '3px 9px', borderRadius: '20px', background: `${meta.color}22`, color: meta.color, flexShrink: 0 }}>
