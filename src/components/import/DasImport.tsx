@@ -427,6 +427,7 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
 
       const tradeData: TradeInsert = {
         symbol: t.sym,
+        asset_type: 'stock',
         type: t.side || 'Long',
         date: `${ds}T${tod(t.entryTime) || '12:00:00'}`,
         exit_date: (!t.open && tod(t.exitTime)) ? `${ds}T${tod(t.exitTime)}` : null,

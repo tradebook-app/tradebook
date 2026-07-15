@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import type { TradeRow, StrategyRow } from '@/lib/types'
+import { ASSET_TYPES, assetUnitLabel } from '@/lib/types'
 import { insertStrategy } from '@/lib/strategyService'
 import { useAccounts } from '@/components/AccountProvider'
 
@@ -24,6 +25,7 @@ export type TradeFormPayload = {
   entry: number
   exit: number | null
   shares: number
+  asset_type: 'stock' | 'option' | 'futures' | 'forex'
   pnl: number
   risk: number
   commission: number
@@ -46,6 +48,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
   const [entry,      setEntry]      = useState('')
   const [exit,       setExit]       = useState('')
   const [shares,     setShares]     = useState('')
+  const [assetType,  setAssetType]  = useState<TradeRow['asset_type']>('stock')
   const [pnlOver,    setPnlOver]    = useState('')
   const [risk,       setRisk]       = useState('')
   const [commission, setCommission] = useState('')
@@ -75,6 +78,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
       setEntry(editTrade.entry ? String(editTrade.entry) : '')
       setExit(editTrade.exit ? String(editTrade.exit) : '')
       setShares(editTrade.shares ? String(editTrade.shares) : '')
+      setAssetType(editTrade.asset_type || 'stock')
       setPnlOver(String(editTrade.pnl))
       setRisk(editTrade.risk ? String(editTrade.risk) : '')
       setCommission(editTrade.commission ? String(editTrade.commission) : '')
@@ -107,7 +111,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
   function resetForm() {
     setSymbol(''); setSide('Long')
     setDate(new Date().toISOString().substring(0, 16))
-    setExitDate(''); setEntry(''); setExit(''); setShares('')
+    setExitDate(''); setEntry(''); setExit(''); setShares(''); setAssetType('stock')
     setPnlOver(''); setRisk(''); setCommission('')
     setStrategyId(''); setLegacySetup(null); setGrade(''); setTags([]); setTagInput('')
     setAccountId(accounts.find(a => a.is_default)?.id || accounts[0]?.id || '')
@@ -192,6 +196,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
       entry:      parseFloat(entry) || 0,
       exit:       parseFloat(exit) || null,
       shares:     parseFloat(shares) || 0,
+      asset_type: assetType,
       pnl:        calcPnl(),
       risk:       parseFloat(risk) || 0,
       commission: parseFloat(commission) || 0,
@@ -279,10 +284,21 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
         </div>
       </div>
 
+      {/* Asset Type */}
+      <div style={row2}>
+        <div>
+          <label style={lbl}>Asset Type</label>
+          <select className="fi" value={assetType} onChange={e => setAssetType(e.target.value as TradeRow['asset_type'])}>
+            {ASSET_TYPES.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+          </select>
+        </div>
+        <div />
+      </div>
+
       {/* Shares / P&L override */}
       <div style={row2}>
         <div>
-          <label style={lbl}>Shares</label>
+          <label style={lbl}>{assetUnitLabel(assetType)}</label>
           <input className="fi" type="number" value={shares} onChange={e => setShares(e.target.value)}
             placeholder="100" style={{ fontFamily: 'var(--mono)' }} />
         </div>

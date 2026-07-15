@@ -334,7 +334,7 @@ export function MonthCalendar({ days, trades }: Props) {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
                 <thead>
                   <tr style={{ color: 'var(--txt3)', textAlign: 'left' }}>
-                    {['Symbol','Side','Setup','Entry','Exit','Shares','P&L','Grade'].map(h => (
+                    {['Symbol','Side','Setup','Entry','Exit','Size','P&L','Grade'].map(h => (
                       <th key={h} style={{ padding: '7px 8px', fontSize: '9px', textTransform: 'uppercase', borderBottom: '1px solid var(--brd)' }}>{h}</th>
                     ))}
                   </tr>

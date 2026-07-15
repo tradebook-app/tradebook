@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import type { TradeRow } from '@/lib/types'
+import { assetUnitLabel } from '@/lib/types'
 import TradeChart, { Candle, TradeMarker } from '@/components/charts/TradeChart'
 
 type Props = {
@@ -268,7 +269,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
     { l: 'Side', v: trade.type },
     { l: 'Entry', v: '$' + trade.entry.toFixed(2) },
     { l: 'Exit', v: trade.exit ? '$' + trade.exit.toFixed(2) : '—' },
-    { l: 'Shares', v: trade.shares.toString() },
+    { l: assetUnitLabel(trade.asset_type), v: trade.shares.toString() },
     { l: 'Commission', v: '$' + trade.commission.toFixed(2) },
     { l: 'Risk 1R', v: trade.risk ? '$' + trade.risk.toFixed(2) : '—' },
     { l: 'Setup', v: trade.setup || '—' },
@@ -469,7 +470,7 @@ export function Journal({ trades, onEdit }: Props) {
               <th>Status</th>
               <th>Entry</th>
               <th>Exit</th>
-              <th>Shares</th>
+              <th>Size</th>
               <th className="r">P&L</th>
               <th>Grade</th>
               <th>Setup</th>

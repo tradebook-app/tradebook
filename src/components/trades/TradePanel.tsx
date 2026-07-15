@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import type { TradeRow } from '@/lib/types'
+import { assetUnitLabel } from '@/lib/types'
 import { fmtPnl, fmtDate, holdTime } from '@/lib/analytics'
 import { getScreenshotUrl } from '@/lib/tradeService'
 import TradeChart, { Candle, TradeMarker } from '@/components/charts/TradeChart'
@@ -155,7 +156,7 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
     ['Symbol',      trade.symbol],
     ['Entry Price', `$${trade.entry}`],
     ['Exit Price',  trade.exit ? `$${trade.exit}` : '—'],
-    ['Shares',      trade.shares || '—'],
+    [assetUnitLabel(trade.asset_type), trade.shares || '—'],
     ['Setup',       trade.setup || '—'],
     ['Grade',       trade.grade || '—'],
     ['Risk (1R)',   `$${trade.risk || 0}`],

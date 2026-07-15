@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import type { TradeRow, DateRangeFilter } from '@/lib/types'
+import { assetUnitLabel } from '@/lib/types'
 import { filterByDate, closedTrades, calcKPIs, fmtPnl, fmtDate } from '@/lib/analytics'
 import { MetricCard } from '@/components/ui/MetricCard'
 import { TradePanel } from '@/components/trades/TradePanel'
@@ -257,7 +258,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
           <thead>
             <tr>
               <th>Date</th><th>Symbol</th><th>Status</th><th>Side</th><th>Setup</th>
-              <th className="r">Entry</th><th className="r">Exit</th><th className="r">Shares</th>
+              <th className="r">Entry</th><th className="r">Exit</th><th className="r">Size</th>
               <th className="r">Net P&L</th><th className="r">ROI</th><th className="r">R</th>
               <th>Grade</th><th>Tags</th><th></th>
             </tr>
@@ -378,7 +379,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--txt2)', fontFamily: 'var(--mono)' }}>
                 <span>Entry {row.avgEntry ? `$${row.avgEntry.toFixed(2)}` : '—'}</span>
                 <span>Exit {row.lastExit ? `$${row.lastExit.toFixed(2)}` : '—'}</span>
-                <span>{row.totalShares || 0} sh</span>
+                <span>{row.totalShares || 0} {assetUnitLabel(row.legs[0]?.asset_type).toLowerCase()}</span>
                 <span>{rm !== null ? `${rm.toFixed(2)}R` : '—'}</span>
               </div>
             </div>

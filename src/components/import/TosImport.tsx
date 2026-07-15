@@ -272,7 +272,7 @@ export function TosImport({ userId, existingTrades, onImported }: Props) {
     let count = 0
     for (const t of toImport) {
       const inserted = await insertTrade({
-        symbol: t.symbol, type: t.type, date: t.date, exit_date: t.exitDate,
+        symbol: t.symbol, asset_type: 'stock', type: t.type, date: t.date, exit_date: t.exitDate,
         entry: t.entry, exit: t.exit, shares: t.shares, pnl: t.pnl,
         risk: 0, commission: t.commission, setup: null, grade: null,
         tags: [], notes: null, screenshot_url: null,

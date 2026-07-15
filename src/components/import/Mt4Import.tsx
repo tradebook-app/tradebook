@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import type { TradeRow } from '@/lib/types'
 import { insertTrade } from '@/lib/tradeService'
-import { parseIBKR, type ParsedIbkrTrade as ParsedTrade } from '@/lib/ibkrParser'
-import { createClient } from '@/lib/supabase/client'
+import { parseMT4, type ParsedMt4Trade as ParsedTrade } from '@/lib/mt4Parser'
 
 type Props = {
   userId: string
@@ -12,32 +11,23 @@ type Props = {
   onImported: () => void
 }
 
-export function IbkrImport({ userId, existingTrades, onImported }: Props) {
+export function Mt4Import({ userId, existingTrades, onImported }: Props) {
   const [step,      setStep]      = useState<'upload' | 'preview' | 'done'>('upload')
   const [parsed,    setParsed]    = useState<ParsedTrade[]>([])
   const [selected,  setSelected]  = useState<Set<number>>(new Set())
   const [importing, setImporting] = useState(false)
   const [imported,  setImported]  = useState(0)
   const [error,     setError]     = useState('')
-  const [notice,    setNotice]    = useState('')
   const [dragOver,  setDragOver]  = useState(false)
 
   function handleFile(file: File | undefined) {
     if (!file) return
     setError('')
-    setNotice('')
     const reader = new FileReader()
-    reader.onload = async ev => {
+    reader.onload = ev => {
       try {
-        const text = ev.target?.result as string
-        const { trades, carriedForward } = await parseIBKR(text, existingTrades, userId, createClient())
-
-        if (trades.length === 0) {
-          const desc = carriedForward.map(c => `${c.qty} sh ${c.symbol} (${c.side})`).join(', ')
-          setNotice(`No trades completed yet — ${desc} saved and waiting for the closing execution in a future import.`)
-          return
-        }
-
+        const html = ev.target?.result as string
+        const trades = parseMT4(html, existingTrades)
         setParsed(trades)
         const sel = new Set<number>()
         trades.forEach((t, i) => { if (!t.duplicate) sel.add(i) })
@@ -69,7 +59,7 @@ export function IbkrImport({ userId, existingTrades, onImported }: Props) {
     let count = 0
     for (const t of toImport) {
       const inserted = await insertTrade({
-        symbol: t.symbol, asset_type: 'stock', type: t.type, date: t.date, exit_date: t.exitDate,
+        symbol: t.symbol, asset_type: 'forex', type: t.type, date: t.date, exit_date: t.exitDate,
         entry: t.entry, exit: t.exit, shares: t.shares, pnl: t.pnl,
         risk: 0, commission: t.commission, setup: null, grade: null,
         tags: [], notes: null, screenshot_url: null,
@@ -85,12 +75,7 @@ export function IbkrImport({ userId, existingTrades, onImported }: Props) {
 
   function reset() {
     setStep('upload'); setParsed([]); setSelected(new Set())
-    setImported(0); setError(''); setNotice('')
-  }
-
-  function formatHold(mins: number) {
-    if (mins < 60) return `${mins}m`
-    return `${Math.floor(mins / 60)}h ${mins % 60}m`
+    setImported(0); setError('')
   }
 
   const card: React.CSSProperties = {
@@ -105,7 +90,7 @@ export function IbkrImport({ userId, existingTrades, onImported }: Props) {
         <div style={{ ...card, textAlign: 'center', padding: '48px' }}>
           <div style={{ fontSize: '40px', marginBottom: '14px' }}>✅</div>
           <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>{imported} trade{imported !== 1 ? 's' : ''} imported!</div>
-          <div style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '24px' }}>Your Interactive Brokers trades are now in your journal.</div>
+          <div style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '24px' }}>Your MT4/MT5 trades are now in your journal.</div>
           <button className="btn btn-p" onClick={reset}>Import More</button>
         </div>
       </div>
@@ -114,14 +99,16 @@ export function IbkrImport({ userId, existingTrades, onImported }: Props) {
 
   if (step === 'preview') {
     const dups = parsed.filter(t => t.duplicate).length
+    const groups = new Set(parsed.filter(t => t.tradeGroupId).map(t => t.tradeGroupId)).size
     return (
       <div style={{ padding: '8px' }}>
         <div style={card}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
             <button className="btn btn-o" onClick={reset}>← Back</button>
             <div style={{ fontSize: '13px', fontWeight: 700 }}>
               Preview — {parsed.length} trade{parsed.length !== 1 ? 's' : ''} found
               {dups > 0 && <span style={{ fontSize: '10px', color: 'var(--orange)', marginLeft: '8px' }}>· {dups} possible duplicate{dups !== 1 ? 's' : ''}</span>}
+              {groups > 0 && <span style={{ fontSize: '10px', color: 'var(--txt3)', marginLeft: '8px' }}>· {groups} scaled-out group{groups !== 1 ? 's' : ''} detected</span>}
             </div>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
               <span style={{ fontSize: '11px', color: 'var(--txt3)' }}>{selected.size} selected</span>
@@ -140,7 +127,7 @@ export function IbkrImport({ userId, existingTrades, onImported }: Props) {
                   <th style={{ width: '32px', padding: '8px', borderBottom: '1px solid var(--brd)' }}>
                     <input type="checkbox" checked={selected.size === parsed.length} onChange={toggleAll} />
                   </th>
-                  {['Symbol','Side','Date','Shares','Entry','Exit','Hold','P&L','Status'].map(h => (
+                  {['Symbol','Side','Date','Lots','Entry','Exit','P&L','Status'].map(h => (
                     <th key={h} style={{ fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid var(--brd)' }}>{h}</th>
                   ))}
                 </tr>
@@ -151,15 +138,17 @@ export function IbkrImport({ userId, existingTrades, onImported }: Props) {
                     <td style={{ padding: '8px', borderBottom: '1px solid var(--brd)' }}>
                       <input type="checkbox" checked={selected.has(i)} onChange={() => toggleSelect(i)} onClick={e => e.stopPropagation()} />
                     </td>
-                    <td style={{ padding: '8px 12px', fontWeight: 700, fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>{t.symbol}</td>
+                    <td style={{ padding: '8px 12px', fontWeight: 700, fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>
+                      {t.symbol}
+                      {t.tradeGroupId && <span style={{ marginLeft: '6px', fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '4px', padding: '1px 6px' }}>scaled</span>}
+                    </td>
                     <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--brd)' }}>
                       <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', background: t.type === 'Short' ? 'var(--red-d)' : 'var(--ac-d)', color: t.type === 'Short' ? 'var(--red)' : 'var(--ac)' }}>{t.type}</span>
                     </td>
                     <td style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--txt2)', borderBottom: '1px solid var(--brd)' }}>{new Date(t.date).toLocaleDateString()}</td>
                     <td style={{ padding: '8px 12px', fontFamily: 'var(--mono)', fontSize: '11px', borderBottom: '1px solid var(--brd)' }}>{t.shares}</td>
-                    <td style={{ padding: '8px 12px', fontFamily: 'var(--mono)', fontSize: '11px', borderBottom: '1px solid var(--brd)' }}>${t.entry}</td>
-                    <td style={{ padding: '8px 12px', fontFamily: 'var(--mono)', fontSize: '11px', borderBottom: '1px solid var(--brd)' }}>${t.exit}</td>
-                    <td style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--txt3)', borderBottom: '1px solid var(--brd)' }}>{formatHold(t.holdMinutes)}</td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'var(--mono)', fontSize: '11px', borderBottom: '1px solid var(--brd)' }}>{t.entry}</td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'var(--mono)', fontSize: '11px', borderBottom: '1px solid var(--brd)' }}>{t.exit}</td>
                     <td style={{ padding: '8px 12px', fontFamily: 'var(--mono)', fontWeight: 700, color: t.pnl >= 0 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)' }}>
                       {t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}
                     </td>
@@ -182,13 +171,13 @@ export function IbkrImport({ userId, existingTrades, onImported }: Props) {
   return (
     <div style={{ padding: '8px' }}>
       <div style={card}>
-        <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>Interactive Brokers — Import CSV</div>
+        <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>MT4 / MT5 — Import Statement</div>
         <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: '18px' }}>
-          Upload your IBKR Activity Statement. Trades are previewed before anything is saved.
+          Upload your Account History report. These trades are tagged as Forex — position size shows in lots, not shares.
         </div>
 
         <div
-          onClick={() => document.getElementById('ibkr-file-input')?.click()}
+          onClick={() => document.getElementById('mt4-file-input')?.click()}
           onDragOver={e => { e.preventDefault(); setDragOver(true) }}
           onDragLeave={() => setDragOver(false)}
           onDrop={e => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]) }}
@@ -200,14 +189,14 @@ export function IbkrImport({ userId, existingTrades, onImported }: Props) {
           }}
         >
           <div style={{ fontSize: '24px', color: 'var(--txt3)', marginBottom: '6px' }}>⇪</div>
-          <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your IBKR Activity Statement here</div>
+          <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your MT4/MT5 statement here</div>
           <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>or click to browse</div>
-          <input id="ibkr-file-input" type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={e => handleFile(e.target.files?.[0])} />
+          <input id="mt4-file-input" type="file" accept=".htm,.html" style={{ display: 'none' }} onChange={e => handleFile(e.target.files?.[0])} />
         </div>
 
         <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '14px 16px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)', marginBottom: '8px' }}>How to export from Interactive Brokers:</div>
-          {['Log in to IBKR Client Portal', 'Go to Performance & Reports → Statements', 'Click Activity Statement → select your date range', 'Download as CSV', 'Upload the file above'].map((s, i) => (
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)', marginBottom: '8px' }}>How to export from MT4/MT5:</div>
+          {['Open the Terminal window in MT4/MT5', 'Click the Account History tab', 'Right-click anywhere in the trade list', 'Click "Save as Report" and save as HTML', 'Upload the file above'].map((s, i) => (
             <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '4px' }}>
               <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac)', minWidth: '16px' }}>{i + 1}.</span>
               <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{s}</span>
@@ -218,11 +207,6 @@ export function IbkrImport({ userId, existingTrades, onImported }: Props) {
         {error && (
           <div style={{ marginTop: '12px', background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: 'var(--red)' }}>
             ⚠️ {error}
-          </div>
-        )}
-        {notice && (
-          <div style={{ marginTop: '12px', background: 'rgba(59,130,246,.1)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: '#3B82F6' }}>
-            ℹ️ {notice}
           </div>
         )}
       </div>

@@ -298,6 +298,7 @@ export function TradeStationImport({ userId, existingTrades, onImported }: Props
     for (const t of toImport) {
       const inserted = await insertTrade({
         symbol:         t.symbol,
+        asset_type:     'stock',
         type:           t.type,
         date:           t.date,
         exit_date:      t.exitDate,

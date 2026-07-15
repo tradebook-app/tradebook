@@ -14,6 +14,7 @@ export type TradeRow = {
   entry: number
   exit: number | null
   shares: number
+  asset_type: 'stock' | 'option' | 'futures' | 'forex'
   pnl: number
   risk: number
   commission: number
@@ -27,6 +28,17 @@ export type TradeRow = {
   trade_group_id: string | null
   created_at: string
   updated_at: string
+}
+
+export const ASSET_TYPES: { value: TradeRow['asset_type']; label: string; unit: string }[] = [
+  { value: 'stock',   label: 'Stock',   unit: 'Shares' },
+  { value: 'option',  label: 'Option',  unit: 'Contracts' },
+  { value: 'futures', label: 'Futures', unit: 'Contracts' },
+  { value: 'forex',   label: 'Forex',   unit: 'Lots' },
+]
+
+export function assetUnitLabel(assetType: TradeRow['asset_type'] | null | undefined): string {
+  return ASSET_TYPES.find(a => a.value === assetType)?.unit || 'Shares'
 }
 
 export type NoteRow = {
