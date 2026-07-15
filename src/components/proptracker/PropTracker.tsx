@@ -47,6 +47,11 @@ const CATEGORIES: { value: PropFirmTransactionRow['category']; label: string }[]
   { value: 'other',  label: 'Other' },
 ]
 
+const BREACH_REASONS = [
+  'Overtraded', 'Hit max daily loss', 'Hit max drawdown', 'Held overnight',
+  'Full ported', 'News event violation', "Didn't take profit", 'Followed an alert', 'Other',
+]
+
 const DONUT_COLORS = ['#F5C542', '#3B82F6', '#10B981', '#EF4444', '#A855F7', '#F97316', '#EC4899', '#14B8A6']
 
 function todayISO() {
@@ -79,6 +84,27 @@ function statusMeta(status: string) {
   return STATUSES.find(s => s.value === status) || STATUSES[0]
 }
 
+function numOrNull(s: string) {
+  if (s.trim() === '') return null
+  const n = Number(s)
+  return isNaN(n) ? null : n
+}
+
+function ProgressRow({ label, current, target, color }: { label: string; current: number; target: number; color: string }) {
+  const pct = target > 0 ? Math.min(100, Math.max(0, (current / target) * 100)) : 0
+  return (
+    <div style={{ marginBottom: '6px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '3px' }}>
+        <span style={{ color: 'var(--txt3)' }}>{label}</span>
+        <span style={{ color: 'var(--txt2)' }}>${current.toLocaleString('en-US', { maximumFractionDigits: 0 })} of ${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+      </div>
+      <div style={{ height: '5px', background: 'var(--bg4)', borderRadius: '3px', overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: color }} />
+      </div>
+    </div>
+  )
+}
+
 export function PropTracker({ userId }: Props) {
   const [accounts, setAccounts] = useState<PropFirmAccountRow[]>([])
   const [txns, setTxns] = useState<PropFirmTransactionRow[]>([])
@@ -99,6 +125,15 @@ export function PropTracker({ userId }: Props) {
   const [endDate, setEndDate] = useState('')
   const [notes, setNotes] = useState('')
   const [savingAcct, setSavingAcct] = useState(false)
+  const [rulesOpen, setRulesOpen] = useState(false)
+  const [profitTarget, setProfitTarget] = useState('')
+  const [maxDailyLoss, setMaxDailyLoss] = useState('')
+  const [maxDrawdown, setMaxDrawdown] = useState('')
+  const [minTradingDays, setMinTradingDays] = useState('')
+  const [currentProfit, setCurrentProfit] = useState('')
+  const [currentDailyLoss, setCurrentDailyLoss] = useState('')
+  const [currentTradingDays, setCurrentTradingDays] = useState('')
+  const [failureReason, setFailureReason] = useState('')
 
   // Transaction modal
   const [txnModal, setTxnModal] = useState(false)
@@ -166,6 +201,16 @@ export function PropTracker({ userId }: Props) {
     return { labels, data }
   }, [txns])
 
+  const breachCounts = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const acc of accounts) {
+      if (acc.status === 'failed' && acc.failure_reason) {
+        map[acc.failure_reason] = (map[acc.failure_reason] || 0) + 1
+      }
+    }
+    return Object.entries(map).sort((a, b) => b[1] - a[1])
+  }, [accounts])
+
   // ─── Account modal handlers ─────────────────────────────────────────────
 
   function openNewAccount() {
@@ -174,6 +219,10 @@ export function PropTracker({ userId }: Props) {
     setSizeChoice(100000); setCustomSize('')
     setCurrency('USD'); setAcctType('evaluation'); setAcctStatus('active')
     setStartDate(todayISO()); setEndDate(''); setNotes('')
+    setRulesOpen(false)
+    setProfitTarget(''); setMaxDailyLoss(''); setMaxDrawdown(''); setMinTradingDays('')
+    setCurrentProfit(''); setCurrentDailyLoss(''); setCurrentTradingDays('')
+    setFailureReason('')
     setAcctModal(true)
   }
 
@@ -191,6 +240,15 @@ export function PropTracker({ userId }: Props) {
     setStartDate(acc.start_date)
     setEndDate(acc.end_date || '')
     setNotes(acc.notes || '')
+    setRulesOpen(!!(acc.profit_target || acc.max_daily_loss || acc.max_drawdown || acc.min_trading_days))
+    setProfitTarget(acc.profit_target != null ? String(acc.profit_target) : '')
+    setMaxDailyLoss(acc.max_daily_loss != null ? String(acc.max_daily_loss) : '')
+    setMaxDrawdown(acc.max_drawdown != null ? String(acc.max_drawdown) : '')
+    setMinTradingDays(acc.min_trading_days != null ? String(acc.min_trading_days) : '')
+    setCurrentProfit(acc.current_profit != null ? String(acc.current_profit) : '')
+    setCurrentDailyLoss(acc.current_daily_loss != null ? String(acc.current_daily_loss) : '')
+    setCurrentTradingDays(acc.current_trading_days != null ? String(acc.current_trading_days) : '')
+    setFailureReason(acc.failure_reason || '')
     setAcctModal(true)
   }
 
@@ -209,6 +267,14 @@ export function PropTracker({ userId }: Props) {
       start_date: startDate,
       end_date: endDate || null,
       notes: notes.trim() || null,
+      profit_target: numOrNull(profitTarget),
+      max_daily_loss: numOrNull(maxDailyLoss),
+      max_drawdown: numOrNull(maxDrawdown),
+      min_trading_days: numOrNull(minTradingDays),
+      current_profit: numOrNull(currentProfit),
+      current_daily_loss: numOrNull(currentDailyLoss),
+      current_trading_days: numOrNull(currentTradingDays),
+      failure_reason: acctStatus === 'failed' ? (failureReason || null) : null,
     }
 
     setSavingAcct(true)
@@ -345,6 +411,25 @@ export function PropTracker({ userId }: Props) {
             </div>
           </div>
 
+          {breachCounts.length > 0 && (
+            <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '16px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '12px' }}>Top Breach Reasons</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {breachCounts.map(([reason, count]) => (
+                  <div key={reason}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+                      <span>{reason}</span>
+                      <span style={{ color: 'var(--txt3)' }}>{count}</span>
+                    </div>
+                    <div style={{ height: '5px', background: 'var(--bg4)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: `${(count / breachCounts[0][1]) * 100}%`, height: '100%', background: 'var(--red)' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Account cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '12px' }}>
             {accounts.map(acc => {
@@ -387,6 +472,21 @@ export function PropTracker({ userId }: Props) {
                       </div>
                     </div>
                   </div>
+
+                  {(acc.profit_target || acc.min_trading_days || acc.max_daily_loss) && (
+                    <div style={{ marginBottom: '10px', padding: '10px', background: 'var(--bg4)', borderRadius: 'var(--r)' }}>
+                      <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '8px' }}>Path to Funding</div>
+                      {acc.profit_target && (
+                        <ProgressRow label="Profit" current={acc.current_profit || 0} target={acc.profit_target} color="var(--ac)" />
+                      )}
+                      {acc.min_trading_days && (
+                        <ProgressRow label="Trading days" current={acc.current_trading_days || 0} target={acc.min_trading_days} color="var(--blue, #3B82F6)" />
+                      )}
+                      {acc.max_daily_loss && (
+                        <ProgressRow label="Daily loss used" current={acc.current_daily_loss || 0} target={acc.max_daily_loss} color="var(--orange, #F59E0B)" />
+                      )}
+                    </div>
+                  )}
 
                   {acc.notes && (
                     <div style={{ fontSize: '11px', color: 'var(--txt2)', lineHeight: 1.5, marginBottom: '10px' }}>{acc.notes}</div>
@@ -497,6 +597,16 @@ export function PropTracker({ userId }: Props) {
           </div>
         </div>
 
+        {acctStatus === 'failed' && (
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '4px' }}>Reason for Failure</label>
+            <select className="fi" value={failureReason} onChange={e => setFailureReason(e.target.value)}>
+              <option value="">Select a reason...</option>
+              {BREACH_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '4px' }}>Start Date</label>
@@ -508,9 +618,57 @@ export function PropTracker({ userId }: Props) {
           </div>
         </div>
 
-        <div>
+        <div style={{ marginBottom: '4px' }}>
           <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '4px' }}>Notes (optional)</label>
           <textarea className="fi" rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Phase 1 passed, waiting on funded account..." />
+        </div>
+
+        <div style={{ marginTop: '12px', borderTop: '1px solid var(--brd)', paddingTop: '10px' }}>
+          <button
+            onClick={() => setRulesOpen(o => !o)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--sans)' }}
+          >
+            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--txt2)' }}>Challenge Rules (optional)</span>
+            <span style={{ fontSize: '11px', color: 'var(--txt3)', transform: rulesOpen ? 'rotate(180deg)' : 'none', transition: '.15s' }}>⌄</span>
+          </button>
+
+          {rulesOpen && (
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ fontSize: '10px', color: 'var(--txt3)', marginBottom: '10px' }}>
+                Enter the firm's targets, then update your progress here whenever you check in. This is self-reported — Sleektrade isn't connected to the firm's platform.
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Profit Target ($)</label>
+                  <input className="fi" type="number" value={profitTarget} onChange={e => setProfitTarget(e.target.value)} placeholder="3000" />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Current Profit ($)</label>
+                  <input className="fi" type="number" value={currentProfit} onChange={e => setCurrentProfit(e.target.value)} placeholder="1800" />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Min Trading Days</label>
+                  <input className="fi" type="number" value={minTradingDays} onChange={e => setMinTradingDays(e.target.value)} placeholder="10" />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Current Trading Days</label>
+                  <input className="fi" type="number" value={currentTradingDays} onChange={e => setCurrentTradingDays(e.target.value)} placeholder="7" />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Max Daily Loss ($)</label>
+                  <input className="fi" type="number" value={maxDailyLoss} onChange={e => setMaxDailyLoss(e.target.value)} placeholder="1500" />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Today's Daily Loss ($)</label>
+                  <input className="fi" type="number" value={currentDailyLoss} onChange={e => setCurrentDailyLoss(e.target.value)} placeholder="400" />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '9px', color: 'var(--txt3)', marginBottom: '4px' }}>Max Drawdown ($)</label>
+                  <input className="fi" type="number" value={maxDrawdown} onChange={e => setMaxDrawdown(e.target.value)} placeholder="2000" />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
 

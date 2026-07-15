@@ -61,6 +61,17 @@ export type PropFirmAccountRow = {
   start_date: string
   end_date: string | null
   notes: string | null
+  // Challenge rules — self-reported targets, entered by the user from the firm's rulebook
+  profit_target: number | null
+  max_daily_loss: number | null
+  max_drawdown: number | null
+  min_trading_days: number | null
+  // Manual progress — self-reported, updated by the user as they trade
+  current_profit: number | null
+  current_daily_loss: number | null
+  current_trading_days: number | null
+  // Only meaningful when status = 'failed'
+  failure_reason: string | null
   created_at: string
   updated_at: string
 }
