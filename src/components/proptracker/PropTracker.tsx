@@ -259,24 +259,35 @@ export function PropTracker({ userId }: Props) {
     const size = sizeChoice === -1 ? Number(customSize) : sizeChoice
     if (!size || size <= 0) return alert('Enter a valid account size')
 
+    const target = numOrNull(profitTarget)
+    const profit = numOrNull(currentProfit)
+    const minDays = numOrNull(minTradingDays)
+    const daysDone = numOrNull(currentTradingDays)
+    const targetMet = target != null && profit != null && profit >= target
+    const daysMet = minDays == null || (daysDone != null && daysDone >= minDays)
+    const autoPassed = acctStatus === 'active' && targetMet && daysMet
+    const finalStatus: PropFirmAccountRow['status'] = autoPassed ? 'passed' : acctStatus
+
     const payload: PropFirmAccountInsert = {
       firm_name: firmName,
       account_size: size,
       currency,
       account_type: acctType,
-      status: acctStatus,
+      status: finalStatus,
       start_date: startDate,
       end_date: endDate || null,
       notes: notes.trim() || null,
-      profit_target: numOrNull(profitTarget),
+      profit_target: target,
       max_daily_loss: numOrNull(maxDailyLoss),
       max_drawdown: numOrNull(maxDrawdown),
-      min_trading_days: numOrNull(minTradingDays),
-      current_profit: numOrNull(currentProfit),
+      min_trading_days: minDays,
+      current_profit: profit,
       current_daily_loss: numOrNull(currentDailyLoss),
-      current_trading_days: numOrNull(currentTradingDays),
-      failure_reason: acctStatus === 'failed' ? (failureReason || null) : null,
+      current_trading_days: daysDone,
+      failure_reason: finalStatus === 'failed' ? (failureReason || null) : null,
     }
+
+    if (autoPassed) alert(`${firmName} hit its profit target — status automatically set to Passed.`)
 
     setSavingAcct(true)
     if (editingAcct) {
