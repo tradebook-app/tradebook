@@ -90,13 +90,14 @@ function numOrNull(s: string) {
   return isNaN(n) ? null : n
 }
 
-function ProgressRow({ label, current, target, color }: { label: string; current: number; target: number; color: string }) {
+function ProgressRow({ label, current, target, color, unit = '$' }: { label: string; current: number; target: number; color: string; unit?: '$' | '' }) {
   const pct = target > 0 ? Math.min(100, Math.max(0, (current / target) * 100)) : 0
+  const fmt = (n: number) => unit === '$' ? `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : n.toLocaleString('en-US', { maximumFractionDigits: 0 })
   return (
     <div style={{ marginBottom: '6px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '3px' }}>
         <span style={{ color: 'var(--txt3)' }}>{label}</span>
-        <span style={{ color: 'var(--txt2)' }}>${current.toLocaleString('en-US', { maximumFractionDigits: 0 })} of ${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+        <span style={{ color: 'var(--txt2)' }}>{fmt(current)} of {fmt(target)} <span style={{ color: 'var(--txt3)' }}>({Math.round(pct)}%)</span></span>
       </div>
       <div style={{ height: '5px', background: 'var(--bg4)', borderRadius: '3px', overflow: 'hidden' }}>
         <div style={{ width: `${pct}%`, height: '100%', background: color }} />
@@ -480,7 +481,7 @@ export function PropTracker({ userId }: Props) {
                         <ProgressRow label="Profit" current={acc.current_profit || 0} target={acc.profit_target} color="var(--ac)" />
                       )}
                       {acc.min_trading_days && (
-                        <ProgressRow label="Trading days" current={acc.current_trading_days || 0} target={acc.min_trading_days} color="var(--blue, #3B82F6)" />
+                        <ProgressRow label="Trading days" current={acc.current_trading_days || 0} target={acc.min_trading_days} color="var(--blue, #3B82F6)" unit="" />
                       )}
                       {acc.max_daily_loss && (
                         <ProgressRow label="Daily loss used" current={acc.current_daily_loss || 0} target={acc.max_daily_loss} color="var(--orange, #F59E0B)" />
