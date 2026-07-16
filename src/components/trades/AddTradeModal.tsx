@@ -226,6 +226,23 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
   const row2: React.CSSProperties = {
     display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px',
   }
+  const sectionHeader: React.CSSProperties = {
+    fontSize: '10px', fontWeight: 700, color: 'var(--txt3)',
+    textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '10px',
+  }
+  const divider: React.CSSProperties = {
+    borderTop: '1px solid var(--brd)', margin: '18px 0',
+  }
+  function segBtn(active: boolean, activeColor = 'var(--ac)'): React.CSSProperties {
+    return {
+      flex: 1, padding: '9px 4px', borderRadius: 'var(--r)',
+      fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+      fontFamily: 'var(--sans)', transition: '.1s',
+      border: `1px solid ${active ? activeColor : 'var(--brd2)'}`,
+      background: active ? `${activeColor}22` : 'var(--bg4)',
+      color: active ? activeColor : 'var(--txt3)',
+    }
+  }
 
   return (
     <Modal
@@ -241,7 +258,8 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
         </>
       }
     >
-      {/* Symbol + Side */}
+      {/* Trade Details */}
+      <div style={sectionHeader}>Trade Details</div>
       <div style={row2}>
         <div>
           <label style={lbl}>Symbol</label>
@@ -250,19 +268,17 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
             className="fi"
             value={symbol}
             onChange={e => setSymbol(e.target.value.toUpperCase())}
-            placeholder="NVDA"
           />
         </div>
         <div>
           <label style={lbl}>Side</label>
-          <select className="fi" value={side} onChange={e => setSide(e.target.value as 'Long' | 'Short')}>
-            <option>Long</option>
-            <option>Short</option>
-          </select>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button type="button" onClick={() => setSide('Long')} style={segBtn(side === 'Long', 'var(--ac)')}>Long</button>
+            <button type="button" onClick={() => setSide('Short')} style={segBtn(side === 'Short', 'var(--red)')}>Short</button>
+          </div>
         </div>
       </div>
 
-      {/* Dates */}
       <div style={row2}>
         <div>
           <label style={lbl}>Entry Date & Time</label>
@@ -274,29 +290,32 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
         </div>
       </div>
 
-      {/* Entry / Exit */}
       <div style={row2}>
         <div>
           <label style={lbl}>Entry ($)</label>
           <input className="fi" type="number" value={entry} onChange={e => setEntry(e.target.value)}
-            placeholder="0.00" style={{ fontFamily: 'var(--mono)' }} />
+            style={{ fontFamily: 'var(--mono)' }} />
         </div>
         <div>
           <label style={lbl}>Exit ($)</label>
           <input className="fi" type="number" value={exit} onChange={e => setExit(e.target.value)}
-            placeholder="0.00" style={{ fontFamily: 'var(--mono)' }} />
+            style={{ fontFamily: 'var(--mono)' }} />
         </div>
       </div>
 
+      <div style={divider} />
+
       {/* Asset Type */}
-      <div style={row2}>
-        <div>
-          <label style={lbl}>Asset Type</label>
-          <select className="fi" value={assetType} onChange={e => setAssetType(e.target.value as TradeRow['asset_type'])}>
-            {ASSET_TYPES.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
-          </select>
-        </div>
-        <div />
+      <div style={sectionHeader}>Asset Type</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '12px' }}>
+        {ASSET_TYPES.map(a => (
+          <button
+            key={a.value}
+            type="button"
+            onClick={() => setAssetType(a.value)}
+            style={segBtn(assetType === a.value, 'var(--ac)')}
+          >{a.label}</button>
+        ))}
       </div>
 
       {futuresPointUnknown && (
@@ -311,17 +330,16 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
         </div>
       )}
 
-      {/* Shares / P&L override */}
       <div style={row2}>
         <div>
           <label style={lbl}>{assetUnitLabel(assetType)}</label>
           <input className="fi" type="number" value={shares} onChange={e => setShares(e.target.value)}
-            placeholder="100" style={{ fontFamily: 'var(--mono)' }} />
+            style={{ fontFamily: 'var(--mono)' }} />
         </div>
         <div>
           <label style={lbl}>P&L ($) Override</label>
           <input className="fi" type="number" value={pnlOver} onChange={e => setPnlOver(e.target.value)}
-            placeholder={`Auto: ${calcPnl() >= 0 ? '+' : ''}${calcPnl().toFixed(2)}`}
+            placeholder="Auto-calculated"
             style={{ fontFamily: 'var(--mono)' }} />
         </div>
       </div>
@@ -336,21 +354,27 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
         </div>
       )}
 
-      {/* Risk / Commission */}
+      <div style={divider} />
+
+      {/* Risk & Cost */}
+      <div style={sectionHeader}>Risk &amp; Cost</div>
       <div style={row2}>
         <div>
           <label style={lbl}>Risk 1R ($)</label>
           <input className="fi" type="number" value={risk} onChange={e => setRisk(e.target.value)}
-            placeholder="150" style={{ fontFamily: 'var(--mono)' }} />
+            style={{ fontFamily: 'var(--mono)' }} />
         </div>
         <div>
           <label style={lbl}>Commissions ($)</label>
           <input className="fi" type="number" value={commission} onChange={e => setCommission(e.target.value)}
-            placeholder="0" style={{ fontFamily: 'var(--mono)' }} />
+            style={{ fontFamily: 'var(--mono)' }} />
         </div>
       </div>
 
-      {/* Setup / Grade */}
+      <div style={divider} />
+
+      {/* Context */}
+      <div style={sectionHeader}>Context</div>
       <div style={row2}>
         <div>
           <label style={lbl}>Strategy</label>
@@ -407,6 +431,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
             {GRADES.map(g => (
               <button
                 key={g}
+                type="button"
                 onClick={() => setGrade(grade === g ? '' : g)}
                 style={{
                   padding: '5px 10px',
@@ -457,7 +482,6 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
             onChange={e => setTagInput(e.target.value)}
             onKeyDown={handleTagKey}
             onBlur={() => tagInput && addTag(tagInput)}
-            placeholder={tags.length ? '' : 'breakout, gap...'}
             style={{
               background: 'none', border: 'none', outline: 'none',
               color: 'var(--txt)', fontSize: '10px',
@@ -475,7 +499,6 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
           value={notes}
           onChange={e => setNotes(e.target.value)}
           rows={3}
-          placeholder="Setup rationale, market context..."
         />
       </div>
 
