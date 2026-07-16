@@ -324,12 +324,6 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
         </div>
       )}
 
-      {assetType === 'option' && (
-        <div style={{ fontSize: '10px', color: 'var(--txt3)', marginBottom: '12px' }}>
-          Auto-calculated P&amp;L assumes a standard 100-share contract multiplier. If this is a non-standard (mini) option, enter the exact P&amp;L in the override field instead.
-        </div>
-      )}
-
       <div style={row2}>
         <div>
           <label style={lbl}>{assetUnitLabel(assetType)}</label>
