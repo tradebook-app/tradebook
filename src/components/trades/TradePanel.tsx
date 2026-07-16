@@ -127,13 +127,14 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
       return d.slice(0, 10)
     }
     const result: TradeMarker[] = []
+    const isOption = trade.asset_type === 'option'
     if (trade.date) {
       result.push({
         time: formatTime(trade.date),
         position: trade.type === 'Short' ? 'aboveBar' : 'belowBar',
         color: '#3b82f6',
         shape: trade.type === 'Short' ? 'arrowDown' : 'arrowUp',
-        text: `Entry $${trade.entry}`,
+        text: isOption ? 'Entry' : `Entry $${trade.entry}`,
       })
     }
     if (trade.exit_date && trade.exit) {
@@ -143,7 +144,7 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
         position: trade.type === 'Short' ? 'belowBar' : 'aboveBar',
         color: isWin ? '#22c55e' : '#ef4444',
         shape: trade.type === 'Short' ? 'arrowUp' : 'arrowDown',
-        text: `Exit $${trade.exit}`,
+        text: isOption ? 'Exit' : `Exit $${trade.exit}`,
       })
     }
     return result
