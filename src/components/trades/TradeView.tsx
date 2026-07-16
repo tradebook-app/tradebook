@@ -94,6 +94,7 @@ function buildGroupedRows(trades: TradeRow[]): GroupedRow[] {
     })
   }
 
+  rows.sort((a, b) => b.date.localeCompare(a.date))
   return rows
 }
 
