@@ -41,6 +41,7 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
   const [imported,  setImported]  = useState(0)
   const [error,     setError]     = useState('')
   const [notice,    setNotice]    = useState('')
+  const [dragOver,  setDragOver]  = useState(false)
 
   async function parseCSV(text: string): Promise<{ trades: ParsedTrade[]; carriedForward: { symbol: string; side: string; qty: number }[] }> {
     const lines = text.trim().split('\n').filter(l => l.trim())
@@ -240,8 +241,7 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
     }
   }
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
+  function processFile(file: File | undefined) {
     if (!file) return
     setError('')
     setNotice('')
@@ -268,6 +268,10 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
       }
     }
     reader.readAsText(file)
+  }
+
+  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    processFile(e.target.files?.[0])
   }
 
   function toggleSelect(i: number) {
@@ -484,26 +488,23 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
         </div>
       </div>
 
-      {/* Upload area */}
-      <label style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        gap: '10px', padding: '40px',
-        background: 'var(--bg3)', border: '2px dashed var(--brd2)',
-        borderRadius: 'var(--r2)', cursor: 'pointer', transition: '.15s',
-      }}
-        onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--ac)')}
-        onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--brd2)')}
+      <div
+        onClick={() => document.getElementById('webull-file-input')?.click()}
+        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => { e.preventDefault(); setDragOver(false); processFile(e.dataTransfer.files[0]) }}
+        style={{
+          border: `2px dashed ${dragOver ? 'var(--ac)' : 'var(--brd2)'}`,
+          borderRadius: 'var(--r2)', padding: '34px',
+          textAlign: 'center', cursor: 'pointer',
+          marginBottom: '14px', transition: '.15s',
+        }}
       >
-        <input
-          type="file"
-          accept=".csv,.txt,.tsv"
-          style={{ display: 'none' }}
-          onChange={handleFile}
-        />
-        <div style={{ fontSize: '28px' }}>📂</div>
-        <div style={{ fontSize: '13px', fontWeight: 600 }}>Click to upload Webull export file</div>
-        <div style={{ fontSize: '10px', color: 'var(--txt3)' }}>Supports .csv files</div>
-      </label>
+        <div style={{ fontSize: '24px', color: 'var(--txt3)', marginBottom: '6px' }}>⇪</div>
+        <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your Webull export file here</div>
+        <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>or click to browse</div>
+        <input id="webull-file-input" type="file" accept=".csv,.txt,.tsv" style={{ display: 'none' }} onChange={handleFileInput} />
+      </div>
 
       {error && (
         <div style={{
