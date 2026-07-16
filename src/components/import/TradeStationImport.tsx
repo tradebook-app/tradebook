@@ -342,17 +342,25 @@ export function TradeStationImport({ userId, existingTrades, onImported }: Props
     setImported(0); setError(''); setNotice('')
   }
 
+  const card: React.CSSProperties = {
+    background: 'var(--bg2)', border: '1px solid var(--brd)',
+    borderRadius: 'var(--r2)', padding: '20px',
+    maxWidth: '640px', margin: '0 auto',
+  }
+
   if (step === 'done') {
     return (
-      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '48px', textAlign: 'center', maxWidth: '640px', margin: '0 auto' }}>
-        <div style={{ fontSize: '40px', marginBottom: '14px' }}>✅</div>
-        <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
-          {imported} trade{imported !== 1 ? 's' : ''} imported!
+      <div style={{ padding: '8px' }}>
+        <div style={{ ...card, textAlign: 'center', padding: '48px' }}>
+          <div style={{ fontSize: '40px', marginBottom: '14px' }}>✅</div>
+          <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
+            {imported} trade{imported !== 1 ? 's' : ''} imported!
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '24px' }}>
+            Your TradeStation trades are now in the database. Head to Trade View or Dashboard to see them.
+          </div>
+          <button className="btn btn-p" onClick={reset}>Import More</button>
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '24px' }}>
-          Your TradeStation trades are now in the database. Head to Trade View or Dashboard to see them.
-        </div>
-        <button className="btn btn-p" onClick={reset}>Import More</button>
       </div>
     )
   }
@@ -361,7 +369,8 @@ export function TradeStationImport({ userId, existingTrades, onImported }: Props
     const dups  = parsed.filter(t => t.duplicate).length
     const total = parsed.length
     return (
-      <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+      <div style={{ padding: '8px' }}>
+      <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
           <button className="btn btn-o" onClick={reset}>← Back</button>
           <div style={{ fontSize: '13px', fontWeight: 700 }}>
@@ -421,66 +430,67 @@ export function TradeStationImport({ userId, existingTrades, onImported }: Props
           </table>
         </div>
       </div>
+      </div>
     )
   }
 
   return (
-    <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>Import from TradeStation</div>
-        <div style={{ fontSize: '11px', color: 'var(--txt3)', lineHeight: 1.6 }}>
+    <div style={{ padding: '8px' }}>
+      <div style={card}>
+        <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>Import from TradeStation</div>
+        <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: '18px' }}>
           Export your activity CSV from TradeStation HUB and upload it here.
           Commissions are included. Duplicates are detected automatically.
         </div>
-      </div>
 
-      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '16px 20px', marginBottom: '20px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)', marginBottom: '10px' }}>How to export from TradeStation:</div>
-        {[
-          'Log in to my.tradestation.com (HUB)',
-          'Click on your account → Activity tab',
-          'Set your date range (max 6 months per export)',
-          'Click the CSV download button',
-          'Upload the file below',
-        ].map((s, i) => (
-          <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac)', minWidth: '16px' }}>{i + 1}.</span>
-            <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{s}</span>
+        <div
+          onClick={() => document.getElementById('tradestation-file-input')?.click()}
+          onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={e => { e.preventDefault(); setDragOver(false); processFile(e.dataTransfer.files[0]) }}
+          style={{
+            border: `2px dashed ${dragOver ? 'var(--ac)' : 'var(--brd2)'}`,
+            borderRadius: 'var(--r2)', padding: '34px',
+            textAlign: 'center', cursor: 'pointer',
+            marginBottom: '14px', transition: '.15s',
+          }}
+        >
+          <div style={{ fontSize: '24px', color: 'var(--txt3)', marginBottom: '6px' }}>⇪</div>
+          <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your TradeStation export file here</div>
+          <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>or click to browse</div>
+          <input id="tradestation-file-input" type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileInput} />
+        </div>
+
+        <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '14px 16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)', marginBottom: '8px' }}>How to export from TradeStation:</div>
+          {[
+            'Log in to my.tradestation.com (HUB)',
+            'Click on your account → Activity tab',
+            'Set your date range (max 6 months per export)',
+            'Click the CSV download button',
+            'Upload the file above',
+          ].map((s, i) => (
+            <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac)', minWidth: '16px' }}>{i + 1}.</span>
+              <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{s}</span>
+            </div>
+          ))}
+          <div style={{ marginTop: '12px', fontSize: '10px', color: 'var(--txt3)', background: 'rgba(245,158,11,.08)', borderRadius: 'var(--r)', padding: '8px 12px', borderLeft: '2px solid var(--orange)' }}>
+            ⚠️ TradeStation limits exports to 6 months per file. Use multiple exports for longer date ranges.
           </div>
-        ))}
-        <div style={{ marginTop: '12px', fontSize: '10px', color: 'var(--txt3)', background: 'rgba(245,158,11,.08)', borderRadius: 'var(--r)', padding: '8px 12px', borderLeft: '2px solid var(--orange)' }}>
-          ⚠️ TradeStation limits exports to 6 months per file. Use multiple exports for longer date ranges.
         </div>
-      </div>
 
-      <div
-        onClick={() => document.getElementById('tradestation-file-input')?.click()}
-        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={e => { e.preventDefault(); setDragOver(false); processFile(e.dataTransfer.files[0]) }}
-        style={{
-          border: `2px dashed ${dragOver ? 'var(--ac)' : 'var(--brd2)'}`,
-          borderRadius: 'var(--r2)', padding: '34px',
-          textAlign: 'center', cursor: 'pointer',
-          marginBottom: '14px', transition: '.15s',
-        }}
-      >
-        <div style={{ fontSize: '24px', color: 'var(--txt3)', marginBottom: '6px' }}>⇪</div>
-        <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your TradeStation export file here</div>
-        <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>or click to browse</div>
-        <input id="tradestation-file-input" type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileInput} />
-      </div>
-
-      {error && (
-        <div style={{ marginTop: '12px', background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: 'var(--red)' }}>
-          ⚠️ {error}
-        </div>
-      )}
-      {notice && (
-        <div style={{ marginTop: '12px', background: 'rgba(59,130,246,.1)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: '#3B82F6' }}>
+        {error && (
+          <div style={{ marginTop: '12px', background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: 'var(--red)' }}>
+            ⚠️ {error}
+          </div>
+        )}
+        {notice && (
+          <div style={{ marginTop: '12px', background: 'rgba(59,130,246,.1)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: '#3B82F6' }}>
           ℹ️ {notice}
         </div>
       )}
+      </div>
     </div>
   )
 }

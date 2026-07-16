@@ -329,22 +329,26 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
     setImported(0); setError(''); setNotice('')
   }
 
+  const card: React.CSSProperties = {
+    background: 'var(--bg2)', border: '1px solid var(--brd)',
+    borderRadius: 'var(--r2)', padding: '20px',
+    maxWidth: '640px', margin: '0 auto',
+  }
+
   // ── Done screen ──────────────────────────────────────────────────────────
   if (step === 'done') {
     return (
-      <div style={{
-        background: 'var(--bg3)', border: '1px solid var(--brd)',
-        borderRadius: 'var(--r2)', padding: '48px', textAlign: 'center',
-        maxWidth: '640px', margin: '0 auto',
-      }}>
-        <div style={{ fontSize: '40px', marginBottom: '14px' }}>✅</div>
-        <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
-          {imported} trade{imported !== 1 ? 's' : ''} imported!
+      <div style={{ padding: '8px' }}>
+        <div style={{ ...card, textAlign: 'center', padding: '48px' }}>
+          <div style={{ fontSize: '40px', marginBottom: '14px' }}>✅</div>
+          <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
+            {imported} trade{imported !== 1 ? 's' : ''} imported!
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '24px' }}>
+            Your Webull trades are now in the database. Head to Trade View or Dashboard to see them.
+          </div>
+          <button className="btn btn-p" onClick={reset}>Import More</button>
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '24px' }}>
-          Your Webull trades are now in the database. Head to Trade View or Dashboard to see them.
-        </div>
-        <button className="btn btn-p" onClick={reset}>Import More</button>
       </div>
     )
   }
@@ -355,7 +359,8 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
     const total = parsed.length
 
     return (
-      <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+      <div style={{ padding: '8px' }}>
+      <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
           <button className="btn btn-o" onClick={reset}>← Back</button>
           <div style={{ fontSize: '13px', fontWeight: 700 }}>
@@ -445,86 +450,83 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
           </table>
         </div>
       </div>
+      </div>
     )
   }
 
   // ── Upload screen ────────────────────────────────────────────────────────
   return (
-    <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>Import from Webull</div>
-        <div style={{ fontSize: '11px', color: 'var(--txt3)', lineHeight: 1.6 }}>
+    <div style={{ padding: '8px' }}>
+      <div style={card}>
+        <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>Import from Webull</div>
+        <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: '18px' }}>
           Export your order history from Webull and upload it here. Partial fills are automatically
           collapsed. Buy/sell pairs are matched to calculate P&L. Duplicates are detected automatically.
         </div>
-      </div>
 
-      {/* How to export instructions */}
-      <div style={{
-        background: 'var(--bg3)', border: '1px solid var(--brd)',
-        borderRadius: 'var(--r2)', padding: '16px 20px', marginBottom: '20px',
-      }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)', marginBottom: '10px' }}>
-          How to export from Webull Desktop:
+        <div
+          onClick={() => document.getElementById('webull-file-input')?.click()}
+          onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={e => { e.preventDefault(); setDragOver(false); processFile(e.dataTransfer.files[0]) }}
+          style={{
+            border: `2px dashed ${dragOver ? 'var(--ac)' : 'var(--brd2)'}`,
+            borderRadius: 'var(--r2)', padding: '34px',
+            textAlign: 'center', cursor: 'pointer',
+            marginBottom: '14px', transition: '.15s',
+          }}
+        >
+          <div style={{ fontSize: '24px', color: 'var(--txt3)', marginBottom: '6px' }}>⇪</div>
+          <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your Webull export file here</div>
+          <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>or click to browse</div>
+          <input id="webull-file-input" type="file" accept=".csv,.txt,.tsv" style={{ display: 'none' }} onChange={handleFileInput} />
         </div>
-        {[
-          'Open Webull Desktop',
-          'Go to Account → Orders → Order History',
-          'Set your date range (max 90 days per export)',
-          'Filter by Status: Fully Filled',
-          'Click the Export button and save as CSV',
-          'Upload the file below',
-        ].map((s, i) => (
-          <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac)', minWidth: '16px' }}>{i + 1}.</span>
-            <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{s}</span>
+
+        <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '14px 16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)', marginBottom: '8px' }}>
+            How to export from Webull Desktop:
           </div>
-        ))}
-        <div style={{
-          marginTop: '12px', fontSize: '10px', color: 'var(--txt3)',
-          background: 'rgba(245,158,11,.08)', borderRadius: 'var(--r)',
-          padding: '8px 12px', borderLeft: '2px solid var(--orange)',
-        }}>
-          ⚠️ Webull limits exports to one per day and 90 days per file. Export regularly so you don't lose history.
+          {[
+            'Open Webull Desktop',
+            'Go to Account → Orders → Order History',
+            'Set your date range (max 90 days per export)',
+            'Filter by Status: Fully Filled',
+            'Click the Export button and save as CSV',
+            'Upload the file above',
+          ].map((s, i) => (
+            <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac)', minWidth: '16px' }}>{i + 1}.</span>
+              <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{s}</span>
+            </div>
+          ))}
+          <div style={{
+            marginTop: '12px', fontSize: '10px', color: 'var(--txt3)',
+            background: 'rgba(245,158,11,.08)', borderRadius: 'var(--r)',
+            padding: '8px 12px', borderLeft: '2px solid var(--orange)',
+          }}>
+            ⚠️ Webull limits exports to one per day and 90 days per file. Export regularly so you don't lose history.
+          </div>
         </div>
-      </div>
 
-      <div
-        onClick={() => document.getElementById('webull-file-input')?.click()}
-        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={e => { e.preventDefault(); setDragOver(false); processFile(e.dataTransfer.files[0]) }}
-        style={{
-          border: `2px dashed ${dragOver ? 'var(--ac)' : 'var(--brd2)'}`,
-          borderRadius: 'var(--r2)', padding: '34px',
-          textAlign: 'center', cursor: 'pointer',
-          marginBottom: '14px', transition: '.15s',
-        }}
-      >
-        <div style={{ fontSize: '24px', color: 'var(--txt3)', marginBottom: '6px' }}>⇪</div>
-        <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your Webull export file here</div>
-        <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>or click to browse</div>
-        <input id="webull-file-input" type="file" accept=".csv,.txt,.tsv" style={{ display: 'none' }} onChange={handleFileInput} />
+        {error && (
+          <div style={{
+            marginTop: '12px', background: 'var(--red-d)',
+            border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)',
+            padding: '10px 14px', fontSize: '11px', color: 'var(--red)',
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
+        {notice && (
+          <div style={{
+            marginTop: '12px', background: 'rgba(59,130,246,.1)',
+            border: '1px solid rgba(59,130,246,.2)', borderRadius: 'var(--r)',
+            padding: '10px 14px', fontSize: '11px', color: '#3B82F6',
+          }}>
+            ℹ️ {notice}
+          </div>
+        )}
       </div>
-
-      {error && (
-        <div style={{
-          marginTop: '12px', background: 'var(--red-d)',
-          border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)',
-          padding: '10px 14px', fontSize: '11px', color: 'var(--red)',
-        }}>
-          ⚠️ {error}
-        </div>
-      )}
-      {notice && (
-        <div style={{
-          marginTop: '12px', background: 'rgba(59,130,246,.1)',
-          border: '1px solid rgba(59,130,246,.2)', borderRadius: 'var(--r)',
-          padding: '10px 14px', fontSize: '11px', color: '#3B82F6',
-        }}>
-          ℹ️ {notice}
-        </div>
-      )}
     </div>
   )
 }

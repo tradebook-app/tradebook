@@ -358,17 +358,25 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
     setImported(0); setError(''); setNotice('')
   }
 
+  const card: React.CSSProperties = {
+    background: 'var(--bg2)', border: '1px solid var(--brd)',
+    borderRadius: 'var(--r2)', padding: '20px',
+    maxWidth: '640px', margin: '0 auto',
+  }
+
   if (step === 'done') {
     return (
-      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '48px', textAlign: 'center', maxWidth: '640px', margin: '0 auto' }}>
-        <div style={{ fontSize: '40px', marginBottom: '14px' }}>✅</div>
-        <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
-          {imported} trade{imported !== 1 ? 's' : ''} imported!
+      <div style={{ padding: '8px' }}>
+        <div style={{ ...card, textAlign: 'center', padding: '48px' }}>
+          <div style={{ fontSize: '40px', marginBottom: '14px' }}>✅</div>
+          <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
+            {imported} trade{imported !== 1 ? 's' : ''} imported!
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '24px' }}>
+            Your Tradovate trades are now in the database. Head to Trade View or Dashboard to see them.
+          </div>
+          <button className="btn btn-p" onClick={reset}>Import More</button>
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '24px' }}>
-          Your Tradovate trades are now in the database. Head to Trade View or Dashboard to see them.
-        </div>
-        <button className="btn btn-p" onClick={reset}>Import More</button>
       </div>
     )
   }
@@ -379,7 +387,8 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
     const groupCounts: Record<string, number> = {}
     parsed.forEach(t => { groupCounts[t.tradeGroupId] = (groupCounts[t.tradeGroupId] || 0) + 1 })
     return (
-      <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+      <div style={{ padding: '8px' }}>
+      <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
           <button className="btn btn-o" onClick={reset}>← Back</button>
           <div style={{ fontSize: '13px', fontWeight: 700 }}>
@@ -441,63 +450,64 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
           </table>
         </div>
       </div>
+      </div>
     )
   }
 
   return (
-    <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>Import from Tradovate</div>
-        <div style={{ fontSize: '11px', color: 'var(--txt3)', lineHeight: 1.6 }}>
+    <div style={{ padding: '8px' }}>
+      <div style={card}>
+        <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>Import from Tradovate</div>
+        <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: '18px' }}>
           Export your Orders CSV from Tradovate and upload it here. Only filled orders are
           imported. Point values are read directly from the file's Notional Value where
           available, so P&amp;L should be accurate even for less common contracts.
         </div>
-      </div>
 
-      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '16px 20px', marginBottom: '20px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)', marginBottom: '10px' }}>How to export from Tradovate:</div>
-        {[
-          'Open the Orders tab in Tradovate',
-          'Set your date range',
-          'Click the export/download icon on the Orders grid',
-          'Upload the CSV file below',
-        ].map((s, i) => (
-          <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac)', minWidth: '16px' }}>{i + 1}.</span>
-            <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{s}</span>
-          </div>
-        ))}
-      </div>
-
-      <div
-        onClick={() => document.getElementById('tradovate-file-input')?.click()}
-        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={e => { e.preventDefault(); setDragOver(false); processFile(e.dataTransfer.files[0]) }}
-        style={{
-          border: `2px dashed ${dragOver ? 'var(--ac)' : 'var(--brd2)'}`,
-          borderRadius: 'var(--r2)', padding: '34px',
-          textAlign: 'center', cursor: 'pointer',
-          marginBottom: '14px', transition: '.15s',
-        }}
-      >
-        <div style={{ fontSize: '24px', color: 'var(--txt3)', marginBottom: '6px' }}>⇪</div>
-        <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your Tradovate Orders CSV here</div>
-        <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>or click to browse</div>
-        <input id="tradovate-file-input" type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileInput} />
-      </div>
-
-      {error && (
-        <div style={{ marginTop: '12px', background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: 'var(--red)' }}>
-          ⚠️ {error}
+        <div
+          onClick={() => document.getElementById('tradovate-file-input')?.click()}
+          onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={e => { e.preventDefault(); setDragOver(false); processFile(e.dataTransfer.files[0]) }}
+          style={{
+            border: `2px dashed ${dragOver ? 'var(--ac)' : 'var(--brd2)'}`,
+            borderRadius: 'var(--r2)', padding: '34px',
+            textAlign: 'center', cursor: 'pointer',
+            marginBottom: '14px', transition: '.15s',
+          }}
+        >
+          <div style={{ fontSize: '24px', color: 'var(--txt3)', marginBottom: '6px' }}>⇪</div>
+          <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your Tradovate Orders CSV here</div>
+          <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>or click to browse</div>
+          <input id="tradovate-file-input" type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileInput} />
         </div>
-      )}
-      {notice && (
-        <div style={{ marginTop: '12px', background: 'rgba(59,130,246,.1)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: '#3B82F6' }}>
+
+        <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '14px 16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)', marginBottom: '8px' }}>How to export from Tradovate:</div>
+          {[
+            'Open the Orders tab in Tradovate',
+            'Set your date range',
+            'Click the export/download icon on the Orders grid',
+            'Upload the CSV file above',
+          ].map((s, i) => (
+            <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac)', minWidth: '16px' }}>{i + 1}.</span>
+              <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{s}</span>
+            </div>
+          ))}
+        </div>
+
+        {error && (
+          <div style={{ marginTop: '12px', background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: 'var(--red)' }}>
+            ⚠️ {error}
+          </div>
+        )}
+        {notice && (
+          <div style={{ marginTop: '12px', background: 'rgba(59,130,246,.1)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: '#3B82F6' }}>
           ℹ️ {notice}
         </div>
       )}
+      </div>
     </div>
   )
 }

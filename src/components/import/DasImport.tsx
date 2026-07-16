@@ -575,6 +575,23 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
               />
             </div>
 
+            <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2, 10px)', padding: '14px 16px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)', marginBottom: '8px' }}>
+                How to export from DAS Trader Pro:
+              </div>
+              {[
+                'Open the Trades or Orders tab in DAS Trader Pro',
+                'Set your date range for the executions you want to export',
+                'Right-click the grid → Export → Save as CSV',
+                'Upload the file above',
+              ].map((s, i) => (
+                <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac)', minWidth: '16px' }}>{i + 1}.</span>
+                  <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{s}</span>
+                </div>
+              ))}
+            </div>
+
             <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Default Risk / 1R ($)</label>
