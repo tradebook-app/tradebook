@@ -592,28 +592,6 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
               ))}
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Default Risk / 1R ($)</label>
-                <input
-                  style={inputStyle}
-                  type="number"
-                  value={defaultRisk}
-                  onChange={(e) => setDefaultRisk(e.target.value)}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Default Setup (optional)</label>
-                <input
-                  style={{ ...inputStyle, fontFamily: 'var(--sans)' }}
-                  type="text"
-                  placeholder="e.g. Breakout"
-                  value={defaultSetup}
-                  onChange={(e) => setDefaultSetup(e.target.value)}
-                />
-              </div>
-            </div>
-
             {error && (
               <div
                 style={{
