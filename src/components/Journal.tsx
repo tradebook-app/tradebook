@@ -209,7 +209,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
     }
 
     if (trade.asset_type === 'futures') {
-      setChartError('Charts aren\'t available for futures trades yet.')
+      setChartError('Charts aren\'t available for futures trades — our price data provider doesn\'t carry futures data.')
       setChartLoading(false)
       return
     }

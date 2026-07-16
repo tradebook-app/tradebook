@@ -77,11 +77,11 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
       apiSymbol = underlyingFromOptionSymbol(trade.symbol)
     }
 
-    // Futures aren't reliably chartable through our current price data provider —
-    // rather than guess a contract symbol format that might silently show the wrong
-    // chart, we say so plainly instead of pretending it works.
+    // Confirmed with Twelve Data support: futures data isn't available on any of
+    // their plans, for any contract. This isn't a symbol-format issue — a different
+    // data provider would be needed to chart futures trades.
     if (trade.asset_type === 'futures') {
-      setChartError('Charts aren\'t available for futures trades yet.')
+      setChartError('Charts aren\'t available for futures trades — our price data provider doesn\'t carry futures data.')
       setChartLoading(false)
       return
     }
