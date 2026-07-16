@@ -35,6 +35,15 @@ type GroupedRow = {
   tags: string[]
 }
 
+function fmtLegMoment(iso: string): string {
+  const d = new Date(iso)
+  const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0
+  if (!hasTime) return dateStr
+  const timeStr = d.toLocaleTimeString('en-US', { hour12: false })
+  return `${dateStr} · ${timeStr}`
+}
+
 function buildGroupedRows(trades: TradeRow[]): GroupedRow[] {
   const groups: Record<string, TradeRow[]> = {}
   const singles: TradeRow[] = []
@@ -318,7 +327,9 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
                 return (
                   <tr key={t.id} style={{ cursor: 'pointer', background: legActive ? 'var(--ac-d2)' : 'var(--bg3)' }} onClick={() => setSelected(t)}>
                     <td />
-                    <td style={{ fontSize: '10px', color: 'var(--txt3)', paddingLeft: '22px' }}>exit {i + 1}</td>
+                    <td style={{ fontSize: '10px', color: 'var(--txt3)', paddingLeft: '22px' }}>
+                      {fmtLegMoment(t.exit_date || t.date)} · {Math.round((t.shares / row.totalShares) * 100)}% closed
+                    </td>
                     <td />
                     <td />
                     <td />
