@@ -476,16 +476,16 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
         onDragLeave={() => setDragOver(false)}
         onDrop={e => { e.preventDefault(); setDragOver(false); processFile(e.dataTransfer.files[0]) }}
         style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: '10px', padding: '40px',
-          background: 'var(--bg3)', border: `2px dashed ${dragOver ? 'var(--ac)' : 'var(--brd2)'}`,
-          borderRadius: 'var(--r2)', cursor: 'pointer', transition: '.15s',
+          border: `2px dashed ${dragOver ? 'var(--ac)' : 'var(--brd2)'}`,
+          borderRadius: 'var(--r2)', padding: '34px',
+          textAlign: 'center', cursor: 'pointer',
+          marginBottom: '14px', transition: '.15s',
         }}
       >
-        <input id="tradovate-file-input" type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileInput} />
-        <div style={{ fontSize: '28px' }}>📂</div>
+        <div style={{ fontSize: '24px', color: 'var(--txt3)', marginBottom: '6px' }}>⇪</div>
         <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your Tradovate Orders CSV here</div>
-        <div style={{ fontSize: '10px', color: 'var(--txt3)' }}>or click to browse</div>
+        <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>or click to browse</div>
+        <input id="tradovate-file-input" type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileInput} />
       </div>
 
       {error && (
