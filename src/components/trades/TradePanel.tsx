@@ -6,6 +6,7 @@ import { assetUnitLabel } from '@/lib/types'
 import { fmtPnl, fmtDate, holdTime } from '@/lib/analytics'
 import { getScreenshotUrl } from '@/lib/tradeService'
 import TradeChart, { Candle, TradeMarker } from '@/components/charts/TradeChart'
+import { underlyingFromOptionSymbol } from '@/lib/contractMultiplier'
 
 type Props = {
   trade: TradeRow | null
@@ -68,17 +69,15 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
     setChartError(null)
     setCandles([])
 
-    // Options don't have simple continuous price history the way stocks/forex/futures
-    // do — every contract is its own expiring instrument — and our price data provider
-    // doesn't support them. Rather than guess a symbol format and risk showing a wrong
-    // chart, we say so plainly instead.
+    // Options don't have simple continuous price history of their own — every
+    // contract is its own expiring instrument. Chart the underlying stock instead,
+    // clearly labeled so it's obvious this isn't the option's own premium chart.
+    let apiSymbol = trade.symbol
     if (trade.asset_type === 'option') {
-      setChartError('Charts aren\'t available for options trades — options don\'t have a simple continuous price history the way stocks do.')
-      setChartLoading(false)
-      return
+      apiSymbol = underlyingFromOptionSymbol(trade.symbol)
     }
 
-    // Futures aren't reliably chartable through our current price data provider either —
+    // Futures aren't reliably chartable through our current price data provider —
     // rather than guess a contract symbol format that might silently show the wrong
     // chart, we say so plainly instead of pretending it works.
     if (trade.asset_type === 'futures') {
@@ -95,7 +94,6 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
 
     // Our price data provider (Twelve Data) requires forex pairs in "EUR/USD" format,
     // not the plain "EURUSD" broker symbols we store trades under.
-    let apiSymbol = trade.symbol
     if (trade.asset_type === 'forex' && !apiSymbol.includes('/') && apiSymbol.length === 6) {
       apiSymbol = `${apiSymbol.slice(0, 3)}/${apiSymbol.slice(3)}`
     }
@@ -294,6 +292,12 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
                 >{label}</button>
               ))}
             </div>
+
+            {trade.asset_type === 'option' && (
+              <div style={{ fontSize: '10px', color: 'var(--txt3)', marginBottom: '10px', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '6px 10px', display: 'inline-block' }}>
+                Showing underlying: <strong style={{ color: 'var(--txt2)' }}>{underlyingFromOptionSymbol(trade.symbol)}</strong> — options don't have their own continuous price chart
+              </div>
+            )}
 
             {chartLoading ? (
               <div style={{ color: 'var(--txt3)', fontSize: '11px', padding: '20px 0', textAlign: 'center' }}>Loading chart…</div>

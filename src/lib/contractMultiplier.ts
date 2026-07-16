@@ -53,6 +53,19 @@ export function looksLikeFuturesSymbol(symbol: string): boolean {
   return /^[/@]?[A-Z]{1,3}[FGHJKMNQUVXZ]\d{1,2}$/.test(s)
 }
 
+// Extracts the underlying stock ticker from an option symbol, so its chart can
+// show the underlying's price action (options don't have their own continuous
+// price history to chart). Handles OCC format ("AAPL260117C00150000"), TOS's
+// descriptive format ("AAPL 17 JAN 26 150 C"), and plain tickers typed directly
+// via manual entry (already just "AAPL", nothing to strip).
+export function underlyingFromOptionSymbol(symbol: string): string {
+  const s = symbol.trim().toUpperCase()
+  const occMatch = s.replace(/\s/g, '').match(/^([A-Z]{1,6})\d{6}[CP]\d{8}$/)
+  if (occMatch) return occMatch[1]
+  const firstToken = s.split(/\s+/)[0]
+  return firstToken || s
+}
+
 // Heuristic detection for option symbols in formats that don't come with an
 // explicit "instrument type" column (e.g. OCC format "AAPL260117C00150000",
 // or a broker's descriptive format like "AAPL 17 JAN 26 150 C").

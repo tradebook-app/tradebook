@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import type { TradeRow } from '@/lib/types'
 import { assetUnitLabel } from '@/lib/types'
 import TradeChart, { Candle, TradeMarker } from '@/components/charts/TradeChart'
+import { underlyingFromOptionSymbol } from '@/lib/contractMultiplier'
 
 type Props = {
   trades: TradeRow[]
@@ -202,10 +203,9 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
     setChartError(null)
     setCandles([])
 
+    let apiSymbol = trade.symbol
     if (trade.asset_type === 'option') {
-      setChartError('Charts aren\'t available for options trades — options don\'t have a simple continuous price history the way stocks do.')
-      setChartLoading(false)
-      return
+      apiSymbol = underlyingFromOptionSymbol(trade.symbol)
     }
 
     if (trade.asset_type === 'futures') {
@@ -220,7 +220,6 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
     const startDate = paddedStart.toISOString().slice(0, 10)
     const endDate = new Date().toISOString().slice(0, 10)
 
-    let apiSymbol = trade.symbol
     if (trade.asset_type === 'forex' && !apiSymbol.includes('/') && apiSymbol.length === 6) {
       apiSymbol = `${apiSymbol.slice(0, 3)}/${apiSymbol.slice(3)}`
     }
@@ -351,6 +350,11 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
                 >{label}</button>
               ))}
             </div>
+            {trade.asset_type === 'option' && (
+              <div style={{ fontSize: '10px', color: 'var(--txt3)', marginBottom: '10px', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '6px 10px', display: 'inline-block' }}>
+                Showing underlying: <strong style={{ color: 'var(--txt2)' }}>{underlyingFromOptionSymbol(trade.symbol)}</strong> — options don't have their own continuous price chart
+              </div>
+            )}
             {chartLoading ? (
               <div style={{ color: 'var(--txt3)', fontSize: '11px', padding: '20px 0', textAlign: 'center' }}>Loading chart…</div>
             ) : chartError ? (
