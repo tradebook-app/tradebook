@@ -42,6 +42,12 @@ function parseMt4Number(raw: string): number {
   return parseFloat(raw.replace(/\s/g, '')) || 0
 }
 
+function newGroupId(): string {
+  return (globalThis.crypto as any)?.randomUUID
+    ? globalThis.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
 export function parseMT4(html: string, existingTrades: TradeRow[]): ParsedMt4Trade[] {
   const sectionMatch = html.match(/Closed Transactions:[\s\S]*?(?=Open Trades:)/i)
   if (!sectionMatch) {
@@ -110,7 +116,7 @@ export function parseMT4(html: string, existingTrades: TradeRow[]): ParsedMt4Tra
   const ticketToGroup: Record<string, string> = {}
   for (const t of raw) {
     if (t.partCloseOf) {
-      const groupId = ticketToGroup[t.partCloseOf] || `mt4-${t.partCloseOf}`
+      const groupId = ticketToGroup[t.partCloseOf] || newGroupId()
       ticketToGroup[t.partCloseOf] = groupId
       ticketToGroup[t.ticket] = groupId
     }

@@ -17,6 +17,7 @@ export function Mt4Import({ userId, existingTrades, onImported }: Props) {
   const [selected,  setSelected]  = useState<Set<number>>(new Set())
   const [importing, setImporting] = useState(false)
   const [imported,  setImported]  = useState(0)
+  const [failed,    setFailed]    = useState(0)
   const [error,     setError]     = useState('')
   const [dragOver,  setDragOver]  = useState(false)
 
@@ -57,6 +58,7 @@ export function Mt4Import({ userId, existingTrades, onImported }: Props) {
     setImporting(true)
     const toImport = parsed.filter((_, i) => selected.has(i))
     let count = 0
+    let failCount = 0
     for (const t of toImport) {
       const inserted = await insertTrade({
         symbol: t.symbol, asset_type: 'forex', type: t.type, date: t.date, exit_date: t.exitDate,
@@ -66,8 +68,10 @@ export function Mt4Import({ userId, existingTrades, onImported }: Props) {
         trade_group_id: t.tradeGroupId,
       }, userId)
       if (inserted) count++
+      else failCount++
     }
     setImported(count)
+    setFailed(failCount)
     onImported()
     setStep('done')
     setImporting(false)
@@ -75,7 +79,7 @@ export function Mt4Import({ userId, existingTrades, onImported }: Props) {
 
   function reset() {
     setStep('upload'); setParsed([]); setSelected(new Set())
-    setImported(0); setError('')
+    setImported(0); setFailed(0); setError('')
   }
 
   const card: React.CSSProperties = {
@@ -88,8 +92,13 @@ export function Mt4Import({ userId, existingTrades, onImported }: Props) {
     return (
       <div style={{ padding: '8px' }}>
         <div style={{ ...card, textAlign: 'center', padding: '48px' }}>
-          <div style={{ fontSize: '40px', marginBottom: '14px' }}>✅</div>
+          <div style={{ fontSize: '40px', marginBottom: '14px' }}>{failed > 0 ? '⚠️' : '✅'}</div>
           <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>{imported} trade{imported !== 1 ? 's' : ''} imported!</div>
+          {failed > 0 && (
+            <div style={{ fontSize: '12px', color: 'var(--red)', background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: '14px' }}>
+              {failed} trade{failed !== 1 ? 's' : ''} failed to import — check the browser console for details, or contact support.
+            </div>
+          )}
           <div style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '24px' }}>Your MT4/MT5 trades are now in your journal.</div>
           <button className="btn btn-p" onClick={reset}>Import More</button>
         </div>
@@ -125,7 +134,7 @@ export function Mt4Import({ userId, existingTrades, onImported }: Props) {
               <thead>
                 <tr>
                   <th style={{ width: '32px', padding: '8px', borderBottom: '1px solid var(--brd)' }}>
-                    <input type="checkbox" checked={selected.size === parsed.length} onChange={toggleAll} />
+                    <input type="checkbox" checked={selected.size === parsed.length} onChange={toggleAll} style={{ width: '16px', height: '16px', accentColor: 'var(--ac)', cursor: 'pointer' }} />
                   </th>
                   {['Symbol','Side','Date','Lots','Entry','Exit','P&L','Status'].map(h => (
                     <th key={h} style={{ fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid var(--brd)' }}>{h}</th>
@@ -136,7 +145,7 @@ export function Mt4Import({ userId, existingTrades, onImported }: Props) {
                 {parsed.map((t, i) => (
                   <tr key={i} onClick={() => toggleSelect(i)} style={{ cursor: 'pointer', opacity: selected.has(i) ? 1 : 0.4 }}>
                     <td style={{ padding: '8px', borderBottom: '1px solid var(--brd)' }}>
-                      <input type="checkbox" checked={selected.has(i)} onChange={() => toggleSelect(i)} onClick={e => e.stopPropagation()} />
+                      <input type="checkbox" checked={selected.has(i)} onChange={() => toggleSelect(i)} onClick={e => e.stopPropagation()} style={{ width: '16px', height: '16px', accentColor: 'var(--ac)', cursor: 'pointer' }} />
                     </td>
                     <td style={{ padding: '8px 12px', fontWeight: 700, fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>
                       {t.symbol}
