@@ -20,7 +20,7 @@ async function insertTrades(supabase: any, userId: string, trades: any[], source
     if (t.duplicate) continue
     const { error } = await supabase.from('trades').insert({
       user_id: userId,
-      symbol: t.symbol, type: t.type, date: t.date, exit_date: t.exitDate,
+      symbol: t.symbol, asset_type: t.assetType || 'stock', type: t.type, date: t.date, exit_date: t.exitDate,
       entry: t.entry, exit: t.exit, shares: t.shares, pnl: t.pnl,
       risk: 0, commission: t.commission, setup: null, grade: null,
       tags: [], notes: source ? `Imported from ${source}` : null, screenshot_url: null,
@@ -141,6 +141,7 @@ function resolveTastytradeExecutions(transactions: TastytradeTransaction[]): TTE
       symbol: tx.symbol, isOpen, isBuy,
       qty: tx.quantity, price: tx.price, date: new Date(tx.executedAt),
       commission: tx.commission + tx.clearingFees + tx.regulatoryFees,
+      instrumentType: tx.instrumentType || 'Equity',
     })
   }
   return out

@@ -19,6 +19,7 @@ export type ParsedIbkrTrade = {
   commission: number
   duplicate: boolean
   tradeGroupId: string
+  assetType: TradeRow['asset_type']
 }
 
 type Execution = {
@@ -28,6 +29,18 @@ type Execution = {
   price: number
   commission: number
   realizedPnl: number
+  assetCategory: string  // IBKR's raw AssetClass value: STK, OPT, FUT, FOP, CASH, etc.
+}
+
+// Maps IBKR's AssetClass codes to Sleektrade's asset_type. Unrecognized codes
+// (e.g. warrants, bonds) default to 'stock' — P&L is unaffected either way since
+// IBKR's own realized P&L is used directly, this only controls the unit label.
+function mapAssetCategory(raw: string): TradeRow['asset_type'] {
+  const c = raw.trim().toUpperCase()
+  if (c === 'OPT' || c === 'FOP') return 'option'
+  if (c === 'FUT') return 'futures'
+  if (c === 'CASH') return 'forex'
+  return 'stock'
 }
 
 // ── Quote-aware CSV line splitter (shared by both formats) ──────────────────
@@ -65,7 +78,7 @@ function extractFromActivityStatement(lines: string[]): Execution[] {
     const dt = new Date(rawTime)
     if (isNaN(dt.getTime())) continue
 
-    executions.push({ datetime: dt, symbol, qty, price, commission, realizedPnl })
+    executions.push({ datetime: dt, symbol, qty, price, commission, realizedPnl, assetCategory: 'STK' })
   }
 
   return executions
@@ -113,6 +126,7 @@ function extractFromFlexCsv(lines: string[]): Execution[] {
   const priceIdx        = findCol(header, ['TradePrice', 'T. Price', 'Price'])
   const commissionIdx   = findCol(header, ['IBCommission', 'Commission', 'Comm/Fee'])
   const realizedPnlIdx  = findCol(header, ['FifoPnlRealized', 'RealizedPL', 'Realized P/L'])
+  const assetClassIdx   = findCol(header, ['AssetClass', 'Asset Category', 'AssetCategory'])
 
   const missing: string[] = []
   if (symbolIdx === -1) missing.push('Symbol')
@@ -145,8 +159,9 @@ function extractFromFlexCsv(lines: string[]): Execution[] {
 
     const commission  = commissionIdx  !== -1 ? Math.abs(parseFloat(cols[commissionIdx]) || 0) : 0
     const realizedPnl = parseFloat(cols[realizedPnlIdx]) || 0
+    const assetCategory = assetClassIdx !== -1 ? (cols[assetClassIdx] || 'STK') : 'STK'
 
-    executions.push({ datetime: dt, symbol, qty, price, commission, realizedPnl })
+    executions.push({ datetime: dt, symbol, qty, price, commission, realizedPnl, assetCategory })
   }
 
   return executions
@@ -184,7 +199,7 @@ export async function parseIBKR(
   )
 
   type OpenPos = {
-    entries: { qty: number; price: number; datetime: Date; commission: number }[]
+    entries: { qty: number; price: number; datetime: Date; commission: number; assetCategory: string }[]
     remainingQty: number
     side: 'Long' | 'Short'
     tradeGroupId: string
@@ -205,7 +220,10 @@ export async function parseIBKR(
     const totalComm = legs.reduce((s, l) => s + l.commission, 0)
     const earliest  = legs.map(l => new Date(l.opened_at)).sort((a, b) => a.getTime() - b.getTime())[0]
     positions[symbol] = {
-      entries: [{ qty: totalQty, price: totalCost / totalQty, datetime: earliest, commission: totalComm }],
+      // Carried-forward legs predate asset category tracking — 'STK' is the safe
+      // default (P&L is unaffected regardless, since IBKR's realized P&L is used
+      // directly; this only controls the unit label).
+      entries: [{ qty: totalQty, price: totalCost / totalQty, datetime: earliest, commission: totalComm, assetCategory: 'STK' }],
       remainingQty: totalQty,
       side: legs[0].side as 'Long' | 'Short',
       tradeGroupId: legs.find(l => l.trade_group_id)?.trade_group_id || newGroupId(),
@@ -214,13 +232,13 @@ export async function parseIBKR(
   }
 
   for (const exec of executions) {
-    const { symbol, qty, price, datetime, commission, realizedPnl } = exec
+    const { symbol, qty, price, datetime, commission, realizedPnl, assetCategory } = exec
     const isBuy  = qty > 0
     const absQty = Math.abs(qty)
 
     if (!positions[symbol]) {
       positions[symbol] = {
-        entries: [{ qty: absQty, price, datetime, commission }],
+        entries: [{ qty: absQty, price, datetime, commission, assetCategory }],
         remainingQty: absQty,
         side: isBuy ? 'Long' : 'Short',
         tradeGroupId: newGroupId(),
@@ -259,12 +277,13 @@ export async function parseIBKR(
           commission: parseFloat(totalComm.toFixed(2)),
           duplicate: existingSigs.has(sig),
           tradeGroupId: pos.tradeGroupId,
+          assetType: mapAssetCategory(pos.entries[0].assetCategory || 'STK'),
         })
 
         pos.remainingQty -= tradeQty
         if (pos.remainingQty <= 0) positions[symbol] = null
       } else {
-        pos.entries.push({ qty: absQty, price, datetime, commission })
+        pos.entries.push({ qty: absQty, price, datetime, commission, assetCategory })
         pos.remainingQty += absQty
       }
     }

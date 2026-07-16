@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import type { TradeRow, StrategyRow } from '@/lib/types'
 import { ASSET_TYPES, assetUnitLabel } from '@/lib/types'
+import { OPTION_MULTIPLIER, futuresPointValue } from '@/lib/contractMultiplier'
 import { insertStrategy } from '@/lib/strategyService'
 import { useAccounts } from '@/components/AccountProvider'
 
@@ -177,10 +178,13 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
     const ex = parseFloat(exit) || 0
     const sh = parseFloat(shares) || 0
     if (!en || !ex || !sh) return 0
-    const gross = (ex - en) * sh * (side === 'Short' ? -1 : 1)
+    const mult  = assetType === 'option' ? OPTION_MULTIPLIER : assetType === 'futures' ? (futuresPointValue(symbol) ?? 1) : 1
+    const gross = (ex - en) * sh * mult * (side === 'Short' ? -1 : 1)
     const comm  = parseFloat(commission) || 0
     return parseFloat((gross - comm).toFixed(2))
   }
+
+  const futuresPointUnknown = assetType === 'futures' && symbol.trim() !== '' && futuresPointValue(symbol) === null
 
   async function handleSave() {
     if (!symbol.trim()) return alert('Enter a symbol')
@@ -294,6 +298,18 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
         </div>
         <div />
       </div>
+
+      {futuresPointUnknown && (
+        <div style={{ fontSize: '10px', color: 'var(--orange, #F59E0B)', background: 'rgba(245,158,11,.1)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 'var(--r)', padding: '8px 12px', marginBottom: '12px' }}>
+          ⚠️ We don't recognize "{symbol.trim().toUpperCase()}" as a futures contract, so we can't calculate its point value automatically. Enter the exact dollar P&amp;L in the override field below instead of relying on auto-calc.
+        </div>
+      )}
+
+      {assetType === 'option' && (
+        <div style={{ fontSize: '10px', color: 'var(--txt3)', marginBottom: '12px' }}>
+          Auto-calculated P&amp;L assumes a standard 100-share contract multiplier. If this is a non-standard (mini) option, enter the exact P&amp;L in the override field instead.
+        </div>
+      )}
 
       {/* Shares / P&L override */}
       <div style={row2}>

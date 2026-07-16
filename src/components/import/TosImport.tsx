@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { TradeRow } from '@/lib/types'
 import { insertTrade } from '@/lib/tradeService'
 import { fetchOpenLegs, replaceOpenLeg } from '@/lib/legMatcher'
+import { OPTION_MULTIPLIER, looksLikeOptionSymbol } from '@/lib/contractMultiplier'
 
 type Props = {
   userId: string
@@ -26,6 +27,8 @@ type ParsedTrade = {
   commission: number
   duplicate: boolean
   tradeGroupId: string
+  assetType: TradeRow['asset_type']
+  assetTypeGuessed: boolean
 }
 
 function newGroupId(): string {
@@ -152,9 +155,11 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
         const totalEntryCost   = pos.entries.reduce((s, e) => s + e.qty * e.price, 0)
         const avgEntry = totalEntryCost / totalEntryShares
         const tradeQty  = Math.min(qty, pos.remainingQty)
+        const isOption = looksLikeOptionSymbol(symbol)
+        const mult = isOption ? OPTION_MULTIPLIER : 1
         const rawPnl = pos.side === 'Long'
-          ? (price - avgEntry) * tradeQty
-          : (avgEntry - price) * tradeQty
+          ? (price - avgEntry) * tradeQty * mult
+          : (avgEntry - price) * tradeQty * mult
 
         const entryDatetime = pos.entries[0].datetime
         const holdMinutes   = Math.round((datetime.getTime() - entryDatetime.getTime()) / 60000)
@@ -177,6 +182,8 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
           commission: 0,
           duplicate: existingSigs.has(sig),
           tradeGroupId: pos.tradeGroupId,
+          assetType: isOption ? 'option' : 'stock',
+          assetTypeGuessed: isOption,
         })
 
         pos.remainingQty -= tradeQty
@@ -272,7 +279,7 @@ export function TosImport({ userId, existingTrades, onImported }: Props) {
     let count = 0
     for (const t of toImport) {
       const inserted = await insertTrade({
-        symbol: t.symbol, asset_type: 'stock', type: t.type, date: t.date, exit_date: t.exitDate,
+        symbol: t.symbol, asset_type: t.assetType, type: t.type, date: t.date, exit_date: t.exitDate,
         entry: t.entry, exit: t.exit, shares: t.shares, pnl: t.pnl,
         risk: 0, commission: t.commission, setup: null, grade: null,
         tags: [], notes: null, screenshot_url: null,
@@ -365,6 +372,7 @@ export function TosImport({ userId, existingTrades, onImported }: Props) {
                     <td style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--txt3)', borderBottom: '1px solid var(--brd)' }}>{formatHold(t.holdMinutes)}</td>
                     <td style={{ padding: '8px 12px', fontFamily: 'var(--mono)', fontWeight: 700, color: t.pnl >= 0 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)' }}>
                       {t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}
+                      {t.assetTypeGuessed && <span title="Detected as an option from the symbol format — verify before importing" style={{ marginLeft: '5px', fontSize: '10px' }}>⚠️</span>}
                     </td>
                     <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--brd)' }}>
                       {t.duplicate

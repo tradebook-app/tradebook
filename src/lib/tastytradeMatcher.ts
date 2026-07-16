@@ -1,8 +1,29 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { TradeRow } from '@/lib/types'
 import { fetchOpenLegsWithClient, replaceOpenLegWithClient } from '@/lib/legMatcher'
+import { OPTION_MULTIPLIER, futuresPointValue } from '@/lib/contractMultiplier'
 
 type DbClient = SupabaseClient<any, any, any>
+
+// Maps Tastytrade's own "Instrument Type" values to Sleektrade's asset_type.
+// Unrecognized values (e.g. "Cryptocurrency") default to 'stock' — the safest
+// fallback, since it keeps the multiplier at 1x rather than risking a wrong
+// inflation from guessing 'option' or 'futures' incorrectly.
+function mapInstrumentType(raw: string): TradeRow['asset_type'] {
+  const t = raw.trim().toLowerCase()
+  if (t.includes('equity option') || t.includes('future option')) return 'option'
+  if (t.includes('future')) return 'futures'
+  return 'stock'
+}
+
+function contractMultiplier(assetType: TradeRow['asset_type'], symbol: string): { mult: number; pointValueUnknown: boolean } {
+  if (assetType === 'option') return { mult: OPTION_MULTIPLIER, pointValueUnknown: false }
+  if (assetType === 'futures') {
+    const pv = futuresPointValue(symbol)
+    return { mult: pv ?? 1, pointValueUnknown: pv === null }
+  }
+  return { mult: 1, pointValueUnknown: false }
+}
 
 export type TTLeg = {
   groupKey:   string   // rows that share this key are treated as one round trip (order id or symbol+date)
@@ -12,6 +33,7 @@ export type TTLeg = {
   price:      number
   date:       string   // ISO
   commission: number
+  instrumentType: string  // Tastytrade's raw "Instrument Type" column value
 }
 
 export type TTExecution = {
@@ -22,6 +44,7 @@ export type TTExecution = {
   price:      number
   date:       Date
   commission: number
+  instrumentType: string
 }
 
 function newGroupId(): string {
@@ -48,7 +71,7 @@ export async function matchTastytradeExecutionsSequential(
   )
 
   type OpenPos = {
-    entries: { qty: number; price: number; date: Date; commission: number }[]
+    entries: { qty: number; price: number; date: Date; commission: number; instrumentType: string }[]
     remainingQty: number
     side: 'Long' | 'Short'
     tradeGroupId: string
@@ -69,7 +92,9 @@ export async function matchTastytradeExecutionsSequential(
     const totalComm = legs.reduce((s, l) => s + l.commission, 0)
     const earliest  = legs.map(l => new Date(l.opened_at)).sort((a, b) => a.getTime() - b.getTime())[0]
     positions[symbol] = {
-      entries: [{ qty: totalQty, price: totalCost / totalQty, date: earliest, commission: totalComm }],
+      // Open legs carried over from a prior sync don't have instrument type stored (added later) —
+      // 'Equity' is the safe default here since it keeps the multiplier at 1x.
+      entries: [{ qty: totalQty, price: totalCost / totalQty, date: earliest, commission: totalComm, instrumentType: 'Equity' }],
       remainingQty: totalQty,
       side: legs[0].side as 'Long' | 'Short',
       tradeGroupId: legs.find(l => l.trade_group_id)?.trade_group_id || newGroupId(),
@@ -78,14 +103,14 @@ export async function matchTastytradeExecutionsSequential(
   }
 
   for (const exec of sorted) {
-    const { symbol, qty, price, date, commission, isOpen, isBuy } = exec
+    const { symbol, qty, price, date, commission, isOpen, isBuy, instrumentType } = exec
 
     if (isOpen || !positions[symbol]) {
       if (!positions[symbol]) {
-        positions[symbol] = { entries: [{ qty, price, date, commission }], remainingQty: qty, side: isBuy ? 'Long' : 'Short', tradeGroupId: newGroupId() }
+        positions[symbol] = { entries: [{ qty, price, date, commission, instrumentType }], remainingQty: qty, side: isBuy ? 'Long' : 'Short', tradeGroupId: newGroupId() }
       } else {
         const pos = positions[symbol]!
-        pos.entries.push({ qty, price, date, commission })
+        pos.entries.push({ qty, price, date, commission, instrumentType })
         pos.remainingQty += qty
       }
       continue
@@ -101,7 +126,9 @@ export async function matchTastytradeExecutionsSequential(
 
     const entryDate = pos.entries[0].date
     const dateStr    = entryDate.toISOString()
-    const pnl        = parseFloat((((price - avgEntry) * tradeQty) * (pos.side === 'Long' ? 1 : -1) - totalComm).toFixed(2))
+    const assetType  = mapInstrumentType(pos.entries[0].instrumentType || '')
+    const { mult, pointValueUnknown } = contractMultiplier(assetType, symbol)
+    const pnl        = parseFloat((((price - avgEntry) * tradeQty * mult) * (pos.side === 'Long' ? 1 : -1) - totalComm).toFixed(2))
     const sig        = `${symbol}-${dateStr.substring(0, 10)}-${pnl}`
 
     trades.push({
@@ -116,6 +143,8 @@ export async function matchTastytradeExecutionsSequential(
       commission: parseFloat(totalComm.toFixed(2)),
       duplicate: existingSigs.has(sig),
       tradeGroupId: pos.tradeGroupId,
+      assetType,
+      pointValueUnknown,
     })
 
     pos.remainingQty -= tradeQty
@@ -162,6 +191,8 @@ export type ParsedTastytradeTrade = {
   commission: number
   duplicate:  boolean
   tradeGroupId: string
+  assetType:  TradeRow['asset_type']
+  pointValueUnknown: boolean
 }
 
 // Shared open/close matching engine for Tastytrade, used by both the CSV importer
@@ -205,6 +236,7 @@ export async function matchTastytradeLegs(
       groupKey: g.symbol, symbol: g.symbol,
       action: l.side === 'Long' ? 'Buy to Open' : 'Sell to Open',
       qty: l.qty, price: l.price, date: l.opened_at, commission: l.commission,
+      instrumentType: 'Equity',
     }))
     const opens = [...syntheticOpens, ...fileOpens]
 
@@ -232,7 +264,9 @@ export async function matchTastytradeLegs(
       const entry = isLong ? avgOpenPrice  : avgClosePrice
       const exit  = isLong ? avgClosePrice : avgOpenPrice
       const commUsed = totalOpenComm * (matchQty / openQty) + totalCloseComm * (matchQty / closeQty)
-      const pnl = (avgClosePrice - avgOpenPrice) * matchQty * (isLong ? 1 : -1) - commUsed
+      const assetType = mapInstrumentType((opens[0] || closes[0])?.instrumentType || '')
+      const { mult, pointValueUnknown } = contractMultiplier(assetType, g.symbol)
+      const pnl = (avgClosePrice - avgOpenPrice) * matchQty * mult * (isLong ? 1 : -1) - commUsed
 
       const tradeDate = opens.map(l => l.date).sort()[0]
       const exitDate  = closes.map(l => l.date).sort().slice(-1)[0] || null
@@ -250,6 +284,8 @@ export async function matchTastytradeLegs(
         commission: parseFloat(commUsed.toFixed(2)),
         duplicate:  existingSigs.has(sig),
         tradeGroupId,
+        assetType,
+        pointValueUnknown,
       })
     }
 

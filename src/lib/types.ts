@@ -269,6 +269,8 @@ export type DASParsedTrade = {
   entryTime?: number
   exitTime?: number
   tradeGroupId?: string
+  assetType?: TradeRow['asset_type']
+  assetTypeGuessed?: boolean
 }
 
 export type SupportChatUsageRow = {

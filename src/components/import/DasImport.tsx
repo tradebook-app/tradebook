@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { insertTrade } from '@/lib/tradeService'
 import { fetchOpenLegs, replaceOpenLeg } from '@/lib/legMatcher'
+import { OPTION_MULTIPLIER, looksLikeOptionSymbol } from '@/lib/contractMultiplier'
 import type { TradeRow, TradeInsert, DASParsedTrade } from '@/lib/types'
 
 function newGroupId(): string {
@@ -125,6 +126,7 @@ async function parseDAS(text: string, userId: string): Promise<{ trades?: DASPar
       const price = iP !== -1 ? parseFloat(clean(c[iP]).replace(/[$,]/g, '')) : 0
       const qty = iQ !== -1 ? Math.abs(parseFloat(clean(c[iQ]).replace(/,/g, ''))) : 0
       const side = iSide !== -1 ? clean(c[iSide]).toUpperCase() : ''
+      const isOption = looksLikeOptionSymbol(sym)
       trades.push({
         sym,
         date: pDate(clean(c[iD])),
@@ -133,6 +135,8 @@ async function parseDAS(text: string, userId: string): Promise<{ trades?: DASPar
         exit: 0,
         shares: qty || 0,
         pl: pl - Math.abs(comm),
+        assetType: isOption ? 'option' : 'stock',
+        assetTypeGuessed: isOption,
       })
     }
   } else {
@@ -259,7 +263,9 @@ async function parseDAS(text: string, userId: string): Promise<{ trades?: DASPar
           const avgEntry = tripCost / tripShares
           const avgExit = tripCloseCost / tripCloseShares
           const mQ = Math.min(tripShares, tripCloseShares)
-          const pl = side === 'Long' ? (avgExit - avgEntry) * mQ : (avgEntry - avgExit) * mQ
+          const isOption = looksLikeOptionSymbol(g.sym)
+          const mult = isOption ? OPTION_MULTIPLIER : 1
+          const pl = (side === 'Long' ? (avgExit - avgEntry) * mQ : (avgEntry - avgExit) * mQ) * mult
           trades.push({
             sym: g.sym,
             date: tripEntryDate || new Date(),
@@ -271,6 +277,8 @@ async function parseDAS(text: string, userId: string): Promise<{ trades?: DASPar
             entryTime: tripEntryTime,
             exitTime: tripExitTime,
             tradeGroupId: tripGroupId,
+            assetType: isOption ? 'option' : 'stock',
+            assetTypeGuessed: isOption,
           })
         }
         tripSide = null
@@ -427,7 +435,7 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
 
       const tradeData: TradeInsert = {
         symbol: t.sym,
-        asset_type: 'stock',
+        asset_type: t.assetType || 'stock',
         type: t.side || 'Long',
         date: `${ds}T${tod(t.entryTime) || '12:00:00'}`,
         exit_date: (!t.open && tod(t.exitTime)) ? `${ds}T${tod(t.exitTime)}` : null,
@@ -711,6 +719,7 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
                           }}
                         >
                           {isW ? '+' : '-'}${Math.abs(t.pl).toFixed(2)}
+                          {t.assetTypeGuessed && <span title="Detected as an option from the symbol format — verify before importing" style={{ marginLeft: '5px', fontSize: '10px' }}>⚠️</span>}
                         </td>
                       </tr>
                     )

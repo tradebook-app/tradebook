@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { TradeRow } from '@/lib/types'
 import { insertTrade } from '@/lib/tradeService'
 import { fetchOpenLegs, replaceOpenLeg } from '@/lib/legMatcher'
+import { OPTION_MULTIPLIER, looksLikeOptionSymbol } from '@/lib/contractMultiplier'
 
 type Props = {
   userId: string
@@ -22,6 +23,8 @@ type ParsedTrade = {
   pnl:       number
   duplicate: boolean
   tradeGroupId: string
+  assetType: TradeRow['asset_type']
+  assetTypeGuessed: boolean
 }
 
 function newGroupId(): string {
@@ -181,7 +184,9 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
       if (matchQty > 0) {
         const entry = isLong ? avgBuyPrice  : avgSellPrice
         const exit  = isLong ? avgSellPrice : avgBuyPrice
-        const pnl   = (avgSellPrice - avgBuyPrice) * matchQty * (isLong ? 1 : -1)
+        const isOption = looksLikeOptionSymbol(symbol)
+        const mult  = isOption ? OPTION_MULTIPLIER : 1
+        const pnl   = (avgSellPrice - avgBuyPrice) * matchQty * mult * (isLong ? 1 : -1)
 
         const allDates  = [...buys, ...sells].map(x => x.date).sort()
         const tradeDate = allDates[0] || new Date().toISOString()
@@ -202,6 +207,8 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
           pnl:       parseFloat(pnl.toFixed(2)),
           duplicate: existingSigs.has(sig),
           tradeGroupId,
+          assetType: isOption ? 'option' : 'stock',
+          assetTypeGuessed: isOption,
         })
       }
 
@@ -287,7 +294,7 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
     for (const t of toImport) {
       const inserted = await insertTrade({
         symbol:         t.symbol,
-        asset_type:     'stock',
+        asset_type:     t.assetType,
         type:           t.type,
         date:           t.date,
         exit_date:      t.exitDate,
@@ -419,6 +426,7 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
                     borderBottom: '1px solid var(--brd)',
                   }}>
                     {t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}
+                    {t.assetTypeGuessed && <span title="Detected as an option from the symbol format — Webull's export doesn't confirm this directly, verify before importing" style={{ marginLeft: '5px', fontSize: '10px' }}>⚠️</span>}
                   </td>
                   <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--brd)' }}>
                     {t.duplicate

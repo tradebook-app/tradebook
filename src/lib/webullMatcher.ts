@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { TradeRow } from '@/lib/types'
 import { fetchOpenLegsWithClient, replaceOpenLegWithClient } from '@/lib/legMatcher'
+import { OPTION_MULTIPLIER, looksLikeOptionSymbol } from '@/lib/contractMultiplier'
 
 type DbClient = SupabaseClient<any, any, any>
 
@@ -25,6 +26,8 @@ export type ParsedWebullTrade = {
   commission: number
   duplicate:  boolean
   tradeGroupId: string
+  assetType:  TradeRow['asset_type']
+  assetTypeGuessed: boolean
 }
 
 function newGroupId(): string {
@@ -103,7 +106,9 @@ export async function matchWebullExecutions(
 
     const entryDate = pos.entries[0].date
     const dateStr    = entryDate.toISOString()
-    const pnl        = parseFloat((((price - avgEntry) * tradeQty) * (pos.side === 'Long' ? 1 : -1) - totalComm).toFixed(2))
+    const isOption   = looksLikeOptionSymbol(symbol)
+    const mult       = isOption ? OPTION_MULTIPLIER : 1
+    const pnl        = parseFloat((((price - avgEntry) * tradeQty * mult) * (pos.side === 'Long' ? 1 : -1) - totalComm).toFixed(2))
     const sig        = `${symbol}-${dateStr.substring(0, 10)}-${pnl}`
 
     trades.push({
@@ -118,6 +123,8 @@ export async function matchWebullExecutions(
       commission: parseFloat(totalComm.toFixed(2)),
       duplicate: existingSigs.has(sig),
       tradeGroupId: pos.tradeGroupId,
+      assetType: isOption ? 'option' : 'stock',
+      assetTypeGuessed: isOption,
     })
 
     pos.remainingQty -= tradeQty

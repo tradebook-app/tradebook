@@ -66,6 +66,7 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
     const commCol    = col(['commissions', 'commission'])
     const feesCol    = col(['fees', 'fee'])
     const orderCol   = col(['order'])
+    const instrumentTypeCol = col(['instrumenttype'])
 
     if (symCol < 0)    throw new Error('Symbol column not found.')
     if (actionCol < 0) throw new Error('Action column not found.')
@@ -106,8 +107,9 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
       const dateKey = dateStr.substring(0, 10)
       const orderId = orderCol >= 0 ? cols[orderCol]?.trim() : ''
       const groupKey = orderId ? `${symbol}-${orderId}` : `${symbol}-${dateKey}`
+      const instrumentType = instrumentTypeCol >= 0 ? (cols[instrumentTypeCol]?.trim() || 'Equity') : 'Equity'
 
-      rawLegs.push({ groupKey, symbol, action, qty, price, date: dateStr, commission: comm + fees })
+      rawLegs.push({ groupKey, symbol, action, qty, price, date: dateStr, commission: comm + fees, instrumentType })
     })
 
     const { trades, carriedForward } = await matchTastytradeLegs(rawLegs, existingTrades, userId, createClient())
@@ -172,7 +174,7 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
     for (const t of toImport) {
       const inserted = await insertTrade({
         symbol:         t.symbol,
-        asset_type:     'stock',
+        asset_type:     t.assetType,
         type:           t.type,
         date:           t.date,
         exit_date:      t.exitDate,
@@ -280,6 +282,7 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
                   <td style={{ padding: '8px 12px', fontFamily: 'var(--mono)', fontSize: '10px', color: 'var(--txt3)', borderBottom: '1px solid var(--brd)' }}>-${t.commission.toFixed(2)}</td>
                   <td style={{ padding: '8px 12px', fontFamily: 'var(--mono)', fontWeight: 700, color: t.pnl >= 0 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)' }}>
                     {t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}
+                    {t.pointValueUnknown && <span title="Unrecognized futures contract — P&L may be inaccurate, verify before importing" style={{ marginLeft: '5px', fontSize: '10px' }}>⚠️</span>}
                   </td>
                   <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--brd)' }}>
                     {t.duplicate
