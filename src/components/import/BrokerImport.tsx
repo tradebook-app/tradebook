@@ -12,6 +12,7 @@ import { TastytradeImport } from './TastytradeImport'
 import { TastytradeMethodSelect } from './TastytradeMethodSelect'
 import { TradeStationImport } from './TradeStationImport'
 import { Mt4Import } from './Mt4Import'
+import { TradovateImport } from './TradovateImport'
 
 type Props = {
   userId: string
@@ -36,6 +37,7 @@ const brokers: Broker[] = [
   { id: 'tastytrade', name: 'Tastytrade', description: 'Auto-sync or import transaction CSV', available: true, logo: '/brokers/tastytrade.png', bg: '#1A0E06' },
   { id: 'tradestation', name: 'TradeStation', description: 'Import from TradeStation activity CSV', available: true, logo: '/brokers/tradestation.png', bg: '#1A1400' },
   { id: 'mt4', name: 'MT4 / MT5', description: 'Import from Account History report (forex)', available: true, logo: '/brokers/mt4.png', bg: '#0A1220' },
+  { id: 'tradovate', name: 'Tradovate', description: 'Import from Orders CSV export (futures)', available: true, logo: '/brokers/tradovate.png', bg: '#0F1A0A' },
 ]
 
 function BrokerIcon({ logo, bg, name }: { logo: string; bg: string; name: string }) {
@@ -74,6 +76,7 @@ export function BrokerImport({ userId, existingTrades, onImported }: Props) {
   if (selected === 'tastytrade')   return <div>{backBtn}<TastytradeMethodSelect userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
   if (selected === 'tradestation') return <div>{backBtn}<TradeStationImport userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
   if (selected === 'mt4')          return <div>{backBtn}<Mt4Import userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
+  if (selected === 'tradovate')    return <div>{backBtn}<TradovateImport userId={userId} existingTrades={existingTrades} onImported={onImported} /></div>
 
   return (
     <div style={{ maxWidth: '700px', margin: '0 auto' }}>
