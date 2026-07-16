@@ -41,6 +41,7 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
   const [imported,  setImported]  = useState(0)
   const [error,     setError]     = useState('')
   const [notice,    setNotice]    = useState('')
+  const [dragOver,  setDragOver]  = useState(false)
 
   async function parseCSV(text: string): Promise<{ trades: ParsedTrade[]; carriedForward: { symbol: string; side: string; qty: number }[] }> {
     const lines = text.trim().split('\n').filter(l => l.trim())
@@ -148,105 +149,116 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
       }
     }
 
-    const buyMap:  Record<string, { qty: number; avgPrice: number; date: string }[]> = {}
-    const sellMap: Record<string, { qty: number; avgPrice: number; date: string }[]> = {}
+    type OpenPos = {
+      product: string
+      entries: { qty: number; price: number; date: string }[]
+      remainingQty: number
+      side: 'Long' | 'Short'
+      tradeGroupId: string
+    }
 
-    Object.values(orderGroups).forEach(g => {
-      const avgPrice = g.totalQty > 0 ? g.totalCost / g.totalQty : 0
-      const dateKey  = g.date.substring(0, 10)
-      const mapKey   = `${g.symbol}|${g.product}-${dateKey}`
-      const isBuy = g.side === 'buy' || g.side === 'b'
-
-      const entry = { qty: g.totalQty, avgPrice, date: g.date }
-      if (isBuy) {
-        if (!buyMap[mapKey])  buyMap[mapKey]  = []
-        buyMap[mapKey].push(entry)
-      } else {
-        if (!sellMap[mapKey]) sellMap[mapKey] = []
-        sellMap[mapKey].push(entry)
-      }
-    })
-
+    const positions: Record<string, OpenPos | null> = {}
     const trades: ParsedTrade[] = []
     const carriedForward: { symbol: string; side: string; qty: number }[] = []
-    const allKeys = new Set([...Object.keys(buyMap), ...Object.keys(sellMap)])
 
     const symbolsInFile = [...new Set(Object.values(orderGroups).map(g => g.symbol))]
     const storedLegsBySymbol = await fetchOpenLegs(userId, symbolsInFile)
-    const usedStoredLeg = new Set<string>()
 
-    for (const mapKey of allKeys) {
-      const [symbolPart] = mapKey.split('-')
-      const [symbol, product] = symbolPart.split('|')
-      let buys  = buyMap[mapKey]  || []
-      let sells = sellMap[mapKey] || []
-      if (buys.length === 0 && sells.length === 0) continue
+    for (const symbol of symbolsInFile) {
+      const legs = storedLegsBySymbol[symbol]
+      if (!legs || legs.length === 0) continue
+      const totalQty  = legs.reduce((s, l) => s + l.qty, 0)
+      const totalCost = legs.reduce((s, l) => s + l.qty * l.price, 0)
+      const earliest  = legs.map(l => l.opened_at).sort()[0]
+      const product   = Object.values(orderGroups).find(g => g.symbol === symbol)?.product || symbol
+      positions[symbol] = {
+        product,
+        entries: [{ qty: totalQty, price: totalCost / totalQty, date: earliest }],
+        remainingQty: totalQty,
+        side: legs[0].side as 'Long' | 'Short',
+        tradeGroupId: legs.find(l => l.trade_group_id)?.trade_group_id || newGroupId(),
+      }
+    }
 
-      const storedLegs  = usedStoredLeg.has(symbol) ? [] : (storedLegsBySymbol[symbol] || [])
-      const consumedIds = storedLegs.map(l => l.id)
-      if (storedLegs.length > 0) usedStoredLeg.add(symbol)
-      const tradeGroupId = storedLegs.find(l => l.trade_group_id)?.trade_group_id || newGroupId()
+    const chronological = Object.values(orderGroups).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
-      for (const leg of storedLegs) {
-        const entry = { qty: leg.qty, avgPrice: leg.price, date: leg.opened_at }
-        if (leg.side === 'Long') buys = [entry, ...buys]
-        else sells = [entry, ...sells]
+    for (const g of chronological) {
+      const { symbol, product, side, date } = g
+      const price = g.totalQty > 0 ? g.totalCost / g.totalQty : 0
+      const qty = g.totalQty
+      const isBuy = side === 'buy' || side === 'b'
+
+      if (!positions[symbol]) {
+        positions[symbol] = {
+          product,
+          entries: [{ qty, price, date }],
+          remainingQty: qty,
+          side: isBuy ? 'Long' : 'Short',
+          tradeGroupId: newGroupId(),
+        }
+        continue
       }
 
-      const totalBuyQty  = buys.reduce((s, b)  => s + b.qty, 0)
-      const totalSellQty = sells.reduce((s, s2) => s + s2.qty, 0)
-      const avgBuyPrice  = totalBuyQty  > 0 ? buys.reduce((s, b)  => s + b.avgPrice * b.qty, 0) / totalBuyQty  : 0
-      const avgSellPrice = totalSellQty > 0 ? sells.reduce((s, s2) => s + s2.avgPrice * s2.qty, 0) / totalSellQty : 0
+      const pos = positions[symbol]!
+      const isClosing = (pos.side === 'Long' && !isBuy) || (pos.side === 'Short' && isBuy)
 
-      const isLong   = totalBuyQty >= totalSellQty
-      const matchQty = Math.min(totalBuyQty, totalSellQty)
-      const tradeType: 'Long' | 'Short' = isLong ? 'Long' : 'Short'
-
-      if (matchQty > 0) {
-        const entry = isLong ? avgBuyPrice  : avgSellPrice
-        const exit  = isLong ? avgSellPrice : avgBuyPrice
-        const pv = productMultiplier[product] ?? futuresPointValue(product)
-        const mult = pv ?? 1
-        const pointValueUnknown = pv == null
-        const pnl = (avgSellPrice - avgBuyPrice) * matchQty * mult * (isLong ? 1 : -1)
-
-        const allDates  = [...buys, ...sells].map(x => x.date).sort()
-        const tradeDate = allDates[0] || new Date().toISOString()
-
-        const closingSide = isLong ? sells : buys
-        const exitDate = closingSide.length > 0 ? closingSide.map(x => x.date).sort().slice(-1)[0] : null
-
-        const sig = `${symbol}-${tradeDate.substring(0, 10)}-${parseFloat(pnl.toFixed(2))}`
-
-        trades.push({
-          symbol,
-          type:       tradeType,
-          date:       tradeDate,
-          entry:      parseFloat(entry.toFixed(4)),
-          exit:       parseFloat(exit.toFixed(4)),
-          exitDate,
-          shares:     matchQty,
-          pnl:        parseFloat(pnl.toFixed(2)),
-          commission: 0, // not present in this export
-          duplicate:  existingSigs.has(sig),
-          tradeGroupId,
-          pointValueUnknown,
-        })
+      if (!isClosing) {
+        pos.entries.push({ qty, price, date })
+        pos.remainingQty += qty
+        continue
       }
 
-      const openingQty   = isLong ? totalBuyQty : totalSellQty
-      const openingPrice = isLong ? avgBuyPrice : avgSellPrice
-      const openingDates = (isLong ? buys : sells).map(x => x.date).sort()
-      const netQty = openingQty - matchQty
+      const totalEntryShares = pos.entries.reduce((s, e) => s + e.qty, 0)
+      const totalEntryCost   = pos.entries.reduce((s, e) => s + e.qty * e.price, 0)
+      const avgEntry = totalEntryCost / totalEntryShares
+      const tradeQty = Math.min(qty, pos.remainingQty)
 
-      if (netQty > 0) {
+      const pv = productMultiplier[pos.product] ?? futuresPointValue(pos.product)
+      const mult = pv ?? 1
+      const pointValueUnknown = pv == null
+      const rawPnl = pos.side === 'Long'
+        ? (price - avgEntry) * tradeQty * mult
+        : (avgEntry - price) * tradeQty * mult
+
+      const entryDate = pos.entries[0].date
+      const pnl = parseFloat(rawPnl.toFixed(2))
+      const sig = `${symbol}-${entryDate.substring(0, 10)}-${pnl}`
+
+      trades.push({
+        symbol,
+        type: pos.side,
+        date: entryDate,
+        entry: parseFloat(avgEntry.toFixed(4)),
+        exit: parseFloat(price.toFixed(4)),
+        exitDate: date,
+        shares: tradeQty,
+        pnl,
+        commission: 0, // not present in this export
+        duplicate: existingSigs.has(sig),
+        tradeGroupId: pos.tradeGroupId,
+        pointValueUnknown,
+      })
+
+      pos.remainingQty -= tradeQty
+      if (pos.remainingQty <= 0) positions[symbol] = null
+    }
+
+    for (const symbol of symbolsInFile) {
+      const pos = positions[symbol]
+      const legs = storedLegsBySymbol[symbol]
+      const consumedIds = legs ? legs.map(l => l.id) : []
+
+      if (pos && pos.remainingQty > 0) {
+        const totalCost = pos.entries.reduce((s, e) => s + e.qty * e.price, 0)
+        const totalQty  = pos.entries.reduce((s, e) => s + e.qty, 0)
         await replaceOpenLeg(userId, symbol, consumedIds, {
-          symbol, side: tradeType, qty: netQty,
-          price: openingPrice, opened_at: openingDates[0] || new Date().toISOString(),
+          symbol, side: pos.side, qty: pos.remainingQty,
+          price: totalCost / totalQty,
+          opened_at: pos.entries[0].date,
           commission: 0,
-          trade_group_id: tradeGroupId,
+          trade_group_id: pos.tradeGroupId,
         }, 'Tradovate')
-        carriedForward.push({ symbol, side: tradeType, qty: netQty })
+        carriedForward.push({ symbol, side: pos.side, qty: pos.remainingQty })
       } else if (consumedIds.length > 0) {
         await replaceOpenLeg(userId, symbol, consumedIds, null, 'Tradovate')
       }
@@ -262,8 +274,7 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
     }
   }
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
+  function processFile(file: File | undefined) {
     if (!file) return
     setError('')
     setNotice('')
@@ -289,6 +300,10 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
       }
     }
     reader.readAsText(file)
+  }
+
+  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    processFile(e.target.files?.[0])
   }
 
   function toggleSelect(i: number) {
@@ -361,6 +376,8 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
   if (step === 'preview') {
     const dups  = parsed.filter(t => t.duplicate).length
     const total = parsed.length
+    const groupCounts: Record<string, number> = {}
+    parsed.forEach(t => { groupCounts[t.tradeGroupId] = (groupCounts[t.tradeGroupId] || 0) + 1 })
     return (
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
@@ -399,7 +416,7 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
                   </td>
                   <td style={{ padding: '8px 12px', fontWeight: 700, fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>
                     {t.symbol}
-                    {t.tradeGroupId && <span style={{ marginLeft: '6px', fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '4px', padding: '1px 6px' }}>scaled</span>}
+                    {groupCounts[t.tradeGroupId] > 1 && <span style={{ marginLeft: '6px', fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '4px', padding: '1px 6px' }}>scaled</span>}
                   </td>
                   <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--brd)' }}>
                     <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', background: t.type === 'Short' ? 'var(--red-d)' : 'var(--ac-d)', color: t.type === 'Short' ? 'var(--red)' : 'var(--ac)' }}>{t.type}</span>
@@ -453,20 +470,23 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
         ))}
       </div>
 
-      <label style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        gap: '10px', padding: '40px',
-        background: 'var(--bg3)', border: '2px dashed var(--brd2)',
-        borderRadius: 'var(--r2)', cursor: 'pointer', transition: '.15s',
-      }}
-        onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--ac)')}
-        onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--brd2)')}
+      <div
+        onClick={() => document.getElementById('tradovate-file-input')?.click()}
+        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => { e.preventDefault(); setDragOver(false); processFile(e.dataTransfer.files[0]) }}
+        style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: '10px', padding: '40px',
+          background: 'var(--bg3)', border: `2px dashed ${dragOver ? 'var(--ac)' : 'var(--brd2)'}`,
+          borderRadius: 'var(--r2)', cursor: 'pointer', transition: '.15s',
+        }}
       >
-        <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFile} />
+        <input id="tradovate-file-input" type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileInput} />
         <div style={{ fontSize: '28px' }}>📂</div>
-        <div style={{ fontSize: '13px', fontWeight: 600 }}>Click to upload Tradovate Orders CSV</div>
-        <div style={{ fontSize: '10px', color: 'var(--txt3)' }}>Supports .csv files</div>
-      </label>
+        <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your Tradovate Orders CSV here</div>
+        <div style={{ fontSize: '10px', color: 'var(--txt3)' }}>or click to browse</div>
+      </div>
 
       {error && (
         <div style={{ marginTop: '12px', background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: 'var(--red)' }}>
