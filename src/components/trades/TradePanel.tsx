@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import type { TradeRow } from '@/lib/types'
-import { assetUnitLabel } from '@/lib/types'
+import { assetUnitLabel, ASSET_TYPES } from '@/lib/types'
 import { fmtPnl, fmtDate, holdTime } from '@/lib/analytics'
 import { getScreenshotUrl } from '@/lib/tradeService'
 import TradeChart, { Candle, TradeMarker } from '@/components/charts/TradeChart'
@@ -236,6 +236,7 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
           <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: trade.type === 'Short' ? 'var(--red-d)' : 'var(--ac-d)', color: trade.type === 'Short' ? 'var(--red)' : 'var(--ac)' }}>{trade.type}</span>
           <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: 'var(--bg5)', color: 'var(--txt2)' }}>{trade.exit ? 'Closed' : 'Open'}</span>
           <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: statusBg, color: statusColor }}>{statusLabel}</span>
+          <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: 'var(--bg5)', color: 'var(--txt3)' }}>{ASSET_TYPES.find(a => a.value === trade.asset_type)?.label || 'Stock'}</span>
         </div>
         <div style={{ fontSize: '10px', color: 'var(--txt3)', marginTop: '6px' }}>
           Opened {fmtDate(trade.date)}
