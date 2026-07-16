@@ -68,13 +68,39 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
     setChartError(null)
     setCandles([])
 
+    // Options don't have simple continuous price history the way stocks/forex/futures
+    // do — every contract is its own expiring instrument — and our price data provider
+    // doesn't support them. Rather than guess a symbol format and risk showing a wrong
+    // chart, we say so plainly instead.
+    if (trade.asset_type === 'option') {
+      setChartError('Charts aren\'t available for options trades — options don\'t have a simple continuous price history the way stocks do.')
+      setChartLoading(false)
+      return
+    }
+
+    // Futures aren't reliably chartable through our current price data provider either —
+    // rather than guess a contract symbol format that might silently show the wrong
+    // chart, we say so plainly instead of pretending it works.
+    if (trade.asset_type === 'futures') {
+      setChartError('Charts aren\'t available for futures trades yet.')
+      setChartLoading(false)
+      return
+    }
+
     const tradeDate = new Date(trade.date)
     const paddedStart = new Date(tradeDate)
     paddedStart.setDate(paddedStart.getDate() - 10)
     const startDate = paddedStart.toISOString().slice(0, 10)
     const endDate = new Date().toISOString().slice(0, 10)
 
-    const params = new URLSearchParams({ symbol: trade.symbol, interval: selectedTimeframe })
+    // Our price data provider (Twelve Data) requires forex pairs in "EUR/USD" format,
+    // not the plain "EURUSD" broker symbols we store trades under.
+    let apiSymbol = trade.symbol
+    if (trade.asset_type === 'forex' && !apiSymbol.includes('/') && apiSymbol.length === 6) {
+      apiSymbol = `${apiSymbol.slice(0, 3)}/${apiSymbol.slice(3)}`
+    }
+
+    const params = new URLSearchParams({ symbol: apiSymbol, interval: selectedTimeframe })
     if (startDate) params.set('start', startDate)
     if (endDate) params.set('end', endDate)
 

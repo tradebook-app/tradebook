@@ -202,13 +202,30 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
     setChartError(null)
     setCandles([])
 
+    if (trade.asset_type === 'option') {
+      setChartError('Charts aren\'t available for options trades — options don\'t have a simple continuous price history the way stocks do.')
+      setChartLoading(false)
+      return
+    }
+
+    if (trade.asset_type === 'futures') {
+      setChartError('Charts aren\'t available for futures trades yet.')
+      setChartLoading(false)
+      return
+    }
+
     const tradeDate = new Date(trade.date)
     const paddedStart = new Date(tradeDate)
     paddedStart.setDate(paddedStart.getDate() - 10)
     const startDate = paddedStart.toISOString().slice(0, 10)
     const endDate = new Date().toISOString().slice(0, 10)
 
-    const params = new URLSearchParams({ symbol: trade.symbol, interval: selectedTimeframe })
+    let apiSymbol = trade.symbol
+    if (trade.asset_type === 'forex' && !apiSymbol.includes('/') && apiSymbol.length === 6) {
+      apiSymbol = `${apiSymbol.slice(0, 3)}/${apiSymbol.slice(3)}`
+    }
+
+    const params = new URLSearchParams({ symbol: apiSymbol, interval: selectedTimeframe })
     if (startDate) params.set('start', startDate)
     if (endDate) params.set('end', endDate)
 
