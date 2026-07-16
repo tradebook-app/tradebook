@@ -4,7 +4,7 @@ import { useState } from 'react'
 import type { TradeRow } from '@/lib/types'
 import { insertTrade } from '@/lib/tradeService'
 import { fetchOpenLegs, replaceOpenLeg } from '@/lib/legMatcher'
-import { OPTION_MULTIPLIER, looksLikeOptionSymbol } from '@/lib/contractMultiplier'
+import { OPTION_MULTIPLIER } from '@/lib/contractMultiplier'
 
 type Props = {
   userId: string
@@ -55,6 +55,8 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
   const qtyCol    = col('qty')
   const symCol    = col('symbol')
   const priceCol  = col('price')
+  const typeCol   = col('type')        // CALL / PUT — blank for stock rows
+  const posEffCol = col('pos effect')  // TO OPEN / TO CLOSE
 
   if (symCol === -1 || timeCol === -1) throw new Error('Unexpected column format in Account Trade History.')
 
@@ -64,6 +66,8 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
     side: 'BUY' | 'SELL'
     qty: number
     price: number
+    isOption: boolean
+    posEffect: string  // 'OPEN' | 'CLOSE' | '' (unknown — falls back to side-flip inference)
   }
 
   const executions: Execution[] = []
@@ -79,6 +83,8 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
     const qtyRaw   = cols[qtyCol] || ''
     const symbol   = (cols[symCol] || '').toUpperCase().replace(/[^A-Z]/g, '')
     const price    = parseFloat(cols[priceCol]) || 0
+    const rawType  = typeCol !== -1 ? (cols[typeCol] || '').toUpperCase() : ''
+    const rawPosEff = posEffCol !== -1 ? (cols[posEffCol] || '').toUpperCase() : ''
 
     if (!symbol || !rawTime || (!side.includes('BUY') && !side.includes('SELL'))) continue
 
@@ -93,6 +99,8 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
       side: side.includes('BUY') ? 'BUY' : 'SELL',
       qty,
       price,
+      isOption: rawType === 'CALL' || rawType === 'PUT',
+      posEffect: rawPosEff.includes('CLOSE') ? 'CLOSE' : rawPosEff.includes('OPEN') ? 'OPEN' : '',
     })
   }
 
@@ -134,7 +142,7 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
   }
 
   for (const exec of executions) {
-    const { symbol, side, qty, price, datetime } = exec
+    const { symbol, side, qty, price, datetime, isOption, posEffect } = exec
     const isBuy = side === 'BUY'
 
     if (!positions[symbol]) {
@@ -146,16 +154,18 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
       }
     } else {
       const pos = positions[symbol]!
-      const isClosing =
-        (pos.side === 'Long' && !isBuy) ||
-        (pos.side === 'Short' && isBuy)
+      // Prefer TOS's own Pos Effect column when present — it's unambiguous.
+      // Fall back to inferring from a side flip only when that column is missing
+      // (some TOS export configurations omit it).
+      const isClosing = posEffect
+        ? posEffect === 'CLOSE'
+        : (pos.side === 'Long' && !isBuy) || (pos.side === 'Short' && isBuy)
 
       if (isClosing) {
         const totalEntryShares = pos.entries.reduce((s, e) => s + e.qty, 0)
         const totalEntryCost   = pos.entries.reduce((s, e) => s + e.qty * e.price, 0)
         const avgEntry = totalEntryCost / totalEntryShares
         const tradeQty  = Math.min(qty, pos.remainingQty)
-        const isOption = looksLikeOptionSymbol(symbol)
         const mult = isOption ? OPTION_MULTIPLIER : 1
         const rawPnl = pos.side === 'Long'
           ? (price - avgEntry) * tradeQty * mult
@@ -183,7 +193,7 @@ async function parseTOS(text: string, existingTrades: TradeRow[], userId: string
           duplicate: existingSigs.has(sig),
           tradeGroupId: pos.tradeGroupId,
           assetType: isOption ? 'option' : 'stock',
-          assetTypeGuessed: isOption,
+          assetTypeGuessed: false,
         })
 
         pos.remainingQty -= tradeQty
