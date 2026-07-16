@@ -145,18 +145,20 @@ input[type='date'] { color-scheme: dark; }
 input[type='datetime-local'] { color-scheme: dark; }
 [data-theme="light"] input[type='datetime-local'] { color-scheme: light; }
 
-/* color-scheme alone still leaves the icon too dim against our near-black
-   background in dark mode — force it brighter directly. Reset to the
-   browser default in light mode, where a dark icon on a light field is
-   already correct. */
+/* color-scheme already asks the browser for a light icon, so a plain invert()
+   was fighting that and cancelling itself out. brightness(0) forces the icon
+   to a known black baseline first, THEN invert(1) flips that to white —
+   reliable regardless of what color the browser drew it in originally. */
 input[type='date']::-webkit-calendar-picker-indicator,
 input[type='datetime-local']::-webkit-calendar-picker-indicator {
-  filter: invert(1) brightness(1.7);
+  filter: brightness(0) invert(1);
+  opacity: 0.9;
   cursor: pointer;
 }
 [data-theme="light"] input[type='date']::-webkit-calendar-picker-indicator,
 [data-theme="light"] input[type='datetime-local']::-webkit-calendar-picker-indicator {
   filter: none;
+  opacity: 1;
 }
 
 /* ─── Base input styling ─────────────────────────────────────────────────── */
