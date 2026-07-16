@@ -212,7 +212,7 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
   // ── Done ────────────────────────────────────────────────────────────────
   if (step === 'done') {
     return (
-      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '48px', textAlign: 'center' }}>
+      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '48px', textAlign: 'center', maxWidth: '640px', margin: '0 auto' }}>
         <div style={{ fontSize: '40px', marginBottom: '14px' }}>✅</div>
         <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
           {imported} trade{imported !== 1 ? 's' : ''} imported!
@@ -231,7 +231,7 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
     const total = parsed.length
 
     return (
-      <div>
+      <div style={{ maxWidth: '640px', margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
           <button className="btn btn-o" onClick={reset}>← Back</button>
           <div style={{ fontSize: '13px', fontWeight: 700 }}>
@@ -305,7 +305,7 @@ export function TastytradeImport({ userId, existingTrades, onImported }: Props) 
 
   // ── Upload ───────────────────────────────────────────────────────────────
   return (
-    <div style={{ maxWidth: '600px' }}>
+    <div style={{ maxWidth: '640px', margin: '0 auto' }}>
       <div style={{ marginBottom: '20px' }}>
         <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>Import from Tastytrade</div>
         <div style={{ fontSize: '11px', color: 'var(--txt3)', lineHeight: 1.6 }}>
