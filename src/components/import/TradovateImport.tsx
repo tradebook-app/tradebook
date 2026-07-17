@@ -10,6 +10,12 @@ type Props = {
   userId: string
   existingTrades: TradeRow[]
   onImported: (trades: TradeRow[]) => void
+  // Lets this same parser power a second broker entry (NinjaTrader Web) without
+  // duplicating any logic — NinjaTrader Web's Orders CSV export is byte-for-byte
+  // the same schema as Tradovate's, confirmed against a real NinjaTrader Web file.
+  brokerLabel?: string
+  exportSteps?: string[]
+  fileHint?: string
 }
 
 type ParsedTrade = {
@@ -33,7 +39,17 @@ function newGroupId(): string {
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
-export function TradovateImport({ userId, existingTrades, onImported }: Props) {
+export function TradovateImport({
+  userId, existingTrades, onImported,
+  brokerLabel = 'Tradovate',
+  exportSteps = [
+    'Open the Orders tab in Tradovate',
+    'Set your date range',
+    'Click the export/download icon on the Orders grid',
+    'Upload the CSV file above',
+  ],
+  fileHint = 'Orders CSV',
+}: Props) {
   const [step,      setStep]      = useState<'upload' | 'preview' | 'done'>('upload')
   const [parsed,    setParsed]    = useState<ParsedTrade[]>([])
   const [selected,  setSelected]  = useState<Set<number>>(new Set())
@@ -48,7 +64,7 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
     if (lines.length < 2) throw new Error('File appears empty')
 
     const headerIdx = lines.findIndex(l => l.toLowerCase().includes('contract') && l.toLowerCase().includes('b/s'))
-    if (headerIdx === -1) throw new Error('Could not find header row. Make sure this is a Tradovate Orders CSV export.')
+    if (headerIdx === -1) throw new Error(`Could not find header row. Make sure this is a ${brokerLabel} ${fileHint} export.`)
 
     // Handles quoted fields containing commas, e.g. "3,802,250.00"
     const splitRow = (line: string) => {
@@ -83,7 +99,7 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
     const orderCol   = col(['orderid'])
     const notionalCol = col(['notionalvalue'])
 
-    if (contractCol < 0) throw new Error('Contract column not found. Check that this is a Tradovate Orders CSV.')
+    if (contractCol < 0) throw new Error(`Contract column not found. Check that this is a ${brokerLabel} ${fileHint}.`)
     if (sideCol < 0)     throw new Error('B/S column not found.')
 
     const existingSigs = new Set(
@@ -257,10 +273,12 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
           opened_at: pos.entries[0].date,
           commission: 0,
           trade_group_id: pos.tradeGroupId,
-        }, 'Tradovate')
+        }, 'Tradovate') // intentionally always 'Tradovate' — NinjaTrader Web shares Tradovate's
+        // underlying platform, so a position opened via one import path can still be
+        // correctly matched and closed by the other.
         carriedForward.push({ symbol, side: pos.side, qty: pos.remainingQty })
       } else if (consumedIds.length > 0) {
-        await replaceOpenLeg(userId, symbol, consumedIds, null, 'Tradovate')
+        await replaceOpenLeg(userId, symbol, consumedIds, null, 'Tradovate') // see note above
       }
     }
 
@@ -340,7 +358,7 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
         setup:          null,
         grade:          null,
         tags:           [],
-        notes:          'Imported from Tradovate',
+        notes:          `Imported from ${brokerLabel}`,
         screenshot_url: null,
         trade_group_id: t.tradeGroupId,
       }, userId)
@@ -373,7 +391,7 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
             {imported} trade{imported !== 1 ? 's' : ''} imported!
           </div>
           <div style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '24px' }}>
-            Your Tradovate trades are now in the database. Head to Trade View or Dashboard to see them.
+            Your {brokerLabel} trades are now in the database. Head to Trade View or Dashboard to see them.
           </div>
           <button className="btn btn-p" onClick={reset}>Import More</button>
         </div>
@@ -457,9 +475,9 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
   return (
     <div style={{ padding: '8px' }}>
       <div style={card}>
-        <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>Import from Tradovate</div>
+        <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>Import from {brokerLabel}</div>
         <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: '18px' }}>
-          Export your Orders CSV from Tradovate and upload it here. Only filled orders are
+          Export your {fileHint} from {brokerLabel} and upload it here. Only filled orders are
           imported. Point values are read directly from the file's Notional Value where
           available, so P&amp;L should be accurate even for less common contracts.
         </div>
@@ -477,19 +495,14 @@ export function TradovateImport({ userId, existingTrades, onImported }: Props) {
           }}
         >
           <div style={{ fontSize: '24px', color: 'var(--txt3)', marginBottom: '6px' }}>⇪</div>
-          <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your Tradovate Orders CSV here</div>
+          <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your {brokerLabel} {fileHint} here</div>
           <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>or click to browse</div>
           <input id="tradovate-file-input" type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileInput} />
         </div>
 
         <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '14px 16px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)', marginBottom: '8px' }}>How to export from Tradovate:</div>
-          {[
-            'Open the Orders tab in Tradovate',
-            'Set your date range',
-            'Click the export/download icon on the Orders grid',
-            'Upload the CSV file above',
-          ].map((s, i) => (
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)', marginBottom: '8px' }}>How to export from {brokerLabel}:</div>
+          {exportSteps.map((s, i) => (
             <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '4px' }}>
               <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac)', minWidth: '16px' }}>{i + 1}.</span>
               <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{s}</span>
