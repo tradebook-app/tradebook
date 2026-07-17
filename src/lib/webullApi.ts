@@ -1,22 +1,28 @@
 import crypto from 'crypto'
 
 // Host + endpoint paths below were confirmed directly against developer.webull.com's
-// published API reference pages (create-token, check-token, account-list, order-history)
-// on 2026-07-17, after the original guessed paths returned 404s on a real connection
-// test. 'api.sandbox.webull.com' is Webull's documented test/paper-trading host — this
-// is what a PaperTrade App Key needs. Webull's docs don't explicitly confirm the
-// production hostname anywhere we could find; if a live (non-paper) key is ever used
-// here, that's the first thing to verify — it may still be 'api.webull.com', or it may
-// differ the same way the sandbox host does.
+// published API reference (create-token, check-token, account-list, order-history) on
+// 2026-07-17.
 //
-// REMAINING UNCERTAINTY: the docs confirm these paths and that requests need
-// 'x-app-key' + signature headers, but didn't show us the exact header/param name for
+// HOST: this took two attempts to get right. Individually-issued App Key/Secret pairs
+// (the kind generated from "Register an API Application" in the developer portal —
+// which is what a real user has, even for a PaperTrade-approved application) are meant
+// to hit the PRODUCTION host, 'api.webull.com'. Webull's backend already knows the key
+// is scoped to a paper account from the application approval itself — it doesn't need
+// a different URL for that. The sandbox host ('api.sandbox.webull.com') is for a
+// different thing entirely: Webull's own generic, publicly-shared test credentials that
+// anyone can use without an approved application. Using a real per-user key against the
+// sandbox host returns 401 "invalid credentials... ensure you are connecting to the
+// correct environment" — which is exactly what happened when this was tried.
+const API_HOST = 'api.webull.com'
+const API_BASE = `https://${API_HOST}`
+
+// REMAINING UNCERTAINTY: the docs confirm the paths above and that requests need
+// 'x-app-key' + signature headers, but didn't show the exact header/param name for
 // passing the access token on authenticated calls (fetchAccounts / fetchFilledOrders
 // below still send it as an 'accessToken' query param, unconfirmed). If createToken /
 // checkTokenStatus succeed but fetchAccounts or fetchFilledOrders fail with 401/404,
 // this is the next thing to check.
-const API_HOST = 'api.sandbox.webull.com'
-const API_BASE = `https://${API_HOST}`
 
 export type WebullCredentials = {
   appKey: string
