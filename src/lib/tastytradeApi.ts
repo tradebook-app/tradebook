@@ -8,7 +8,16 @@ export type TastytradeCredentials = {
 async function refreshAccessToken(creds: TastytradeCredentials): Promise<string> {
   const res = await fetch(`${API_URL}/oauth/token`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      // The raw nginx-style "401 Authorization Required" HTML page (as opposed to
+      // Tastytrade's normal JSON error body) suggests requests without a real
+      // User-Agent get blocked at a gateway level before reaching the actual API.
+      // The endpoint path and request body here already match Tastytrade's own
+      // Python SDK exactly, so this header is the most likely remaining gap.
+      'User-Agent': 'Sleektrade/1.0 (+https://sleektrade.app)',
+    },
     body: JSON.stringify({
       grant_type: 'refresh_token',
       client_secret: creds.clientSecret,
@@ -32,6 +41,7 @@ async function ttFetch(accessToken: string, path: string, params?: Record<string
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/json',
+      'User-Agent': 'Sleektrade/1.0 (+https://sleektrade.app)',
     },
   })
   if (!res.ok) {
