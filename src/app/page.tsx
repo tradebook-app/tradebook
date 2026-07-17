@@ -5,6 +5,18 @@ import { PricingSection } from '@/components/PricingSection'
 import { Testimonials } from '@/components/Testimonials'
 import { SleektradeChat } from '@/components/SleektradeChat'
 
+const BROKER_LOGOS = [
+  { name: 'DAS Trader', logo: '/brokers/das.png', bg: '#0A1628' },
+  { name: 'ThinkOrSwim', logo: '/brokers/tos.png', bg: '#0D3B0D' },
+  { name: 'Interactive Brokers', logo: '/brokers/ibkr.png', bg: '#8B0000' },
+  { name: 'Webull', logo: '/brokers/webull.png', bg: '#003366' },
+  { name: 'Tastytrade', logo: '/brokers/tastytrade.png', bg: '#1A0E06' },
+  { name: 'TradeStation', logo: '/brokers/tradestation.png', bg: '#1A1400' },
+  { name: 'MT4 / MT5', logo: '/brokers/mt4.png', bg: '#0A1220' },
+  { name: 'Tradovate', logo: '/brokers/tradovate.png', bg: '#0F1A0A' },
+  { name: 'NinjaTrader', logo: '/brokers/ninjatrader.png', bg: '#12121A' },
+]
+
 const Logo = () => (
   <svg width="38" height="38" viewBox="0 0 64 64">
     <rect x="0" y="0" width="64" height="64" rx="14" fill="#062e21"/>
@@ -272,22 +284,17 @@ export default async function HomePage() {
           <p style={{ fontSize: '17px', color: 'var(--txt2)', marginBottom: '56px', maxWidth: '560px', margin: '0 auto 56px' }}>
             Connect your broker and Sleektrade turns your raw data into clear, actionable insights.
           </p>
-          <div className="broker-flex" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '48px', flexWrap: 'wrap', marginBottom: '48px' }}>
-            {[
-              { name: 'DAS Trader', logo: '/brokers/das.png', bg: '#0A1628' },
-              { name: 'ThinkOrSwim', logo: '/brokers/tos.png', bg: '#0D3B0D' },
-              { name: 'Interactive Brokers', logo: '/brokers/ibkr.png', bg: '#8B0000' },
-              { name: 'Webull', logo: '/brokers/webull.png', bg: '#003366' },
-              { name: 'Tastytrade', logo: '/brokers/tastytrade.png', bg: '#1A0E06' },
-              { name: 'TradeStation', logo: '/brokers/tradestation.png', bg: '#1A1400' },
-            ].map(b => (
-              <div key={b.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '72px', height: '72px', borderRadius: '18px', background: b.bg, border: '1px solid rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,.3)' }}>
-                  <img src={b.logo} alt={b.name} width={48} height={48} style={{ objectFit: 'contain' }} />
+          <div className="broker-flex" style={{ overflow: 'hidden', marginBottom: '48px', maskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)', WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)' }}>
+            <div className="broker-scroll-track" style={{ gap: '48px', alignItems: 'center' }}>
+              {[...BROKER_LOGOS, ...BROKER_LOGOS].map((b, i) => (
+                <div key={`${b.name}-${i}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                  <div style={{ width: '72px', height: '72px', borderRadius: '18px', background: b.bg, border: '1px solid rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,.3)' }}>
+                    <img src={b.logo} alt={b.name} width={48} height={48} style={{ objectFit: 'contain' }} />
+                  </div>
+                  <span style={{ fontSize: '13px', color: 'var(--txt2)', fontWeight: 600, whiteSpace: 'nowrap' }}>{b.name}</span>
                 </div>
-                <span style={{ fontSize: '13px', color: 'var(--txt2)', fontWeight: 600 }}>{b.name}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
           <Link href="/signup" style={{ fontSize: '14px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '8px', padding: '12px 28px', display: 'inline-block', textDecoration: 'none' }}>
             Start for free →
@@ -1005,6 +1012,96 @@ export default async function HomePage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/* PROP TRACKER SECTION */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      <section style={{ background: '#0a0a0f', borderBottom: '1px solid var(--brd)', padding: '100px 48px' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div className="ai-section-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }}>
+
+            {/* LEFT — Prop Tracker Mock */}
+            <div className="ai-mock" style={{ order: 1 }}>
+              <div style={{
+                background: '#0e0e14',
+                border: '1px solid #1e2028',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                padding: '20px',
+                boxShadow: '0 32px 80px rgba(0,0,0,.6)',
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '16px' }}>Prop Tracker</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+                  {[
+                    { firm: 'FTMO', status: 'Funded', size: '$100K', color: '#10B981' },
+                    { firm: 'Apex', status: 'Eval Phase 2', size: '$50K', color: '#F59E0B' },
+                  ].map(a => (
+                    <div key={a.firm} style={{ background: '#131318', border: '1px solid #252530', borderRadius: '10px', padding: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700 }}>{a.firm}</span>
+                        <span style={{ fontSize: '8px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: `${a.color}22`, color: a.color }}>{a.status}</span>
+                      </div>
+                      <div style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'monospace' }}>{a.size}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: '#131318', border: '1px solid #252530', borderRadius: '10px', padding: '14px' }}>
+                  <div style={{ fontSize: '9px', color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '10px' }}>Spend by firm</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <svg width="70" height="70" viewBox="0 0 36 36">
+                      <circle cx="18" cy="18" r="15.5" fill="none" stroke="#1e2028" strokeWidth="5"/>
+                      <circle cx="18" cy="18" r="15.5" fill="none" stroke="#10B981" strokeWidth="5" strokeDasharray="62 100" strokeDashoffset="25" transform="rotate(-90 18 18)"/>
+                      <circle cx="18" cy="18" r="15.5" fill="none" stroke="#F59E0B" strokeWidth="5" strokeDasharray="38 100" strokeDashoffset="-37" transform="rotate(-90 18 18)"/>
+                    </svg>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'var(--txt2)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#10B981' }}/>FTMO — $620</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'var(--txt2)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#F59E0B' }}/>Apex — $380</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT — Text */}
+            <div style={{ order: 2 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.25)', borderRadius: '20px', padding: '5px 14px', marginBottom: '28px', letterSpacing: '.05em', textTransform: 'uppercase' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M3 7l9-4 9 4"/></svg>
+                Prop Tracker · Elite Feature
+              </div>
+              <h2 style={{ fontSize: '42px', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-.03em', marginBottom: '20px' }}>
+                Every prop firm account.<br />
+                <span style={{ color: '#10B981' }}>One dashboard.</span>
+              </h2>
+              <p style={{ fontSize: '16px', color: 'var(--txt2)', lineHeight: 1.75, marginBottom: '32px', maxWidth: '480px' }}>
+                Track evaluation and funded accounts across every prop firm you trade with — fees, payouts, and account status in one place, instead of spreadsheets and browser tabs.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '36px' }}>
+                {[
+                  { icon: '🏦', text: 'Track unlimited prop firm accounts side by side' },
+                  { icon: '💰', text: 'See fees and payouts by firm at a glance' },
+                  { icon: '📈', text: 'Cumulative P&L chart across all your accounts' },
+                  { icon: '📋', text: 'Full transaction history per account, expandable inline' },
+                ].map((item, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <span style={{ fontSize: '16px', marginTop: '1px' }}>{item.icon}</span>
+                    <span style={{ fontSize: '14px', color: 'var(--txt2)', lineHeight: 1.5 }}>{item.text}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <Link href="/signup" style={{ fontSize: '14px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '10px', padding: '12px 24px', textDecoration: 'none', display: 'inline-block' }}>
+                  Try Prop Tracker free →
+                </Link>
+                <Link href="/billing" style={{ fontSize: '14px', fontWeight: 600, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '10px', padding: '12px 20px', textDecoration: 'none', display: 'inline-block' }}>
+                  View Elite plan
+                </Link>
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--txt3)', marginTop: '12px' }}>Included in Elite plan · $29/mo</p>
             </div>
 
           </div>

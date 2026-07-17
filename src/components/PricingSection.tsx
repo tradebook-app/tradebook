@@ -99,9 +99,10 @@ export function PricingSection() {
               'Everything in Pro',
               'Unlimited trading accounts',
               'Sleek AI trade analysis',
+              'Prop Tracker — track prop firm accounts',
+              'Auto-sync with IBKR, Tastytrade & Webull',
               'Priority support',
               'Early access to new features',
-              'Broker integrations (coming soon)',
             ].map(f => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: '13px', color: 'var(--txt2)' }}>
                 <span style={{ color: '#10B981', fontWeight: 700 }}>✓</span> {f}
