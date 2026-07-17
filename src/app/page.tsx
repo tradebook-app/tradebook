@@ -913,9 +913,9 @@ export default async function HomePage() {
                 <Link href="/signup" style={{ fontSize: '14px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '10px', padding: '12px 24px', textDecoration: 'none', display: 'inline-block' }}>
                   Try Sleek AI free →
                 </Link>
-                <Link href="/billing" style={{ fontSize: '14px', fontWeight: 600, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '10px', padding: '12px 20px', textDecoration: 'none', display: 'inline-block' }}>
+                <a href="#pricing" style={{ fontSize: '14px', fontWeight: 600, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '10px', padding: '12px 20px', textDecoration: 'none', display: 'inline-block' }}>
                   View Elite plan
-                </Link>
+                </a>
               </div>
               <p style={{ fontSize: '12px', color: 'var(--txt3)', marginTop: '12px' }}>Included in Elite plan · $29/mo</p>
             </div>
@@ -1097,9 +1097,9 @@ export default async function HomePage() {
                 <Link href="/signup" style={{ fontSize: '14px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '10px', padding: '12px 24px', textDecoration: 'none', display: 'inline-block' }}>
                   Try Prop Tracker free →
                 </Link>
-                <Link href="/billing" style={{ fontSize: '14px', fontWeight: 600, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '10px', padding: '12px 20px', textDecoration: 'none', display: 'inline-block' }}>
+                <a href="#pricing" style={{ fontSize: '14px', fontWeight: 600, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '10px', padding: '12px 20px', textDecoration: 'none', display: 'inline-block' }}>
                   View Elite plan
-                </Link>
+                </a>
               </div>
               <p style={{ fontSize: '12px', color: 'var(--txt3)', marginTop: '12px' }}>Included in Elite plan · $29/mo</p>
             </div>
