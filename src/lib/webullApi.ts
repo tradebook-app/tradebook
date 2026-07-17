@@ -48,7 +48,12 @@ function signRequest(
 
   const combined: Record<string, string> = { ...queryParams, ...headerFields }
   const sortedKeys = Object.keys(combined).sort()
-  const s1 = sortedKeys.map(k => `${k}=${combined[k]}`).join('&')
+  // Values are URL-encoded before joining — Webull's docs list "URL encoding
+  // considerations" as its own required step in building the sign string, separate
+  // from the sort-and-join step. Skipping this breaks the signature specifically
+  // for any value containing reserved characters — x-timestamp always does (the
+  // colons in "2026-07-17T12:00:00Z"), so this silently broke every single request.
+  const s1 = sortedKeys.map(k => `${k}=${encodeURIComponent(combined[k])}`).join('&')
 
   let s3 = `${uri}&${s1}`
   if (body && body.length > 0) {
