@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import * as XLSX from 'xlsx'
 import type { TradeRow } from '@/lib/types'
 import { insertTrade } from '@/lib/tradeService'
-import { fetchOpenLegs, replaceOpenLeg } from '@/lib/legMatcher'
-import { OPTION_MULTIPLIER, looksLikeOptionSymbol } from '@/lib/contractMultiplier'
+import { createClient } from '@/lib/supabase/client'
+import { matchWebullExecutions, type WebullExecution } from '@/lib/webullMatcher'
 
 type Props = {
   userId: string
@@ -21,16 +22,11 @@ type ParsedTrade = {
   exitDate:  string | null
   shares:    number
   pnl:       number
+  commission: number
   duplicate: boolean
   tradeGroupId: string
   assetType: TradeRow['asset_type']
   assetTypeGuessed: boolean
-}
-
-function newGroupId(): string {
-  return (globalThis.crypto as any)?.randomUUID
-    ? globalThis.crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 export function WebullImport({ userId, existingTrades, onImported }: Props) {
@@ -43,202 +39,89 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
   const [notice,    setNotice]    = useState('')
   const [dragOver,  setDragOver]  = useState(false)
 
-  async function parseCSV(text: string): Promise<{ trades: ParsedTrade[]; carriedForward: { symbol: string; side: string; qty: number }[] }> {
-    const lines = text.trim().split('\n').filter(l => l.trim())
-    if (lines.length < 2) throw new Error('File appears empty')
-
-    // Find header row
-    const headerIdx = lines.findIndex(l =>
-      l.toLowerCase().includes('symbol') || l.toLowerCase().includes('time')
-    )
-    if (headerIdx === -1) throw new Error('Could not find header row. Make sure this is a Webull order history export.')
-
-    // Webull exports comma-separated
-    const splitRow = (line: string) =>
-      line.split(',').map(c => c.trim().replace(/^"|"$/g, ''))
-
-    const headers = splitRow(lines[headerIdx]).map(h => h.toLowerCase().replace(/\s+/g, ''))
-    const rows    = lines.slice(headerIdx + 1)
-
-    const col = (names: string[]) => {
-      for (const n of names) {
-        const i = headers.findIndex(h => h.includes(n))
-        if (i >= 0) return i
+  // Webull's export headers are fixed and known (verified against a real Order
+  // History export — both the desktop .xlsx and the .csv variant use the same
+  // header names). We match on exact header names in priority order, never on
+  // keyword-guessing — keyword matching previously collided badly with headers
+  // like "Total Qty" (matched before "Filled Qty"), "Stop Price" (matched before
+  // "Filled Price"), and "User ID" (matched as an order id, merging every trade
+  // in the file into one giant group).
+  function getField(row: Record<string, any>, names: string[]): string {
+    for (const n of names) {
+      if (row[n] !== undefined && row[n] !== null && String(row[n]).trim() !== '') {
+        return String(row[n]).trim()
       }
-      return -1
+    }
+    return ''
+  }
+
+  async function parseWorkbook(rows: Record<string, any>[]): Promise<{ trades: ParsedTrade[]; carriedForward: { symbol: string; side: string; qty: number }[] }> {
+    if (rows.length === 0) throw new Error('File appears empty')
+
+    const firstRow = rows[0]
+    const hasExpectedHeaders = 'Symbol' in firstRow && 'Side' in firstRow && 'Filled Qty' in firstRow
+    if (!hasExpectedHeaders) {
+      throw new Error("This doesn't look like a Webull order history export. Make sure you're uploading the file from Account → Orders → Order History.")
     }
 
-    const timeCol   = col(['time', 'date', 'filledtime', 'createtime'])
-    const symCol    = col(['symbol', 'ticker'])
-    const sideCol   = col(['side', 'action', 'buysell'])
-    const qtyCol    = col(['qty', 'quantity', 'filledqty', 'shares'])
-    const priceCol  = col(['averagefillprice', 'avgprice', 'avgfillprice', 'price', 'filledprice'])
-    const orderCol  = col(['orderid', 'order#', 'ordernum', 'id'])
+    const executions: WebullExecution[] = []
+    const tickerTypeBySymbol: Record<string, string> = {}
 
-    if (symCol < 0) throw new Error('Symbol column not found. Check that this is a Webull order history CSV.')
-    if (sideCol < 0) throw new Error('Side (Buy/Sell) column not found.')
+    for (const row of rows) {
+      // Only fully filled orders represent real executions — cancelled/working/
+      // rejected orders still show a nonzero "Total Qty" but a zero "Filled Qty",
+      // which is exactly the case that broke the old parser.
+      const status = getField(row, ['Execute Status', 'Status']).toUpperCase()
+      if (status && status !== 'FILLED') continue
 
-    // Build existing trade signatures for duplicate detection
-    const existingSigs = new Set(
-      existingTrades.map(t => `${t.symbol}-${t.date?.substring(0, 10)}-${t.pnl}`)
+      const symbol = getField(row, ['Symbol']).toUpperCase()
+      if (!symbol) continue
+
+      const sideRaw = getField(row, ['Side']).toUpperCase()
+      if (!sideRaw) continue
+      const isBuy = sideRaw.startsWith('B')
+
+      const qty = parseFloat(getField(row, ['Filled Qty', 'Total Qty'])) || 0
+      if (qty <= 0) continue
+
+      const price = parseFloat(getField(row, ['Filled Price', 'Average Price'])) || 0
+      if (price <= 0) continue
+
+      const dateRaw = getField(row, ['Filled Time', 'Create Time', 'Placed Time'])
+      const date = dateRaw ? new Date(dateRaw) : null
+      if (!date || isNaN(date.getTime())) continue
+
+      // Webull's export states the instrument type explicitly — no need to guess
+      // from the symbol format the way IBKR/TOS importers have to.
+      const tickerType = getField(row, ['Ticker Type'])
+      if (tickerType) tickerTypeBySymbol[symbol] = tickerType.toUpperCase()
+
+      executions.push({ symbol, isBuy, qty, price, date, commission: 0 })
+    }
+
+    if (executions.length === 0) {
+      throw new Error('No filled orders found in this file.')
+    }
+
+    // Reuse the exact same chronological position-matching logic the Webull
+    // auto-sync path uses, so manual import and auto-sync always agree.
+    const supabase = createClient()
+    const { trades: matched, carriedForward } = await matchWebullExecutions(
+      executions, existingTrades, userId, supabase
     )
 
-    // Step 1: Group fills by Order ID (or fallback: symbol+side+date) to collapse partial fills
-    const orderGroups: Record<string, {
-      symbol: string
-      side:   string
-      date:   string
-      totalQty:  number
-      totalCost: number
-    }> = {}
-
-    rows.forEach(row => {
-      if (!row.trim()) return
-      const cols = splitRow(row)
-
-      const symbol = symCol >= 0 ? cols[symCol]?.toUpperCase().trim() : ''
-      if (!symbol) return
-
-      const side  = sideCol >= 0 ? cols[sideCol]?.toLowerCase().trim() : ''
-      const qty   = qtyCol  >= 0 ? parseFloat(cols[qtyCol])  || 0 : 0
-      const price = priceCol >= 0 ? parseFloat(cols[priceCol]) || 0 : 0
-
-      let dateStr = new Date().toISOString()
-      if (timeCol >= 0 && cols[timeCol]) {
-        const d = new Date(cols[timeCol])
-        if (!isNaN(d.getTime())) dateStr = d.toISOString()
+    const trades: ParsedTrade[] = matched.map(t => {
+      const knownType = tickerTypeBySymbol[t.symbol]
+      let assetType = t.assetType
+      let assetTypeGuessed = t.assetTypeGuessed
+      if (knownType) {
+        if (knownType.includes('OPTION')) { assetType = 'option'; assetTypeGuessed = false }
+        else if (knownType.includes('EQUITY') || knownType.includes('STOCK')) { assetType = 'stock'; assetTypeGuessed = false }
       }
-
-      const dateKey = dateStr.substring(0, 10)
-      // Use Order ID if available, otherwise fallback to symbol+side+date
-      const orderId = orderCol >= 0 ? cols[orderCol]?.trim() : ''
-      const key = orderId ? orderId : `${symbol}-${side}-${dateKey}`
-
-      if (!orderGroups[key]) {
-        orderGroups[key] = { symbol, side, date: dateStr, totalQty: 0, totalCost: 0 }
-      }
-      orderGroups[key].totalQty  += qty
-      orderGroups[key].totalCost += price * qty
+      return { ...t, assetType, assetTypeGuessed }
     })
 
-    // Step 2: Separate into BUY and SELL groups per symbol+date, then match to calculate P&L
-    // Key: symbol-date
-    const buyMap:  Record<string, { qty: number; avgPrice: number; date: string }[]> = {}
-    const sellMap: Record<string, { qty: number; avgPrice: number; date: string }[]> = {}
-
-    Object.values(orderGroups).forEach(g => {
-      const avgPrice = g.totalQty > 0 ? g.totalCost / g.totalQty : 0
-      const dateKey  = g.date.substring(0, 10)
-      const mapKey   = `${g.symbol}-${dateKey}`
-      const isBuy    = g.side.startsWith('b') || g.side === 'buy'
-
-      const entry = { qty: g.totalQty, avgPrice, date: g.date }
-      if (isBuy) {
-        if (!buyMap[mapKey])  buyMap[mapKey]  = []
-        buyMap[mapKey].push(entry)
-      } else {
-        if (!sellMap[mapKey]) sellMap[mapKey] = []
-        sellMap[mapKey].push(entry)
-      }
-    })
-
-    // Step 3: Match buys to sells to produce completed trades
-    const trades: ParsedTrade[] = []
-    const carriedForward: { symbol: string; side: string; qty: number }[] = []
-
-    // Collect all unique symbol-date keys
-    const allKeys = new Set([...Object.keys(buyMap), ...Object.keys(sellMap)])
-
-    const symbolsInFile = [...new Set(Object.values(orderGroups).map(g => g.symbol))]
-    const storedLegsBySymbol = await fetchOpenLegs(userId, symbolsInFile)
-    const usedStoredLeg = new Set<string>()
-
-    for (const mapKey of allKeys) {
-      const [symbol] = mapKey.split('-')
-      let buys  = buyMap[mapKey]  || []
-      let sells = sellMap[mapKey] || []
-
-      if (buys.length === 0 && sells.length === 0) continue
-
-      const storedLegs  = usedStoredLeg.has(symbol) ? [] : (storedLegsBySymbol[symbol] || [])
-      const consumedIds = storedLegs.map(l => l.id)
-      if (storedLegs.length > 0) usedStoredLeg.add(symbol)
-      const tradeGroupId = storedLegs.find(l => l.trade_group_id)?.trade_group_id || newGroupId()
-
-      for (const leg of storedLegs) {
-        const entry = { qty: leg.qty, avgPrice: leg.price, date: leg.opened_at }
-        if (leg.side === 'Long') buys = [entry, ...buys]
-        else sells = [entry, ...sells]
-      }
-
-      // Compute totals for this symbol-date
-      const totalBuyQty   = buys.reduce((s, b)  => s + b.qty, 0)
-      const totalSellQty  = sells.reduce((s, s2) => s + s2.qty, 0)
-      const avgBuyPrice   = totalBuyQty  > 0 ? buys.reduce((s,  b) => s + b.avgPrice * b.qty, 0)  / totalBuyQty  : 0
-      const avgSellPrice  = totalSellQty > 0 ? sells.reduce((s, s2) => s + s2.avgPrice * s2.qty, 0) / totalSellQty : 0
-
-      // Determine if Long or Short
-      const isLong   = totalBuyQty >= totalSellQty
-      const matchQty = Math.min(totalBuyQty, totalSellQty)
-      const tradeType: 'Long' | 'Short' = isLong ? 'Long' : 'Short'
-
-      if (matchQty > 0) {
-        const entry = isLong ? avgBuyPrice  : avgSellPrice
-        const exit  = isLong ? avgSellPrice : avgBuyPrice
-        const isOption = looksLikeOptionSymbol(symbol)
-        const mult  = isOption ? OPTION_MULTIPLIER : 1
-        const pnl   = (avgSellPrice - avgBuyPrice) * matchQty * mult * (isLong ? 1 : -1)
-
-        const allDates  = [...buys, ...sells].map(x => x.date).sort()
-        const tradeDate = allDates[0] || new Date().toISOString()
-
-        const closingSide = isLong ? sells : buys
-        const exitDate = closingSide.length > 0 ? closingSide.map(x => x.date).sort().slice(-1)[0] : null
-
-        const sig = `${symbol}-${tradeDate.substring(0, 10)}-${parseFloat(pnl.toFixed(2))}`
-
-        trades.push({
-          symbol,
-          type:      tradeType,
-          date:      tradeDate,
-          entry:     parseFloat(entry.toFixed(4)),
-          exit:      parseFloat(exit.toFixed(4)),
-          exitDate,
-          shares:    matchQty,
-          pnl:       parseFloat(pnl.toFixed(2)),
-          duplicate: existingSigs.has(sig),
-          tradeGroupId,
-          assetType: isOption ? 'option' : 'stock',
-          assetTypeGuessed: isOption,
-        })
-      }
-
-      const openingQty   = isLong ? totalBuyQty : totalSellQty
-      const openingPrice = isLong ? avgBuyPrice : avgSellPrice
-      const openingDates = (isLong ? buys : sells).map(x => x.date).sort()
-      const netQty = openingQty - matchQty
-
-      if (netQty > 0) {
-        await replaceOpenLeg(userId, symbol, consumedIds, {
-          symbol, side: tradeType, qty: netQty,
-          price: openingPrice, opened_at: openingDates[0] || new Date().toISOString(),
-          commission: 0,
-          trade_group_id: tradeGroupId,
-        }, 'Webull')
-        carriedForward.push({ symbol, side: tradeType, qty: netQty })
-      } else if (consumedIds.length > 0) {
-        await replaceOpenLeg(userId, symbol, consumedIds, null, 'Webull')
-      }
-    }
-
-    if (trades.length === 0 && carriedForward.length === 0) {
-      throw new Error('No completed trades found. Make sure the file contains filled orders.')
-    }
-
-    return {
-      trades: trades.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-      carriedForward,
-    }
+    return { trades, carriedForward }
   }
 
   function processFile(file: File | undefined) {
@@ -246,11 +129,24 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
     setError('')
     setNotice('')
 
+    const isCsvLike = /\.(csv|txt|tsv)$/i.test(file.name)
     const reader = new FileReader()
+
     reader.onload = async ev => {
       try {
-        const text = ev.target?.result as string
-        const { trades, carriedForward } = await parseCSV(text)
+        let rows: Record<string, any>[]
+
+        if (isCsvLike) {
+          const text = ev.target?.result as string
+          const wb = XLSX.read(text, { type: 'string' })
+          rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' })
+        } else {
+          const data = ev.target?.result as ArrayBuffer
+          const wb = XLSX.read(data, { type: 'array' })
+          rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' })
+        }
+
+        const { trades, carriedForward } = await parseWorkbook(rows)
 
         if (trades.length === 0) {
           const desc = carriedForward.map(c => `${c.qty} sh ${c.symbol} (${c.side})`).join(', ')
@@ -267,7 +163,9 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
         setError(err.message || 'Failed to parse file')
       }
     }
-    reader.readAsText(file)
+
+    if (isCsvLike) reader.readAsText(file)
+    else reader.readAsArrayBuffer(file)
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
@@ -307,7 +205,7 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
         shares:         t.shares,
         pnl:            t.pnl,
         risk:           0,
-        commission:     0,
+        commission:     t.commission,
         setup:          null,
         grade:          null,
         tags:           [],
@@ -436,7 +334,7 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
                     borderBottom: '1px solid var(--brd)',
                   }}>
                     {t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}
-                    {t.assetTypeGuessed && <span title="Detected as an option from the symbol format — Webull's export doesn't confirm this directly, verify before importing" style={{ marginLeft: '5px', fontSize: '10px' }}>⚠️</span>}
+                    {t.assetTypeGuessed && <span title="Detected as an option from the symbol format — verify before importing" style={{ marginLeft: '5px', fontSize: '10px' }}>⚠️</span>}
                   </td>
                   <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--brd)' }}>
                     {t.duplicate
@@ -460,8 +358,9 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
       <div style={card}>
         <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>Import from Webull</div>
         <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: '18px' }}>
-          Export your order history from Webull and upload it here. Partial fills are automatically
-          collapsed. Buy/sell pairs are matched to calculate P&L. Duplicates are detected automatically.
+          Export your order history from Webull and upload it here. Only fully filled orders are
+          imported. Buy/sell fills are matched chronologically to calculate P&L. Duplicates are
+          detected automatically.
         </div>
 
         <div
@@ -478,8 +377,8 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
         >
           <div style={{ fontSize: '24px', color: 'var(--txt3)', marginBottom: '6px' }}>⇪</div>
           <div style={{ fontSize: '13px', fontWeight: 600 }}>Drop your Webull export file here</div>
-          <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>or click to browse</div>
-          <input id="webull-file-input" type="file" accept=".csv,.txt,.tsv" style={{ display: 'none' }} onChange={handleFileInput} />
+          <div style={{ fontSize: '11px', color: 'var(--txt3)' }}>.xlsx or .csv — or click to browse</div>
+          <input id="webull-file-input" type="file" accept=".csv,.txt,.tsv,.xlsx,.xls" style={{ display: 'none' }} onChange={handleFileInput} />
         </div>
 
         <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '14px 16px' }}>
@@ -490,9 +389,9 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
             'Open Webull Desktop',
             'Go to Account → Orders → Order History',
             'Set your date range (max 90 days per export)',
-            'Filter by Status: Fully Filled',
-            'Click the Export button and save as CSV',
-            'Upload the file above',
+            'Filter by Status: Filled',
+            'Click the Export button and save the file',
+            'Upload the file above (.xlsx or .csv both work)',
           ].map((s, i) => (
             <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '4px' }}>
               <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac)', minWidth: '16px' }}>{i + 1}.</span>
