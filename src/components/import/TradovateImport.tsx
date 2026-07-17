@@ -256,7 +256,26 @@ export function TradovateImport({
       })
 
       pos.remainingQty -= tradeQty
-      if (pos.remainingQty <= 0) positions[symbol] = null
+
+      // POSITION FLIP: a single order can both close the existing position and open a
+      // new one in the opposite direction (e.g. long 1, then sell 3 — closes the 1 and
+      // opens a new short 2). The excess quantity must start a new tracked position
+      // instead of being discarded, or that leftover silently vanishes and the next
+      // order gets misread as opening a fresh position rather than closing this one.
+      const leftoverQty = qty - tradeQty
+      if (pos.remainingQty <= 0) {
+        if (leftoverQty > 0) {
+          positions[symbol] = {
+            product,
+            entries: [{ qty: leftoverQty, price, date }],
+            remainingQty: leftoverQty,
+            side: isBuy ? 'Long' : 'Short',
+            tradeGroupId: newGroupId(),
+          }
+        } else {
+          positions[symbol] = null
+        }
+      }
     }
 
     for (const symbol of symbolsInFile) {
