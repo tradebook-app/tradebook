@@ -89,10 +89,7 @@ export function BrokerImport({ userId, existingTrades, onImported }: Props) {
       </div>
 
       <div style={{ position: 'relative', marginBottom: '28px' }}>
-        <svg style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-        </svg>
-        <input className="fi" type="text" autoComplete="off" name="broker-search" placeholder="Search broker or trading platform..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '34px', width: '100%' }} />
+        <input className="fi" type="text" autoComplete="off" name="broker-search" placeholder="Search broker or trading platform..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%' }} />
       </div>
 
       <div style={{ marginBottom: '8px', fontSize: '11px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Supported</div>
