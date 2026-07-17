@@ -67,12 +67,15 @@ function extractFromActivityStatement(lines: string[]): Execution[] {
     if (!line.startsWith('Trades,Data,Order,Stocks,')) continue
     const cols = splitCsvLine(line)
 
+    // Column layout: Trades,Data,Order,Stocks,USD,Symbol,Date/Time,Quantity,
+    // T. Price,C. Price,Proceeds,Comm/Fee,Basis,Realized P/L,MTM P/L,Code
+    //                 0     1    2     3     4    5     6         7        8
     const symbol      = (cols[5] || '').toUpperCase().trim()
     const rawTime      = cols[6] || ''
     const qty         = parseFloat(cols[7]) || 0
     const price       = parseFloat(cols[8]) || 0
-    const commission  = Math.abs(parseFloat(cols[10]) || 0)
-    const realizedPnl = parseFloat(cols[12]) || 0
+    const commission  = Math.abs(parseFloat(cols[11]) || 0) // Comm/Fee, not Proceeds (col 10)
+    const realizedPnl = parseFloat(cols[13]) || 0            // Realized P/L, not Basis (col 12)
 
     if (!symbol || !rawTime || qty === 0) continue
     const dt = new Date(rawTime)
