@@ -1,11 +1,21 @@
 import crypto from 'crypto'
 
-// NOTE ON CONFIDENCE: the signature algorithm below is directly documented by Webull
-// and should be correct as written. The exact production hostname and the "check
-// verification status" endpoint path are the two least-certain pieces here — Webull's
-// reference docs are JS-rendered and couldn't be fully crawled. Flag these first if
-// a live connection attempt fails with a network/host error or 404.
-const API_HOST = 'api.webull.com'
+// Host + endpoint paths below were confirmed directly against developer.webull.com's
+// published API reference pages (create-token, check-token, account-list, order-history)
+// on 2026-07-17, after the original guessed paths returned 404s on a real connection
+// test. 'api.sandbox.webull.com' is Webull's documented test/paper-trading host — this
+// is what a PaperTrade App Key needs. Webull's docs don't explicitly confirm the
+// production hostname anywhere we could find; if a live (non-paper) key is ever used
+// here, that's the first thing to verify — it may still be 'api.webull.com', or it may
+// differ the same way the sandbox host does.
+//
+// REMAINING UNCERTAINTY: the docs confirm these paths and that requests need
+// 'x-app-key' + signature headers, but didn't show us the exact header/param name for
+// passing the access token on authenticated calls (fetchAccounts / fetchFilledOrders
+// below still send it as an 'accessToken' query param, unconfirmed). If createToken /
+// checkTokenStatus succeed but fetchAccounts or fetchFilledOrders fail with 401/404,
+// this is the next thing to check.
+const API_HOST = 'api.sandbox.webull.com'
 const API_BASE = `https://${API_HOST}`
 
 export type WebullCredentials = {
@@ -68,7 +78,7 @@ async function webullFetch(
 
   const res = await fetch(url.toString(), {
     method,
-    headers: { ...headers, 'Content-Type': 'application/json' },
+    headers: { ...headers, 'Content-Type': 'application/json', 'x-version': 'v2' },
     body: bodyStr || undefined,
   })
 
@@ -89,26 +99,34 @@ export type TokenState = {
 }
 
 // Requests a new token. Status starts 'Pending Verification' until the user approves
-// via SMS / the Webull App. Per Webull's docs, tokens default to a 15-day expiration.
+// via SMS / the Webull App (5-minute window). Per Webull's docs, tokens default to a
+// 15-day expiration.
 export async function createToken(creds: WebullCredentials): Promise<TokenState> {
-  const json = await webullFetch(creds, 'POST', '/api/openapi/passport/token/create', {}, {})
+  const json = await webullFetch(creds, 'POST', '/openapi/auth/token/create', {}, {})
   return mapTokenResponse(json)
 }
 
-// Re-checks status of a pending token. Webull's own SDK polls by re-issuing the same
-// create-token request, which returns the current status of any pending token for
-// this App Key rather than creating a duplicate — this route mirrors that behavior.
+// Re-checks status of a pending token via Webull's dedicated check endpoint (separate
+// from create — confirmed against their real API reference). Returns NORMAL (verified),
+// PENDING (still waiting on phone approval), INVALID, or EXPIRED.
 export async function checkTokenStatus(creds: WebullCredentials): Promise<TokenState> {
-  const json = await webullFetch(creds, 'POST', '/api/openapi/passport/token/create', {}, {})
+  const json = await webullFetch(creds, 'POST', '/openapi/auth/token/check', {}, {})
   return mapTokenResponse(json)
 }
 
+// Webull's Check Token endpoint documents exactly four status values: NORMAL
+// (verified, usable), PENDING (waiting on phone approval), INVALID, EXPIRED.
 function mapTokenResponse(json: any): TokenState {
   const data = json?.data || json
-  const rawStatus = (data?.status || data?.tokenStatus || '').toString().toLowerCase()
+  const rawStatus = (data?.status || data?.tokenStatus || '').toString().toUpperCase()
   const status: TokenState['status'] =
-    rawStatus.includes('verif') && !rawStatus.includes('pending') ? 'verified' :
-    rawStatus.includes('fail') || rawStatus.includes('reject') ? 'failed' : 'pending'
+    rawStatus === 'NORMAL' ? 'verified' :
+    rawStatus === 'PENDING' ? 'pending' :
+    rawStatus === 'INVALID' || rawStatus === 'EXPIRED' ? 'failed' :
+    // Unrecognized status string — fall back to the old fuzzy match rather than
+    // silently treating an unknown value as any particular state.
+    (rawStatus.includes('VERIF') && !rawStatus.includes('PEND')) ? 'verified' :
+    (rawStatus.includes('FAIL') || rawStatus.includes('REJECT')) ? 'failed' : 'pending'
 
   return {
     accessToken: data?.accessToken || data?.token || null,
@@ -123,7 +141,7 @@ export type WebullAccount = {
 }
 
 export async function fetchAccounts(creds: WebullCredentials, accessToken: string): Promise<WebullAccount[]> {
-  const json = await webullFetch(creds, 'GET', '/api/openapi/account/v2/list', { accessToken })
+  const json = await webullFetch(creds, 'GET', '/openapi/account/list', { accessToken })
   const items = json?.data || json?.accounts || []
   return items.map((it: any) => ({
     accountId: it.accountId || it.account_id || it.secAccountId,
@@ -140,10 +158,13 @@ export type WebullOrder = {
   commission: number
 }
 
-// Fetches filled orders for the account. Paginates by date range if the account
-// has more history than a single page returns.
+// Fetches filled orders for the account. IMPORTANT LIMITATION (confirmed in Webull's
+// own API reference, not a Sleektrade constraint): this endpoint only returns the past
+// 7 days of order history, full stop — there's no way to page further back. Auto-sync
+// needs to run at least weekly or trades older than 7 days will be silently
+// unrecoverable via this endpoint (a manual CSV export would still work for those).
 export async function fetchFilledOrders(creds: WebullCredentials, accessToken: string, accountId: string): Promise<WebullOrder[]> {
-  const json = await webullFetch(creds, 'GET', '/api/openapi/trade/v2/order/list', {
+  const json = await webullFetch(creds, 'GET', '/openapi/trade/order/history', {
     accessToken,
     accountId,
     status: 'FILLED',
