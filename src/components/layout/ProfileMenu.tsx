@@ -74,6 +74,7 @@ export function ProfileMenu({ userEmail }: Props) {
   return (
     <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
       <button
+        data-tour="profile"
         onClick={() => setShowMenu(v => !v)}
         style={{
           display: 'flex',

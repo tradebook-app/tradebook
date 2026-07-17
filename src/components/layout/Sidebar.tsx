@@ -81,6 +81,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
 
       <div style={{ position: 'relative', margin: '10px 10px 4px' }}>
         <button
+          data-tour="add-trade"
           onClick={() => setShowMenu(v => !v)}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', width: '100%', padding: '9px', background: 'var(--ac)', color: '#000', borderRadius: 'var(--r)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'var(--sans)', transition: '.15s' }}
           onMouseEnter={e => (e.currentTarget.style.background = 'var(--ac2)')}
@@ -127,7 +128,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
         {NAV.map(({ href, icon, label, tier }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
           return (
-            <Link key={href} href={href} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', cursor: 'pointer', color: active ? 'var(--ac2)' : 'var(--txt2)', fontSize: '12px', fontWeight: 500, transition: '.1s', borderLeft: `2px solid ${active ? 'var(--ac)' : 'transparent'}`, background: active ? 'var(--ac-d)' : 'transparent', textDecoration: 'none' }}>
+            <Link key={href} href={href} data-tour={`nav-${href}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', cursor: 'pointer', color: active ? 'var(--ac2)' : 'var(--txt2)', fontSize: '12px', fontWeight: 500, transition: '.1s', borderLeft: `2px solid ${active ? 'var(--ac)' : 'transparent'}`, background: active ? 'var(--ac-d)' : 'transparent', textDecoration: 'none' }}>
               <span style={{ fontSize: '13px', width: '16px', textAlign: 'center' }}>{icon}</span>
               {label}
               {tier === 'pro' && !active && (
@@ -146,7 +147,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
         {TOOLS.map(({ href, icon, label }) => {
           const active = pathname === href
           return (
-            <Link key={href} href={href} style={{
+            <Link key={href} href={href} data-tour={`nav-${href}`} style={{
               display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px',
               cursor: 'pointer', fontSize: '12px', fontWeight: 500, transition: '.1s',
               borderLeft: `2px solid ${active ? 'var(--ac)' : 'transparent'}`,

@@ -3,6 +3,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
+import { OnboardingTour } from './OnboardingTour'
 import type { DateRangeFilter } from '@/lib/types'
 type Props = {
   children: React.ReactNode
@@ -60,6 +61,7 @@ export function AppShell({
         overflow: 'hidden',
         background: 'var(--bg)',
       }}>
+        <OnboardingTour />
         {/* Sidebar — hidden on mobile via CSS */}
         <div className="desktop-sidebar" style={{ flexShrink: 0 }}>
           <Sidebar onAddTrade={onAddTrade} userEmail={userEmail} />
