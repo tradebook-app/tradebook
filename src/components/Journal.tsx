@@ -256,7 +256,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
       result.push({
         time: formatTime(trade.date),
         position: trade.type === 'Short' ? 'aboveBar' : 'belowBar',
-        color: '#3b82f6',
+        color: '#3B82F6',
         shape: trade.type === 'Short' ? 'arrowDown' : 'arrowUp',
         text: `Entry $${trade.entry}`,
       })
@@ -266,7 +266,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
       result.push({
         time: formatTime(trade.exit_date || trade.date),
         position: trade.type === 'Short' ? 'belowBar' : 'aboveBar',
-        color: isWin ? '#22c55e' : '#ef4444',
+        color: isWin ? '#10B981' : '#EF4444',
         shape: trade.type === 'Short' ? 'arrowUp' : 'arrowDown',
         text: `Exit $${trade.exit}`,
       })
@@ -509,8 +509,8 @@ export function Journal({ trades, onEdit }: Props) {
                     background: !row.isGroup && selectedTrade?.id === row.legs[0].id ? 'var(--ac-d)' : undefined,
                   }}
                 >
-                  {showDay && <td style={{ color: 'var(--txt3)' }}>{new Date(row.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</td>}
-                  <td style={{ color: 'var(--txt3)' }}>{new Date(row.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
+                  {showDay && <td style={{ color: 'var(--txt3)', fontFamily: 'var(--mono)' }}>{new Date(row.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</td>}
+                  <td style={{ color: 'var(--txt3)', fontFamily: 'var(--mono)' }}>{new Date(row.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
                   <td style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     {row.isGroup && (
                       <span style={{ fontSize: '9px', color: 'var(--txt3)', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: '.1s', display: 'inline-block' }}>▶</span>

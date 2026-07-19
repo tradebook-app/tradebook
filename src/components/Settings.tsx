@@ -234,7 +234,7 @@ export function Settings({ userEmail }: { userEmail?: string }) {
           color: #000;
           font-weight: 700;
         }
-        .avatar-upload-btn:hover { background: #0ea572; }
+        .avatar-upload-btn:hover { background: var(--ac2); }
         @media (max-width: 768px) {
           .settings-layout { grid-template-columns: 1fr; }
           .settings-sidebar {

@@ -125,7 +125,7 @@ export function OnboardingTour() {
       {/* Tour card */}
       <div style={{
         position: 'fixed', zIndex: 999, width: `${cardWidth}px`,
-        background: 'var(--ac)', color: '#04342C', borderRadius: '10px',
+        background: 'var(--ac)', color: '#000', borderRadius: '10px',
         padding: '12px 14px', boxShadow: '0 8px 24px rgba(0,0,0,.4)',
         transition: 'top .2s, left .2s',
         ...cardStyle,
@@ -137,7 +137,7 @@ export function OnboardingTour() {
           <button
             onClick={handleClose}
             aria-label="Close tour"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0F6E56', fontSize: '13px', padding: 0, lineHeight: 1 }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(0,0,0,.55)', fontSize: '13px', padding: 0, lineHeight: 1 }}
           >
             ✕
           </button>
@@ -158,7 +158,7 @@ export function OnboardingTour() {
           <button
             onClick={handleNext}
             style={{
-              background: '#04342C', color: 'var(--ac)', border: 'none', borderRadius: '6px',
+              background: '#000', color: 'var(--ac)', border: 'none', borderRadius: '6px',
               padding: '5px 10px', fontSize: '10px', fontWeight: 700, cursor: 'pointer',
             }}
           >

@@ -675,7 +675,7 @@ export function DasImport({ userId, existingTrades, onImported }: Props) {
                             <span style={{ color: 'var(--txt3)', fontWeight: 400 }}> (open)</span>
                           )}
                         </td>
-                        <td style={{ padding: '6px 8px', color: 'var(--txt2)' }}>
+                        <td style={{ padding: '6px 8px', color: 'var(--txt2)', fontFamily: 'var(--mono, monospace)' }}>
                           {t.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </td>
                         <td

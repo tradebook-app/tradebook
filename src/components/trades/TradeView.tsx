@@ -289,7 +289,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
                   style={{ cursor: 'pointer', background: isActive ? 'var(--ac-d2)' : undefined }}
                   onClick={() => row.isGroup ? toggleGroup(row.key) : setSelected(row.legs[0])}
                 >
-                  <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{fmtDate(row.date)}</td>
+                  <td style={{ fontSize: '10px', color: 'var(--txt2)', fontFamily: 'var(--mono)' }}>{fmtDate(row.date)}</td>
                   <td style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {row.isGroup && (
@@ -327,7 +327,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
                 return (
                   <tr key={t.id} style={{ cursor: 'pointer', background: legActive ? 'var(--ac-d2)' : 'var(--bg3)' }} onClick={() => setSelected(t)}>
                     <td />
-                    <td style={{ fontSize: '10px', color: 'var(--txt3)', paddingLeft: '22px' }}>
+                    <td style={{ fontSize: '10px', color: 'var(--txt3)', paddingLeft: '22px', fontFamily: 'var(--mono)' }}>
                       {fmtLegMoment(t.exit_date || t.date)} · {Math.round((t.shares / row.totalShares) * 100)}% closed
                     </td>
                     <td />
@@ -381,7 +381,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '10px', color: 'var(--txt2)' }}>{fmtDate(row.date)} · {row.type}{row.setup ? ` · ${row.setup}` : ''}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--txt2)' }}><span style={{ fontFamily: 'var(--mono)' }}>{fmtDate(row.date)}</span> · {row.type}{row.setup ? ` · ${row.setup}` : ''}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: '14px', color: isW ? 'var(--ac)' : isL ? 'var(--red)' : 'var(--txt)' }}>{fmtPnl(row.totalPnl)}</div>

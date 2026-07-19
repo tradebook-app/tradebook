@@ -176,7 +176,7 @@ function SetupGuide() {
           {step(3, 'Create a new Activity Flex Query', 'Click the "+" icon. Give it any name, e.g. "Sleektrade Sync".')}
           {step(4, 'Add the Trades section', 'Under "Sections", enable Trades, then select these fields specifically: Symbol, Date/Time, Quantity, T. Price, Proceeds, Comm/Fee, Basis, Realized P/L, Code.')}
 
-          <div style={{ background: 'rgba(234,179,8,.1)', border: '1px solid rgba(234,179,8,.25)', borderRadius: 'var(--r)', padding: '10px 12px', margin: '4px 0 14px 34px', fontSize: '11px', color: '#EAB308' }}>
+          <div style={{ background: 'var(--orange-d)', border: '1px solid rgba(245,158,11,.25)', borderRadius: 'var(--r)', padding: '10px 12px', margin: '4px 0 14px 34px', fontSize: '11px', color: 'var(--orange)' }}>
             ⚠️ Set <strong>Format to CSV</strong>, not XML. Most tutorials online default to XML — Sleektrade needs CSV to read it correctly.
           </div>
 

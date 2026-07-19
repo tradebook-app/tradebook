@@ -47,7 +47,8 @@ export default function TradeChart({ candles, markers = [], height = 400 }: Trad
       height,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#9ca3af',
+        textColor: '#9999AA',
+        fontFamily: "'JetBrains Mono', monospace",
       },
       grid: {
         vertLines: { color: 'rgba(255,255,255,0.05)' },
@@ -58,11 +59,11 @@ export default function TradeChart({ candles, markers = [], height = 400 }: Trad
     });
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: '#22c55e',
-      downColor: '#ef4444',
+      upColor: '#10B981',
+      downColor: '#EF4444',
       borderVisible: false,
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
+      wickUpColor: '#10B981',
+      wickDownColor: '#EF4444',
     });
 
     markersPluginRef.current = createSeriesMarkers(series, []);

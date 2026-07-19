@@ -171,7 +171,7 @@ export function Notebook({ userId }: Props) {
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '9px', color: 'var(--txt4)' }}>{t.date ? fmtDate(t.date) : ''}</span>
+                    <span style={{ fontSize: '9px', color: 'var(--txt4)', fontFamily: 'var(--mono)' }}>{t.date ? fmtDate(t.date) : ''}</span>
                     <span style={{ fontSize: '8px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', background: 'var(--blue-d, rgba(59,130,246,.12))', color: 'var(--blue, #60a5fa)' }}>FROM TRADE</span>
                   </div>
                 </div>
@@ -202,7 +202,7 @@ export function Notebook({ userId }: Props) {
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '9px', color: 'var(--txt4)' }}>{fmtDate(n.created_at)}</span>
+                    <span style={{ fontSize: '9px', color: 'var(--txt4)', fontFamily: 'var(--mono)' }}>{fmtDate(n.created_at)}</span>
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <CardMenu onEdit={() => openEdit(n)} onDelete={() => handleDelete(n.id)} />
                     </div>

@@ -269,7 +269,7 @@ export function StrategyDetail({ strategy, trades, imgUrl, onBack, onEdit, onDel
                   const isW = t.pnl > 0, isL = t.pnl < 0
                   return (
                     <tr key={t.id}>
-                      <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{fmtDate(t.date)}</td>
+                      <td style={{ fontSize: '10px', color: 'var(--txt2)', fontFamily: 'var(--mono)' }}>{fmtDate(t.date)}</td>
                       <td style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>{t.symbol}</td>
                       <td><span className={isW ? 'badge badge-win' : isL ? 'badge badge-loss' : 'badge badge-be'}>{isW ? 'WIN' : isL ? 'LOSS' : 'BE'}</span></td>
                       <td><span className={t.type === 'Long' ? 'badge badge-long' : 'badge badge-short'}>{t.type}</span></td>

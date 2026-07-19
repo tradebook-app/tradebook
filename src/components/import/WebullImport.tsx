@@ -322,7 +322,7 @@ export function WebullImport({ userId, existingTrades, onImported }: Props) {
                       color: t.type === 'Short' ? 'var(--red)' : 'var(--ac)',
                     }}>{t.type}</span>
                   </td>
-                  <td style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--txt2)', borderBottom: '1px solid var(--brd)' }}>
+                  <td style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--txt2)', fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>
                     {new Date(t.date).toLocaleDateString()}
                   </td>
                   <td style={{ padding: '8px 12px', fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>{t.shares}</td>

@@ -149,7 +149,7 @@ export function WebullAutoSync({ onImported }: Props) {
           {daysLeft !== null && (
             <div style={{
               fontSize: '12px', marginBottom: '10px',
-              color: expiringSoon ? '#EAB308' : 'var(--txt3)',
+              color: expiringSoon ? 'var(--orange)' : 'var(--txt3)',
             }}>
               {expiringSoon
                 ? `⚠️ Access expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} — reconnect soon to avoid interruption`
@@ -197,7 +197,7 @@ export function WebullAutoSync({ onImported }: Props) {
         You'll need an App Key and App Secret from Webull's OpenAPI portal.
       </div>
 
-      <div style={{ background: 'rgba(234,179,8,.1)', border: '1px solid rgba(234,179,8,.25)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: '#EAB308', maxWidth: '760px', margin: '0 auto 20px' }}>
+      <div style={{ background: 'var(--orange-d)', border: '1px solid rgba(245,158,11,.25)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: '11px', color: 'var(--orange)', maxWidth: '760px', margin: '0 auto 20px' }}>
         ⚠️ Webull requires approving your API application first (usually 1-2 business days), and access tokens expire every 15 days — you'll need to reconnect periodically. This is a Webull limitation, not something Sleektrade controls.
       </div>
 

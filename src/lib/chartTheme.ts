@@ -1,5 +1,14 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { Chart } from 'chart.js'
+
+// Chart.js falls back to its own built-in Helvetica/Arial default for every
+// tick label, tooltip, and legend unless a font family is set explicitly —
+// every chart in the app imports this module, so setting it once here (module
+// load, before any chart is constructed) keeps axis/tooltip text on the same
+// Inter + JetBrains Mono system as the rest of the UI instead of silently
+// falling back to the browser default.
+Chart.defaults.font.family = "'JetBrains Mono', monospace"
 
 // Chart.js needs literal color strings — it can't read CSS custom properties
 // directly like `var(--txt3)` the way regular DOM styles can. Every chart was

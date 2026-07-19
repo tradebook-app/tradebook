@@ -80,12 +80,12 @@ export function ReferralsPage() {
                 {data.commissions.map(c => {
                   const isAvailable = c.status === 'pending' && new Date(c.available_at).getTime() <= Date.now()
                   const label = c.status === 'paid' ? 'Paid' : isAvailable ? 'Available' : 'Pending'
-                  const color = c.status === 'paid' ? 'var(--txt3)' : isAvailable ? 'var(--ac2)' : '#EAB308'
+                  const color = c.status === 'paid' ? 'var(--txt3)' : isAvailable ? 'var(--ac2)' : 'var(--orange)'
                   return (
                     <tr key={c.id} style={{ borderBottom: '1px solid var(--brd)' }}>
-                      <td style={{ padding: '10px 14px' }}>{new Date(c.created_at).toLocaleDateString()}</td>
-                      <td style={{ padding: '10px 14px', textAlign: 'right' }}>${Number(c.gross_amount).toFixed(2)}</td>
-                      <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700 }}>${Number(c.commission_amount).toFixed(2)}</td>
+                      <td style={{ padding: '10px 14px', fontFamily: 'var(--mono)' }}>{new Date(c.created_at).toLocaleDateString()}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: 'var(--mono)' }}>${Number(c.gross_amount).toFixed(2)}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontFamily: 'var(--mono)' }}>${Number(c.commission_amount).toFixed(2)}</td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', color }}>{label}</td>
                     </tr>
                   )

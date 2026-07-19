@@ -44,7 +44,7 @@ export function OpenPositions({ trades, onSelect }: Props) {
               </span>
             </td>
             <td style={{ padding: '7px 10px', fontSize: '11px', fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>${t.entry}</td>
-            <td style={{ padding: '7px 10px', fontSize: '10px', color: 'var(--txt3)', borderBottom: '1px solid var(--brd)' }}>{fmtDate(t.date)}</td>
+            <td style={{ padding: '7px 10px', fontSize: '10px', color: 'var(--txt3)', fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>{fmtDate(t.date)}</td>
             <td style={{ padding: '7px 10px', fontSize: '11px', fontFamily: 'var(--mono)', color: 'var(--orange)', borderBottom: '1px solid var(--brd)' }}>${t.risk || '—'}</td>
           </tr>
         ))}

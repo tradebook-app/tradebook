@@ -132,7 +132,7 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
       result.push({
         time: formatTime(trade.date),
         position: trade.type === 'Short' ? 'aboveBar' : 'belowBar',
-        color: '#3b82f6',
+        color: '#3B82F6',
         shape: trade.type === 'Short' ? 'arrowDown' : 'arrowUp',
         text: isOption ? 'Entry' : `Entry $${trade.entry}`,
       })
@@ -142,7 +142,7 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
       result.push({
         time: formatTime(trade.exit_date),
         position: trade.type === 'Short' ? 'belowBar' : 'aboveBar',
-        color: isWin ? '#22c55e' : '#ef4444',
+        color: isWin ? '#10B981' : '#EF4444',
         shape: trade.type === 'Short' ? 'arrowUp' : 'arrowDown',
         text: isOption ? 'Exit' : `Exit $${trade.exit}`,
       })
