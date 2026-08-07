@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { buildUnsubUrl } from '@/lib/newsletterToken'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
@@ -25,8 +26,8 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // profiles has no email column — get the opted-in user IDs here,
-    // then resolve their emails from auth.users via the admin API below.
+    // profiles has no email column — get opted-in user IDs here, then resolve
+    // emails from auth.users via the admin API below.
     const { data: optedIn, error: profErr } = await supabase
       .from('profiles')
       .select('id')
@@ -43,9 +44,9 @@ export async function POST(req: NextRequest) {
 
     const optedInIds = new Set(optedIn.map((p) => p.id))
 
-    // Resolve emails from auth.users. listUsers is paginated (default 50/page),
-    // so walk pages until we've collected everyone or run out.
-    const emails: string[] = []
+    // Resolve emails from auth.users. listUsers is paginated, so walk pages.
+    // Keep the id alongside the email so each email gets its own unsub link.
+    const recipients: { id: string; email: string }[] = []
     let page = 1
     const perPage = 1000
     // eslint-disable-next-line no-constant-condition
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
 
       for (const u of usersPage.users) {
         if (optedInIds.has(u.id) && u.email) {
-          emails.push(u.email)
+          recipients.push({ id: u.id, email: u.email })
         }
       }
 
@@ -68,37 +69,49 @@ export async function POST(req: NextRequest) {
       page += 1
     }
 
-    if (emails.length === 0) {
+    if (recipients.length === 0) {
       return NextResponse.json({ ok: true, sent: 0 })
     }
 
     const postUrl = `https://sleektrade.app/blog/${slug}`
 
     const results = await Promise.allSettled(
-      emails.map((email) =>
-        resend.emails.send({
+      recipients.map((r) => {
+        const unsubUrl = buildUnsubUrl(r.id)
+        return resend.emails.send({
           from: 'noreply@sleektrade.app',
-          to: email,
+          to: r.email,
           subject: `New post: ${title}`,
+          // List-Unsubscribe header lets Gmail/Outlook show a native
+          // "Unsubscribe" button at the top of the email too.
+          headers: {
+            'List-Unsubscribe': `<${unsubUrl}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          },
           html: `
             <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
               <h2 style="color: #10B981;">${title}</h2>
               <p style="color: #444; line-height: 1.6;">${excerpt}</p>
               <a href="${postUrl}" style="display: inline-block; background: #10B981; color: #000; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 700;">Read the post</a>
+              <hr style="border:none; border-top:1px solid #eee; margin:28px 0 14px;" />
+              <p style="color:#999; font-size:11px; line-height:1.5;">
+                You're receiving this because you opted in to Sleektrade updates.
+                <a href="${unsubUrl}" style="color:#999; text-decoration:underline;">Unsubscribe</a>
+              </p>
             </div>
           `,
         })
-      )
+      })
     )
 
     const failed = results.filter((r) => r.status === 'rejected')
     if (failed.length > 0) {
-      console.error(`[sanity-blog] ${failed.length}/${emails.length} sends failed`, failed[0])
+      console.error(`[sanity-blog] ${failed.length}/${recipients.length} sends failed`, failed[0])
     }
 
     return NextResponse.json({
       ok: true,
-      sent: emails.length - failed.length,
+      sent: recipients.length - failed.length,
       failed: failed.length,
     })
   } catch (err) {
