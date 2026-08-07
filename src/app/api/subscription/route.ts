@@ -24,6 +24,10 @@ export async function GET() {
       tradeCount: count || 0,
     })
   } catch (err) {
-    return NextResponse.json({ plan: 'free', tradeCount: 0 })
+    // Do NOT silently return a free plan here — a transient DB/auth error would
+    // downgrade a paying user with no trace. Log it and signal failure so the
+    // client can keep the last-known plan and retry.
+    console.error('subscription route error:', err)
+    return NextResponse.json({ error: 'Failed to load subscription' }, { status: 500 })
   }
 }

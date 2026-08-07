@@ -59,6 +59,12 @@ export async function POST(req: Request) {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
+      // Identify the user on the session itself, not just on the subscription.
+      // The `checkout.session.completed` webhook reads session metadata /
+      // client_reference_id — without these it can't map the payment to a user
+      // and the plan grant silently never happens.
+      client_reference_id: user.id,
+      metadata: { supabase_user_id: user.id },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?canceled=true`,
       subscription_data: { metadata: { supabase_user_id: user.id } },

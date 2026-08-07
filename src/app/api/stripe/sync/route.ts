@@ -1,14 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { stripe } from '@/lib/stripe'
-
-function detectPlan(priceId: string | undefined): 'elite' | 'pro' | 'free' {
-  if (!priceId) return 'free'
-  const eliteMonthly = process.env.NEXT_PUBLIC_STRIPE_ELITE_PRICE_ID
-  const eliteYearly = process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID
-  if (priceId === eliteMonthly || priceId === eliteYearly) return 'elite'
-  return 'pro'
-}
+import { stripe, planForPriceId } from '@/lib/stripe'
 
 export async function POST() {
   try {
@@ -38,7 +30,7 @@ export async function POST() {
 
     const sub = subscriptions.data[0]
     const priceId = sub.items.data[0]?.price?.id
-    const plan = detectPlan(priceId)
+    const plan = planForPriceId(priceId)
 
     await supabase.from('profiles').upsert({
       id: user.id,
