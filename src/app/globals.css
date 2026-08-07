@@ -22,6 +22,26 @@ input {
 input:focus {
   border-color: var(--ac) !important;
 }
+/* ─── Checkbox / radio: opt OUT of the global input reset above ───────────── */
+/* The `input {}` rule strips native appearance and forces a 28px text-box
+   height on EVERY input, which turns checkboxes into unclickable dark boxes.
+   Restore native rendering, a real 16px size, and pointer clicks for these. */
+input[type='checkbox'],
+input[type='radio'] {
+  -webkit-appearance: auto !important;
+  -moz-appearance: auto !important;
+  appearance: auto !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  accent-color: var(--ac) !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+}
 /* ─── CSS Variables ──────────────────────────────────────────────────────── */
 :root {
   --bg:  #0D0D11;
