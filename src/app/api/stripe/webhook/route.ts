@@ -1,19 +1,8 @@
 import { NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { stripe, planForPriceId } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
-
-const PRICE_TO_PLAN: Record<string, string> = {
-  'price_1TmAfF9nrVYxaG6HQ5fUZu10': 'pro',
-  'price_1TmAfd9nrVYxaG6HpLuJiSoj': 'pro',
-  'price_1TmAdF9nrVYxaG6H0kGCwAZA': 'elite',
-  'price_1TmAeO9nrVYxaG6H3EiqB7Xw': 'elite',
-}
-
-function getPlan(priceId: string): string {
-  return PRICE_TO_PLAN[priceId] || 'pro'
-}
 
 export async function POST(req: Request) {
   const body = await req.text()
@@ -37,13 +26,24 @@ export async function POST(req: Request) {
         const session = event.data.object as any
         const customerId = session.customer
         const subscriptionId = session.subscription
-        const userId = session.metadata?.supabase_user_id
 
-        if (!userId || !subscriptionId) break
+        // Prefer session metadata / client_reference_id; fall back to a lookup by
+        // Stripe customer id so a grant still happens even if metadata is absent.
+        let userId = session.metadata?.supabase_user_id || session.client_reference_id
+        if (!userId && customerId) {
+          const { data: p } = await supabase
+            .from('profiles').select('id').eq('stripe_customer_id', customerId).maybeSingle()
+          userId = p?.id
+        }
+
+        if (!userId || !subscriptionId) {
+          console.error('checkout.session.completed: could not resolve user for customer', customerId)
+          break
+        }
 
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
         const priceId = subscription.items.data[0]?.price.id
-        const plan = getPlan(priceId)
+        const plan = planForPriceId(priceId)
 
         await supabase.from('profiles').upsert({
           id: userId,
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
         if (!userId) break
 
         const priceId = subscription.items.data[0]?.price.id
-        const plan = getPlan(priceId)
+        const plan = planForPriceId(priceId)
         const status = subscription.status
 
         await supabase.from('profiles').upsert({

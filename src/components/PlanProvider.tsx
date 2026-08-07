@@ -30,10 +30,15 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   async function load() {
     try {
       const res = await fetch('/api/subscription')
+      // On a server error, keep the last-known plan rather than dropping a
+      // paying user to 'free' because of a transient failure.
+      if (!res.ok) { setLoading(false); return }
       const d = await res.json()
       setPlan(d.plan || 'free')
       setTradeCount(d.tradeCount || 0)
-    } catch {}
+    } catch (e) {
+      console.error('plan load failed', e)
+    }
     setLoading(false)
   }
 

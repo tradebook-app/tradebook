@@ -10,6 +10,14 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    // Sleek AI is a Pro+ feature. Enforce it server-side so free users can't
+    // call this endpoint directly and run up the AI provider bill.
+    const { data: profile } = await supabase
+      .from('profiles').select('plan').eq('id', user.id).single()
+    if (profile?.plan !== 'pro' && profile?.plan !== 'elite') {
+      return NextResponse.json({ error: 'Sleek AI requires a Pro or Elite plan.' }, { status: 403 })
+    }
+
     const { messages, trades } = await req.json()
 
     // Build trade summary for context
