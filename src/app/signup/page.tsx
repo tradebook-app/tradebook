@@ -21,6 +21,7 @@ function SignupForm() {
   const [email, setEmail]         = useState('')
   const [password, setPassword]   = useState('')
   const [confirm, setConfirm]     = useState('')
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false)
   const [error, setError]         = useState('')
   const [success, setSuccess]     = useState(false)
   const [loading, setLoading]     = useState(false)
@@ -42,12 +43,6 @@ function SignupForm() {
 
   function getAuthRedirectUrl(): string {
     const intent = getPaidPlanIntent()
-
-    // Google OAuth redirects the browser away and back through a server route
-    // (/auth/callback), which can't read localStorage. So the ref code has to
-    // travel as a URL param instead — Supabase preserves extra query params
-    // on redirectTo through the whole OAuth round-trip (same pattern already
-    // used here for `next`).
     const effectiveRef =
       refParam || (typeof window !== 'undefined' ? localStorage.getItem('referral_code') : null)
 
@@ -90,6 +85,14 @@ function SignupForm() {
 
     fetch('/api/welcome', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) }).catch(() => {})
 
+    if (signUpData.user) {
+      fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: signUpData.user.id, optIn: newsletterOptIn }),
+      }).catch(() => {})
+    }
+
     const storedRefCode = typeof window !== 'undefined' ? localStorage.getItem('referral_code') : null
     if (storedRefCode && signUpData.user) {
       fetch('/api/referrals/attribute', {
@@ -129,7 +132,6 @@ function SignupForm() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: '100%', maxWidth: '400px', padding: '0 16px' }}>
 
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '6px' }}>
             <svg width="36" height="36" viewBox="0 0 64 64">
@@ -160,7 +162,6 @@ function SignupForm() {
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '28px' }}>
           <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>Create account</div>
 
-          {/* Google Button */}
           <button
             onClick={handleGoogleSignup}
             disabled={googleLoading}
@@ -175,7 +176,6 @@ function SignupForm() {
             {googleLoading ? 'Redirecting...' : 'Continue with Google'}
           </button>
 
-          {/* Divider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
             <div style={{ flex: 1, height: '1px', background: 'var(--brd)' }} />
             <span style={{ fontSize: '11px', color: 'var(--txt3)' }}>or</span>
@@ -191,10 +191,22 @@ function SignupForm() {
               <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '5px' }}>Password</label>
               <input className="fi" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 characters" required autoComplete="new-password" />
             </div>
-            <div style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '5px' }}>Confirm Password</label>
               <input className="fi" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" required autoComplete="new-password" />
             </div>
+
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '20px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={newsletterOptIn}
+                onChange={e => setNewsletterOptIn(e.target.checked)}
+                style={{ marginTop: '2px' }}
+              />
+              <span style={{ fontSize: '11px', color: 'var(--txt2)', lineHeight: 1.5 }}>
+                Email me when new blog posts and trading tips are published. You can unsubscribe anytime.
+              </span>
+            </label>
 
             {error && (
               <div style={{ background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--r)', padding: '8px 12px', fontSize: '11px', color: 'var(--red)', marginBottom: '14px' }}>
