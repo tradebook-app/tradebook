@@ -1158,6 +1158,7 @@ export default async function HomePage() {
             <Link href="/contact" style={{ color:'var(--txt3)', textDecoration:'none' }}>Contact</Link>
             <Link href="/privacy" style={{ color:'var(--txt3)', textDecoration:'none' }}>Privacy</Link>
             <Link href="/terms" style={{ color:'var(--txt3)', textDecoration:'none' }}>Terms</Link>
+            <Link href="/blog" style={{ color:'var(--txt3)', textDecoration:'none' }}>Blog</Link>
             <Link href="/login" style={{ color:'var(--txt3)', textDecoration:'none' }}>Log in</Link>
             <Link href="/signup" style={{ color:'var(--txt3)', textDecoration:'none' }}>Sign up</Link>
           </div>
