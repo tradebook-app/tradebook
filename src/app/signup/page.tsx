@@ -201,10 +201,21 @@ function SignupForm() {
                 type="checkbox"
                 checked={newsletterOptIn}
                 onChange={e => setNewsletterOptIn(e.target.checked)}
-                style={{ marginTop: '2px' }}
+                style={{
+                  appearance: 'auto',
+                  WebkitAppearance: 'auto',
+                  width: '16px',
+                  height: '16px',
+                  minWidth: '16px',
+                  minHeight: '16px',
+                  flexShrink: 0,
+                  marginTop: '2px',
+                  cursor: 'pointer',
+                  accentColor: '#10B981',
+                }}
               />
               <span style={{ fontSize: '11px', color: 'var(--txt2)', lineHeight: 1.5 }}>
-                Email me when new blog posts and trading tips are published. You can unsubscribe anytime.
+                Notify me about new blog posts and trading tips.
               </span>
             </label>
 
