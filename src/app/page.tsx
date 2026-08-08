@@ -125,6 +125,8 @@ export default async function HomePage() {
           .darklight-split { grid-template-columns: 1fr !important; }
           .darklight-right { display: none !important; }
           .possize-grid { grid-template-columns: 1fr !important; }
+          .possize-grid > * { min-width: 0; }
+          .possize-recent { grid-template-columns: 40px minmax(0,1fr) minmax(0,1fr) 44px 40px !important; }
           .report-stats-6 { grid-template-columns: repeat(3,1fr) !important; }
           .report-row2 { grid-template-columns: 1fr !important; }
           .report-row3 { grid-template-columns: 1fr !important; }
@@ -854,7 +856,7 @@ export default async function HomePage() {
                     { sym:'QQQ', entry:'472.80', stop:'469.90', shares:172, risk:'$500' },
                     { sym:'AAPL', entry:'211.50', stop:'209.20', shares:217, risk:'$499' },
                   ].map((c, i) => (
-                    <div key={i} style={{ display:'grid', gridTemplateColumns:'50px 70px 70px 60px 50px', alignItems:'center', padding:'7px 0', borderBottom:'1px solid #1e1e26', gap:'6px' }}>
+                    <div key={i} className="possize-recent" style={{ display:'grid', gridTemplateColumns:'50px 70px 70px 60px 50px', alignItems:'center', padding:'7px 0', borderBottom:'1px solid #1e1e26', gap:'6px' }}>
                       <span style={{ fontSize:'11px', fontWeight:700 }}>{c.sym}</span>
                       <span style={{ fontSize:'9px', color:'#555', fontFamily:'monospace' }}>@ {c.entry}</span>
                       <span style={{ fontSize:'9px', color:'#555', fontFamily:'monospace' }}>SL {c.stop}</span>
