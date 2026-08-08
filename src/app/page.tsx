@@ -134,6 +134,11 @@ export default async function HomePage() {
           .broker-section { padding: 48px 16px !important; }
           .broker-flex { gap: 20px !important; }
           .feature-block { overflow: hidden !important; margin-bottom: 60px !important; }
+          /* Wide preview mocks: let fixed-width tables / week strip scroll
+             horizontally on phones instead of being clipped by the card edge. */
+          .mock-hscroll { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+          .mock-hscroll > * { min-width: 460px; }
+          .mock-scroll-card { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
         }
         .footer-social-icon {
           display: flex; align-items: center; justify-content: center;
@@ -327,6 +332,7 @@ export default async function HomePage() {
                 ))}
               </div>
             </div>
+            <div className="mock-hscroll">
             <div style={{ display:'grid', gridTemplateColumns:'95px 70px 60px 65px 80px 80px 60px 80px 55px', padding:'8px 14px', borderBottom:'1px solid #252530', background:'#16161e', borderRadius:'6px 6px 0 0' }}>
               {['Date','Symbol','Side','Status','Entry','Exit','Shares','P&L','Grade'].map(h => (
                 <span key={h} style={{ fontSize:'9px', color:'#555', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em' }}>{h}</span>
@@ -360,6 +366,7 @@ export default async function HomePage() {
                 </span>
               </div>
             ))}
+            </div>
             <div style={{ display:'flex', justifyContent:'space-between', padding:'10px 14px', fontSize:'11px', color:'#555' }}>
               <span>12 trades · Jun 17 – Jun 22</span>
               <span style={{ color:'#10B981', fontWeight:700, fontFamily:'monospace' }}>Net P&L: +$5,930</span>
@@ -382,7 +389,7 @@ export default async function HomePage() {
                 <div key={t} style={{ fontSize:'11px', fontWeight:600, padding:'6px 14px', borderRadius:'7px', background:i===0?'#10B981':'#1e1e26', color:i===0?'#000':'#666', border:'1px solid #2a2a35', cursor:'pointer', whiteSpace:'nowrap' }}>{t}</div>
               ))}
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'8px', marginBottom:'14px' }}>
+            <div className="report-stats-6" style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'8px', marginBottom:'14px' }}>
               {[
                 { l:'Net P&L', v:'+$8,421', c:'#10B981' },
                 { l:'Win Rate', v:'71.8%', c:'#10B981' },
@@ -696,6 +703,7 @@ export default async function HomePage() {
                 <span style={{ fontSize:'11px', padding:'5px 12px', borderRadius:'6px', background:'#1e1e26', color:'#666', border:'1px solid #2a2a35', cursor:'pointer' }}>Next →</span>
               </div>
             </div>
+            <div className="mock-hscroll">
             <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'6px', marginBottom:'14px' }}>
               {[
                 { day:'SUN', date:'14', pnl:null, trades:null, color:'#1a1a22' },
@@ -714,6 +722,7 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
+            </div>
             <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px', padding:'12px', marginBottom:'14px' }}>
               <svg viewBox="0 0 900 80" width="100%" height="80">
                 <defs>
@@ -726,7 +735,7 @@ export default async function HomePage() {
                 <path d="M0,40 L100,40 L200,50 L280,48 L350,45 L450,42 L550,42 L650,40 L700,38 L750,15 L800,5 L900,2 L900,80 L0,80Z" fill="url(#jg)"/>
               </svg>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'8px', marginBottom:'14px' }}>
+            <div className="report-stats-6" style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'8px', marginBottom:'14px' }}>
               {[
                 { l:'Total Trades', v:'27' },
                 { l:'Win Rate', v:'40.7%' },
@@ -741,7 +750,7 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
-            <div style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px 8px 0 0', overflow:'hidden' }}>
+            <div className="mock-scroll-card" style={{ background:'#1a1a22', border:'1px solid #252530', borderRadius:'8px 8px 0 0', overflow:'hidden' }}>
               <div style={{ display:'grid', gridTemplateColumns:'110px 90px 80px 70px 90px 90px 70px 90px 70px 1fr', padding:'8px 14px', borderBottom:'1px solid #252530', background:'#16161e' }}>
                 {['Day','Time','Symbol','Status','Entry','Exit','Shares','P&L','Grade','Setup'].map(h => (
                   <span key={h} style={{ fontSize:'8px', color:'#555', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em' }}>{h}</span>
