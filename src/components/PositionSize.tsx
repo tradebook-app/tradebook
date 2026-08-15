@@ -124,7 +124,7 @@ export function PositionSize() {
   }, [futAccount, futRiskMode, futRiskInput, futSymbol, futStopInput, futTakeProfitInput, futStopUnit])
 
   const lbl: React.CSSProperties = { display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '5px' }
-  const affix: React.CSSProperties = { background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)', padding: '8px 10px', fontSize: '11px', color: 'var(--txt3)', fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center' }
+  const affix: React.CSSProperties = { background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)', padding: '0 10px', height: '28px', fontSize: '11px', color: 'var(--txt3)', fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center' }
   const card: React.CSSProperties = { background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px' }
   const dot = (color: string) => <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', marginRight: '7px' }} />
 
