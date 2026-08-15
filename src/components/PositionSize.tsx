@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { futuresPointValue, FUTURES_CONTRACTS } from '@/lib/contractMultiplier'
+import { futuresPointValue, futuresTickSize, FUTURES_CONTRACTS } from '@/lib/contractMultiplier'
 
 const R_TARGETS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50]
 const SIZE_LEVEL_PCTS = [0.25, 0.5, 1, 1.5, 2, 3]
@@ -10,9 +10,6 @@ const FUT_CATEGORIES = Array.from(new Set(FUTURES_CONTRACTS.map(c => c.category)
 export function PositionSize() {
   const [mode, setMode] = useState<'stocks' | 'futures'>('stocks')
 
-  // ─────────────────────────────────────────────────────────────────────
-  // STOCKS — unchanged from the original calculator
-  // ─────────────────────────────────────────────────────────────────────
   const [account, setAccount] = useState('')
   const [riskPct, setRiskPct] = useState('')
   const [riskDollarStr, setRiskDollarStr] = useState('')
@@ -79,27 +76,29 @@ export function PositionSize() {
     return { acc, dR, actualRisk, capped, maxD, sd, sh, pv, pa, targets }
   }, [account, riskPct, maxPct, entry, stop, side])
 
-  // ─────────────────────────────────────────────────────────────────────
-  // FUTURES — new
-  // ─────────────────────────────────────────────────────────────────────
   const [futAccount, setFutAccount] = useState('')
   const [futRiskMode, setFutRiskMode] = useState<'pct' | 'fixed'>('pct')
   const [futRiskInput, setFutRiskInput] = useState('')
   const [futSymbol, setFutSymbol] = useState('ES')
-  const [futStopPoints, setFutStopPoints] = useState('')
-  const [futTakeProfitPoints, setFutTakeProfitPoints] = useState('')
+  const [futStopInput, setFutStopInput] = useState('')
+  const [futTakeProfitInput, setFutTakeProfitInput] = useState('')
+  const [futStopUnit, setFutStopUnit] = useState<'points' | 'ticks'>('points')
 
   const futContractInfo = FUTURES_CONTRACTS.find(fc => fc.symbol === futSymbol)
 
   const fc = useMemo(() => {
     const acc     = parseFloat(futAccount) || 0
     const riskRaw = parseFloat(futRiskInput) || 0
-    const stopPts = parseFloat(futStopPoints) || 0
-    const tpPts   = parseFloat(futTakeProfitPoints) || 0
+    const stopRaw = parseFloat(futStopInput) || 0
+    const tpRaw   = parseFloat(futTakeProfitInput) || 0
 
     const pvLookup  = futuresPointValue(futSymbol)
     const pv        = pvLookup ?? 0
     const pvUnknown = pvLookup === null
+
+    const tickSize = futuresTickSize(futSymbol) ?? 1
+    const stopPts  = futStopUnit === 'ticks' ? stopRaw * tickSize : stopRaw
+    const tpPts    = futStopUnit === 'ticks' ? tpRaw   * tickSize : tpRaw
 
     const riskDollars = futRiskMode === 'fixed' ? riskRaw : acc * riskRaw / 100
     const riskPct = acc > 0 ? riskDollars / acc * 100 : 0
@@ -122,11 +121,8 @@ export function PositionSize() {
     }))
 
     return { acc, riskDollars, riskPct, riskPerContract, contracts, actualRisk, rr, pv, pvUnknown, stopPts, tpPts, sizeLevels, targets }
-  }, [futAccount, futRiskMode, futRiskInput, futSymbol, futStopPoints, futTakeProfitPoints])
+  }, [futAccount, futRiskMode, futRiskInput, futSymbol, futStopInput, futTakeProfitInput, futStopUnit])
 
-  // ─────────────────────────────────────────────────────────────────────
-  // Shared styles
-  // ─────────────────────────────────────────────────────────────────────
   const lbl: React.CSSProperties = { display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '5px' }
   const affix: React.CSSProperties = { background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)', padding: '8px 10px', fontSize: '11px', color: 'var(--txt3)', fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center' }
   const card: React.CSSProperties = { background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px' }
@@ -158,7 +154,6 @@ export function PositionSize() {
 
   return (
     <div>
-      {/* Asset type toggle */}
       <div style={{ marginBottom: '16px' }}>
         <span style={lbl}>Asset Type</span>
         <div style={{ display: 'flex', gap: '6px', maxWidth: '260px' }}>
@@ -169,14 +164,11 @@ export function PositionSize() {
 
       {mode === 'stocks' ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'stretch' }}>
-
-          {/* LEFT: Calculator */}
           <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: 700, marginBottom: '18px' }}>
               {dot('var(--ac)')}Position Size Calculator
             </div>
 
-            {/* Side toggle */}
             <div style={{ marginBottom: '14px' }}>
               <span style={lbl}>Side</span>
               <div style={{ display: 'flex', gap: '6px' }}>
@@ -191,7 +183,6 @@ export function PositionSize() {
               </div>
             </div>
 
-            {/* Account size */}
             <div style={{ marginBottom: '14px' }}>
               <span style={lbl}>Account Size</span>
               <div style={{ display: 'flex' }}>
@@ -201,7 +192,6 @@ export function PositionSize() {
               </div>
             </div>
 
-            {/* Equity at risk per position */}
             <div style={{ marginBottom: '14px' }}>
               <span style={lbl}>Equity at Risk Per Position</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
@@ -220,7 +210,6 @@ export function PositionSize() {
               </div>
             </div>
 
-            {/* Max position size */}
             <div style={{ marginBottom: '14px' }}>
               <span style={lbl}>Max Position Size Allowed</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
@@ -240,7 +229,6 @@ export function PositionSize() {
               <div style={{ fontSize: '9px', color: 'var(--txt3)', marginTop: '5px' }}>Swing trading: typically 25–35% of account</div>
             </div>
 
-            {/* Entry price */}
             <div style={{ marginBottom: '14px' }}>
               <span style={lbl}>Entry Price</span>
               <div style={{ display: 'flex' }}>
@@ -250,7 +238,6 @@ export function PositionSize() {
               </div>
             </div>
 
-            {/* Stop loss */}
             <div style={{ marginBottom: '18px' }}>
               <span style={lbl}>Stop Loss</span>
               <div style={{ display: 'flex' }}>
@@ -260,7 +247,6 @@ export function PositionSize() {
               </div>
             </div>
 
-            {/* Results */}
             <div>
               {resRow('Dollar Risk', `$${c.dR.toFixed(2)}`, 'var(--ac)')}
               {c.capped && resRow('Actual Risk (capped)', `$${c.actualRisk.toFixed(2)}`, 'var(--amber, #f59e0b)')}
@@ -274,7 +260,6 @@ export function PositionSize() {
             </div>
           </div>
 
-          {/* RIGHT: R-Multiple Targets */}
           <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: 700, marginBottom: '16px' }}>
               {dot('var(--ac)')}R-Multiple Targets
@@ -302,8 +287,6 @@ export function PositionSize() {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'stretch' }}>
-
-          {/* LEFT: Trade inputs */}
           <div style={card}>
             <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: 700, marginBottom: '18px' }}>
               {dot('var(--ac)')}Trade Inputs
@@ -348,19 +331,26 @@ export function PositionSize() {
             </div>
 
             <div style={{ marginBottom: '14px' }}>
-              <span style={lbl}>Stop Loss (Points)</span>
-              <input className="fi" type="number" value={futStopPoints} onChange={e => setFutStopPoints(e.target.value)}
+              <span style={lbl}>Stop Measured In</span>
+              <div style={{ display: 'flex', gap: '6px', maxWidth: '260px' }}>
+                {toggleBtn(futStopUnit === 'points', () => setFutStopUnit('points'), 'Points')}
+                {toggleBtn(futStopUnit === 'ticks',  () => setFutStopUnit('ticks'),  'Ticks')}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <span style={lbl}>Stop Loss ({futStopUnit === 'ticks' ? 'Ticks' : 'Points'})</span>
+              <input className="fi" type="number" value={futStopInput} onChange={e => setFutStopInput(e.target.value)}
                 style={{ fontFamily: 'var(--mono)' }} />
             </div>
 
             <div>
-              <span style={lbl}>Take Profit (Points) · Optional</span>
-              <input className="fi" type="number" value={futTakeProfitPoints} onChange={e => setFutTakeProfitPoints(e.target.value)}
+              <span style={lbl}>Take Profit ({futStopUnit === 'ticks' ? 'Ticks' : 'Points'}) · Optional</span>
+              <input className="fi" type="number" value={futTakeProfitInput} onChange={e => setFutTakeProfitInput(e.target.value)}
                 style={{ fontFamily: 'var(--mono)' }} placeholder="Optional" />
             </div>
           </div>
 
-          {/* RIGHT: Results */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={card}>
               <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: '6px' }}>
@@ -403,7 +393,7 @@ export function PositionSize() {
 
             <div style={card}>
               <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>Profit Targets</div>
-              <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
+              <div style={{ maxHeight: '360px', overflowY: 'auto', paddingRight: '12px' }}>
                 {fc.targets.map(t => (
                   <div key={t.r} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', fontSize: '12px', fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>
                     <span style={{ color: 'var(--txt2)' }}>{t.r}R · {t.pointsAway.toFixed(2)} pts away</span>

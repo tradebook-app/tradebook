@@ -25,50 +25,57 @@ const FUTURES_POINT_VALUES: Record<string, number> = {
   '6E': 125000, '6J': 12500000, '6B': 62500, '6A': 100000, '6C': 100000,
 }
 
-// Display metadata for the futures contract picker in the Position Size
-// calculator. Purely presentational (symbol + friendly name + category) —
-// the actual dollar-per-point number always comes from futuresPointValue()
-// above, never duplicated here, so there's a single source of truth for the
-// math. Every symbol below already exists in FUTURES_POINT_VALUES.
-export type FuturesContractInfo = { symbol: string; name: string; category: string }
+// tick_size = minimum price movement for the contract, in points. A stop of N
+// ticks converts to N × tick_size points. Sourced from CME contract specs.
+// Getting a tick size wrong = silently wrong risk math, same bug class as the
+// old options 100x issue — verify against the broker before trusting.
+export type FuturesContractInfo = { symbol: string; name: string; category: string; tick_size: number }
 
 export const FUTURES_CONTRACTS: FuturesContractInfo[] = [
-  { symbol: 'ES', name: 'E-mini S&P 500', category: 'Equity index' },
-  { symbol: 'MES', name: 'Micro E-mini S&P 500', category: 'Equity index' },
-  { symbol: 'NQ', name: 'E-mini Nasdaq-100', category: 'Equity index' },
-  { symbol: 'MNQ', name: 'Micro E-mini Nasdaq-100', category: 'Equity index' },
-  { symbol: 'YM', name: 'E-mini Dow', category: 'Equity index' },
-  { symbol: 'MYM', name: 'Micro E-mini Dow', category: 'Equity index' },
-  { symbol: 'RTY', name: 'E-mini Russell 2000', category: 'Equity index' },
-  { symbol: 'M2K', name: 'Micro E-mini Russell 2000', category: 'Equity index' },
-  { symbol: 'CL', name: 'Crude Oil', category: 'Energy' },
-  { symbol: 'MCL', name: 'Micro Crude Oil', category: 'Energy' },
-  { symbol: 'NG', name: 'Natural Gas', category: 'Energy' },
-  { symbol: 'QG', name: 'Micro Natural Gas', category: 'Energy' },
-  { symbol: 'RB', name: 'RBOB Gasoline', category: 'Energy' },
-  { symbol: 'HO', name: 'Heating Oil', category: 'Energy' },
-  { symbol: 'GC', name: 'Gold', category: 'Metals' },
-  { symbol: 'MGC', name: 'Micro Gold', category: 'Metals' },
-  { symbol: 'SI', name: 'Silver', category: 'Metals' },
-  { symbol: 'SIL', name: 'Micro Silver', category: 'Metals' },
-  { symbol: 'HG', name: 'Copper', category: 'Metals' },
-  { symbol: 'PL', name: 'Platinum', category: 'Metals' },
-  { symbol: 'ZB', name: '30-Year T-Bond', category: 'Rates' },
-  { symbol: 'UB', name: 'Ultra T-Bond', category: 'Rates' },
-  { symbol: 'ZN', name: '10-Year T-Note', category: 'Rates' },
-  { symbol: 'ZF', name: '5-Year T-Note', category: 'Rates' },
-  { symbol: 'ZT', name: '2-Year T-Note', category: 'Rates' },
-  { symbol: 'ZC', name: 'Corn', category: 'Grains' },
-  { symbol: 'ZS', name: 'Soybeans', category: 'Grains' },
-  { symbol: 'ZW', name: 'Wheat', category: 'Grains' },
-  { symbol: 'ZL', name: 'Soybean Oil', category: 'Grains' },
-  { symbol: 'ZM', name: 'Soybean Meal', category: 'Grains' },
-  { symbol: '6E', name: 'Euro FX', category: 'Currencies' },
-  { symbol: '6B', name: 'British Pound', category: 'Currencies' },
-  { symbol: '6J', name: 'Japanese Yen', category: 'Currencies' },
-  { symbol: '6A', name: 'Australian Dollar', category: 'Currencies' },
-  { symbol: '6C', name: 'Canadian Dollar', category: 'Currencies' },
+  { symbol: 'ES', name: 'E-mini S&P 500', category: 'Equity index', tick_size: 0.25 },
+  { symbol: 'MES', name: 'Micro E-mini S&P 500', category: 'Equity index', tick_size: 0.25 },
+  { symbol: 'NQ', name: 'E-mini Nasdaq-100', category: 'Equity index', tick_size: 0.25 },
+  { symbol: 'MNQ', name: 'Micro E-mini Nasdaq-100', category: 'Equity index', tick_size: 0.25 },
+  { symbol: 'YM', name: 'E-mini Dow', category: 'Equity index', tick_size: 1 },
+  { symbol: 'MYM', name: 'Micro E-mini Dow', category: 'Equity index', tick_size: 1 },
+  { symbol: 'RTY', name: 'E-mini Russell 2000', category: 'Equity index', tick_size: 0.1 },
+  { symbol: 'M2K', name: 'Micro E-mini Russell 2000', category: 'Equity index', tick_size: 0.1 },
+  { symbol: 'CL', name: 'Crude Oil', category: 'Energy', tick_size: 0.01 },
+  { symbol: 'MCL', name: 'Micro Crude Oil', category: 'Energy', tick_size: 0.01 },
+  { symbol: 'NG', name: 'Natural Gas', category: 'Energy', tick_size: 0.001 },
+  { symbol: 'QG', name: 'Micro Natural Gas', category: 'Energy', tick_size: 0.005 },
+  { symbol: 'RB', name: 'RBOB Gasoline', category: 'Energy', tick_size: 0.0001 },
+  { symbol: 'HO', name: 'Heating Oil', category: 'Energy', tick_size: 0.0001 },
+  { symbol: 'GC', name: 'Gold', category: 'Metals', tick_size: 0.1 },
+  { symbol: 'MGC', name: 'Micro Gold', category: 'Metals', tick_size: 0.1 },
+  { symbol: 'SI', name: 'Silver', category: 'Metals', tick_size: 0.005 },
+  { symbol: 'SIL', name: 'Micro Silver', category: 'Metals', tick_size: 0.005 },
+  { symbol: 'HG', name: 'Copper', category: 'Metals', tick_size: 0.0005 },
+  { symbol: 'PL', name: 'Platinum', category: 'Metals', tick_size: 0.1 },
+  { symbol: 'ZB', name: '30-Year T-Bond', category: 'Rates', tick_size: 1 / 32 },
+  { symbol: 'UB', name: 'Ultra T-Bond', category: 'Rates', tick_size: 1 / 32 },
+  { symbol: 'ZN', name: '10-Year T-Note', category: 'Rates', tick_size: 1 / 64 },
+  { symbol: 'ZF', name: '5-Year T-Note', category: 'Rates', tick_size: 1 / 64 },
+  { symbol: 'ZT', name: '2-Year T-Note', category: 'Rates', tick_size: 1 / 128 },
+  { symbol: 'ZC', name: 'Corn', category: 'Grains', tick_size: 0.25 },
+  { symbol: 'ZS', name: 'Soybeans', category: 'Grains', tick_size: 0.25 },
+  { symbol: 'ZW', name: 'Wheat', category: 'Grains', tick_size: 0.25 },
+  { symbol: 'ZL', name: 'Soybean Oil', category: 'Grains', tick_size: 0.01 },
+  { symbol: 'ZM', name: 'Soybean Meal', category: 'Grains', tick_size: 0.1 },
+  { symbol: '6E', name: 'Euro FX', category: 'Currencies', tick_size: 0.0001 },
+  { symbol: '6B', name: 'British Pound', category: 'Currencies', tick_size: 0.0001 },
+  { symbol: '6J', name: 'Japanese Yen', category: 'Currencies', tick_size: 0.0000005 },
+  { symbol: '6A', name: 'Australian Dollar', category: 'Currencies', tick_size: 0.0001 },
+  { symbol: '6C', name: 'Canadian Dollar', category: 'Currencies', tick_size: 0.0001 },
 ]
+
+// Returns the tick size (in points) for a symbol, or null when the contract
+// isn't recognized. Symmetric with futuresPointValue() so callers can handle
+// the unknown case explicitly rather than silently defaulting to something.
+export function futuresTickSize(symbol: string): number | null {
+  const root = futuresRootSymbol(symbol)
+  return FUTURES_CONTRACTS.find(fc => fc.symbol === root)?.tick_size ?? null
+}
 
 // Strips a broker's contract-month/year suffix (e.g. "ESH26", "NQZ25", "/ESH6",
 // "@ES") down to the root symbol so it can be looked up above. Broker symbol
