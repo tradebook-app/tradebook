@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { futuresPointValue, futuresTickSize, FUTURES_CONTRACTS } from '@/lib/contractMultiplier'
 
 const R_TARGETS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50]
@@ -83,6 +83,22 @@ export function PositionSize() {
   const [futStopInput, setFutStopInput] = useState('')
   const [futTakeProfitInput, setFutTakeProfitInput] = useState('')
   const [futStopUnit, setFutStopUnit] = useState<'points' | 'ticks'>('points')
+  const [contractOpen, setContractOpen] = useState(false)
+  const contractRef = useRef<HTMLDivElement>(null)
+
+  // Native <select> with 35 options + optgroups was triggering a GPU rendering
+  // glitch (visible zigzag artifact) in Chrome for some users when the popup
+  // opened. Switching to a fully custom dropdown removes the native OS popup
+  // layer entirely, so rendering is under our own control.
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (contractRef.current && !contractRef.current.contains(e.target as Node)) {
+        setContractOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const futContractInfo = FUTURES_CONTRACTS.find(fc => fc.symbol === futSymbol)
 
@@ -315,16 +331,43 @@ export function PositionSize() {
 
             <div style={{ marginBottom: '14px' }}>
               <span style={lbl}>Contract</span>
-              <select className="fi" value={futSymbol} onChange={e => setFutSymbol(e.target.value)}
-                style={{ fontFamily: 'var(--mono)' }}>
-                {FUT_CATEGORIES.map(cat => (
-                  <optgroup key={cat} label={cat}>
-                    {FUTURES_CONTRACTS.filter(fut => fut.category === cat).map(fut => (
-                      <option key={fut.symbol} value={fut.symbol}>{fut.symbol} — {fut.name}</option>
+              <div ref={contractRef} style={{ position: 'relative' }}>
+                <div onClick={() => setContractOpen(o => !o)} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)',
+                  borderRadius: 'var(--r)', padding: '8px 11px', fontSize: '12px', color: 'var(--txt)',
+                  fontFamily: 'var(--mono)', cursor: 'pointer', userSelect: 'none',
+                }}>
+                  <span>{futSymbol} — {futContractInfo?.name ?? ''}</span>
+                  <span style={{ color: 'var(--txt3)', fontSize: '10px' }}>{contractOpen ? '▴' : '▾'}</span>
+                </div>
+                {contractOpen && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
+                    background: '#141419', border: '1px solid var(--brd)', borderRadius: 'var(--r)',
+                    maxHeight: '320px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,.4)',
+                  }}>
+                    {FUT_CATEGORIES.map(cat => (
+                      <div key={cat}>
+                        <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.05em', padding: '10px 12px 6px' }}>{cat}</div>
+                        {FUTURES_CONTRACTS.filter(fut => fut.category === cat).map(fut => (
+                          <div key={fut.symbol} onClick={() => { setFutSymbol(fut.symbol); setContractOpen(false) }}
+                            style={{
+                              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                              padding: '8px 12px', fontSize: '12px', fontFamily: 'var(--mono)', cursor: 'pointer',
+                              background: fut.symbol === futSymbol ? 'var(--bg4, #21212E)' : 'transparent',
+                              color: fut.symbol === futSymbol ? 'var(--txt)' : 'var(--txt2)',
+                              fontWeight: fut.symbol === futSymbol ? 700 : 400,
+                            }}>
+                            <span>{fut.symbol} — {fut.name}</span>
+                            {fut.symbol === futSymbol && <span style={{ color: 'var(--ac)' }}>✓</span>}
+                          </div>
+                        ))}
+                      </div>
                     ))}
-                  </optgroup>
-                ))}
-              </select>
+                  </div>
+                )}
+              </div>
               <div style={{ fontSize: '9px', color: fc.pvUnknown ? 'var(--red)' : 'var(--txt3)', marginTop: '5px' }}>
                 {fc.pvUnknown ? 'Point value not found for this contract — contact support.' : `$${fc.pv.toLocaleString()} per point`}
               </div>
