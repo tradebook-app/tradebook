@@ -188,7 +188,7 @@ export function PositionSize() {
               <div style={{ display: 'flex' }}>
                 <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
                 <input className="fi" type="number" value={account} onChange={e => setAccount(e.target.value)}
-                  style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
+                  style={{ flex: 1, minWidth: 0, fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
               </div>
             </div>
 
@@ -199,12 +199,12 @@ export function PositionSize() {
                   <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
                   <input className="fi" type="number" value={riskDollarStr}
                     onChange={e => handleRiskDollarChange(e.target.value)}
-                    style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
+                    style={{ flex: 1, minWidth: 0, fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
                 </div>
                 <div style={{ display: 'flex' }}>
                   <input className="fi" type="number" value={riskPct} step="0.1"
                     onChange={e => handleRiskPctChange(e.target.value)}
-                    style={{ fontFamily: 'var(--mono)', borderRadius: 'var(--r) 0 0 var(--r)' }} />
+                    style={{ flex: 1, minWidth: 0, fontFamily: 'var(--mono)', borderRadius: 'var(--r) 0 0 var(--r)' }} />
                   <span style={{ ...affix, borderLeft: 0, borderRadius: '0 var(--r) var(--r) 0' }}>%</span>
                 </div>
               </div>
@@ -217,12 +217,12 @@ export function PositionSize() {
                   <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
                   <input className="fi" type="number" value={maxDollarStr}
                     onChange={e => handleMaxDollarChange(e.target.value)}
-                    style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
+                    style={{ flex: 1, minWidth: 0, fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
                 </div>
                 <div style={{ display: 'flex' }}>
                   <input className="fi" type="number" value={maxPct}
                     onChange={e => handleMaxPctChange(e.target.value)}
-                    style={{ fontFamily: 'var(--mono)', borderRadius: 'var(--r) 0 0 var(--r)' }} />
+                    style={{ flex: 1, minWidth: 0, fontFamily: 'var(--mono)', borderRadius: 'var(--r) 0 0 var(--r)' }} />
                   <span style={{ ...affix, borderLeft: 0, borderRadius: '0 var(--r) var(--r) 0' }}>%</span>
                 </div>
               </div>
@@ -234,7 +234,7 @@ export function PositionSize() {
               <div style={{ display: 'flex' }}>
                 <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
                 <input className="fi" type="number" value={entry} onChange={e => setEntry(e.target.value)}
-                  style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
+                  style={{ flex: 1, minWidth: 0, fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
               </div>
             </div>
 
@@ -243,7 +243,7 @@ export function PositionSize() {
               <div style={{ display: 'flex' }}>
                 <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
                 <input className="fi" type="number" value={stop} onChange={e => setStop(e.target.value)}
-                  style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
+                  style={{ flex: 1, minWidth: 0, fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
               </div>
             </div>
 
@@ -297,7 +297,7 @@ export function PositionSize() {
               <div style={{ display: 'flex' }}>
                 <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
                 <input className="fi" type="number" value={futAccount} onChange={e => setFutAccount(e.target.value)}
-                  style={{ fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
+                  style={{ flex: 1, minWidth: 0, fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
               </div>
             </div>
 
