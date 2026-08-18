@@ -86,10 +86,6 @@ export function PositionSize() {
   const [contractOpen, setContractOpen] = useState(false)
   const contractRef = useRef<HTMLDivElement>(null)
 
-  // Native <select> with 35 options + optgroups was triggering a GPU rendering
-  // glitch (visible zigzag artifact) in Chrome for some users when the popup
-  // opened. Switching to a fully custom dropdown removes the native OS popup
-  // layer entirely, so rendering is under our own control.
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (contractRef.current && !contractRef.current.contains(e.target as Node)) {
@@ -140,7 +136,7 @@ export function PositionSize() {
   }, [futAccount, futRiskMode, futRiskInput, futSymbol, futStopInput, futTakeProfitInput, futStopUnit])
 
   const lbl: React.CSSProperties = { display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '5px' }
-  const affix: React.CSSProperties = { background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)', padding: '0 10px', height: '28px', fontSize: '11px', color: 'var(--txt3)', fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center' }
+  const affix: React.CSSProperties = { background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)', padding: '0 10px', height: '28px', fontSize: '11px', color: 'var(--txt)', fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center' }
   const card: React.CSSProperties = { background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px' }
   const dot = (color: string) => <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', marginRight: '7px' }} />
 
@@ -164,7 +160,7 @@ export function PositionSize() {
       flex: 1, padding: '8px', borderRadius: 'var(--r)', fontSize: '12px', fontWeight: 700,
       cursor: 'pointer', fontFamily: 'var(--sans)', border: 'none',
       background: active ? activeColor : 'var(--bg4, #16161e)',
-      color: active ? activeText : 'var(--txt3)',
+      color: active ? activeText : 'var(--txt2)',
     }}>{label}</button>
   )
 
@@ -266,7 +262,10 @@ export function PositionSize() {
             <div>
               {resRow('Dollar Risk', `$${c.dR.toFixed(2)}`, 'var(--ac)')}
               {c.capped && resRow('Actual Risk (capped)', `$${c.actualRisk.toFixed(2)}`, 'var(--amber, #f59e0b)')}
-              {resRow('Shares', c.sh.toLocaleString(), 'var(--ac)', true)}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid var(--brd)' }}>
+                <span style={{ fontSize: '12px', color: 'var(--txt2)' }}>Shares</span>
+                <span style={{ fontSize: '16px', fontWeight: 900, fontFamily: 'var(--mono)', color: 'var(--ac)', background: 'var(--ac-d, rgba(16,185,129,.15))', padding: '4px 12px', borderRadius: '6px' }}>{c.sh.toLocaleString()}</span>
+              </div>
               {resRow('Position Value', `$${c.pv.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, 'var(--ac)')}
               {resRow('% of Account', `${c.pa.toFixed(2)}%`, c.pa > (parseFloat(maxPct) || 100) ? 'var(--red)' : 'var(--ac)')}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0' }}>
@@ -294,7 +293,7 @@ export function PositionSize() {
                     <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--txt2)', fontSize: '12px', borderBottom: '1px solid var(--brd)' }}>{t.r}R</td>
                     <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontSize: '12px', textAlign: 'right', borderBottom: '1px solid var(--brd)', color: 'var(--txt)' }}>${t.tgt.toFixed(2)}</td>
                     <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontSize: '12px', textAlign: 'right', borderBottom: '1px solid var(--brd)', color: 'var(--ac)', fontWeight: 600 }}>+${t.profit.toFixed(2)}</td>
-                    <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontSize: '11px', textAlign: 'right', borderBottom: '1px solid var(--brd)', color: 'var(--txt3)' }}>{c.acc > 0 ? `${t.pctAcc.toFixed(2)}%` : '—'}</td>
+                    <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontSize: '11px', textAlign: 'right', borderBottom: '1px solid var(--brd)', color: 'var(--txt2)' }}>{c.acc > 0 ? `${t.pctAcc.toFixed(2)}%` : '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -396,7 +395,7 @@ export function PositionSize() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={card}>
-              <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: '6px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--txt2)', marginBottom: '6px' }}>
                 Position size — {futSymbol} · {futContractInfo?.name ?? ''}
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '14px' }}>
