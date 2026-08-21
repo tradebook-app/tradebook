@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { adminClient } from '@/lib/referrals'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,11 +18,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'commissionIds array is required' }, { status: 400 })
   }
 
-  const { error } = await supabase
+  const admin = adminClient()
+  const { data, error } = await admin
     .from('referral_commissions')
     .update({ status: 'paid', paid_at: new Date().toISOString() })
     .in('id', commissionIds)
+    .select('id')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ ok: true, marked: commissionIds.length })
+  return NextResponse.json({ ok: true, marked: data?.length ?? 0 })
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { stripe, planForPriceId } from '@/lib/stripe'
-import { createClient } from '@/lib/supabase/server'
+import { adminClient } from '@/lib/referrals'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +18,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message }, { status: 400 })
   }
 
-  const supabase = createClient()
+  // Service-role: a Stripe webhook has no browser session/cookie at all, and
+  // needs to write profiles/referral_commissions rows for users other than
+  // any caller. Session-scoped RLS was never the right model here.
+  const supabase = adminClient()
 
   try {
     switch (event.type) {
