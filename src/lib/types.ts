@@ -325,6 +325,8 @@ export type ReferralCommissionRow = {
   available_at: string
   paid_at: string | null
   created_at: string
+  program: 'friend' | 'partner'
+  reversal_of: string | null
 }
 export type ReferralCommissionInsert = Omit<ReferralCommissionRow, 'id' | 'created_at'>
 
@@ -353,6 +355,9 @@ export type ProfileRow = {
   referred_by: string | null
   has_seen_intro: boolean
   newsletter_opt_in: boolean | null
+  is_partner: boolean
+  commission_rate: number
+  commission_months: number
 }
 export type ProfileInsert = Partial<Omit<ProfileRow, 'id'>> & { id: string }
 export type ProfileUpdate = Partial<Omit<ProfileRow, 'id'>>
