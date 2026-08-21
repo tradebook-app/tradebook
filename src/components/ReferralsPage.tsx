@@ -6,6 +6,7 @@ export function ReferralsPage() {
   const [data, setData] = useState<{
     code: string
     link: string
+    commissionMonths: number
     stats: { referredCount: number; pendingAmount: number; availableAmount: number; paidAmount: number }
     commissions: any[]
   } | null>(null)
@@ -45,7 +46,7 @@ export function ReferralsPage() {
     <div style={{ maxWidth: '760px' }}>
       <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>Refer & Earn</div>
       <div style={{ fontSize: '13px', color: 'var(--txt3)', marginBottom: '24px' }}>
-        Earn 20% of what your referrals pay for their first 6 months. New users get nothing extra yet — ask us about a signup discount if you want one added.
+        Earn 20% of what your referrals pay for their first {data.commissionMonths} months. New users get nothing extra yet — ask us about a signup discount if you want one added.
       </div>
 
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px', marginBottom: '20px' }}>
