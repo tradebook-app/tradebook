@@ -8,6 +8,9 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 // (inclusive boundary -- the exact N-months-later instant still counts).
 export function isWithinCommissionWindow(signupIso: string, months: number, nowIso: string): boolean {
   const cutoff = new Date(signupIso)
+  // UTC methods, not local-time: this runs in a serverless webhook handler where the
+  // server's TZ is not guaranteed, and local-time month arithmetic could shift this
+  // money-boundary check depending on where the function executes.
   cutoff.setUTCMonth(cutoff.getUTCMonth() + months)
   return new Date(nowIso).getTime() <= cutoff.getTime()
 }
