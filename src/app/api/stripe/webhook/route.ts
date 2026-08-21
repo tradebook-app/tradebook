@@ -35,8 +35,12 @@ export async function POST(req: Request) {
         // Stripe customer id so a grant still happens even if metadata is absent.
         let userId = session.metadata?.supabase_user_id || session.client_reference_id
         if (!userId && customerId) {
-          const { data: p } = await supabase
+          const { data: p, error: lookupErr } = await supabase
             .from('profiles').select('id').eq('stripe_customer_id', customerId).maybeSingle()
+          if (lookupErr) {
+            console.error('checkout.session.completed: failed to look up profile for customer', customerId, lookupErr)
+            return NextResponse.json({ error: 'Failed to look up profile' }, { status: 500 })
+          }
           userId = p?.id
         }
 
@@ -49,13 +53,17 @@ export async function POST(req: Request) {
         const priceId = subscription.items.data[0]?.price.id
         const plan = planForPriceId(priceId)
 
-        await supabase.from('profiles').upsert({
+        const { error: upsertErr } = await supabase.from('profiles').upsert({
           id: userId,
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
           subscription_status: 'active',
           plan,
         })
+        if (upsertErr) {
+          console.error('checkout.session.completed: failed to upsert profile for user', userId, upsertErr)
+          return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+        }
         break
       }
 
@@ -68,12 +76,16 @@ export async function POST(req: Request) {
         const plan = planForPriceId(priceId)
         const status = subscription.status
 
-        await supabase.from('profiles').upsert({
+        const { error: upsertErr } = await supabase.from('profiles').upsert({
           id: userId,
           stripe_subscription_id: subscription.id,
           subscription_status: status,
           plan: status === 'active' ? plan : 'free',
         })
+        if (upsertErr) {
+          console.error('customer.subscription.updated: failed to upsert profile for user', userId, upsertErr)
+          return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+        }
         break
       }
 
@@ -82,12 +94,16 @@ export async function POST(req: Request) {
         const userId = subscription.metadata?.supabase_user_id
         if (!userId) break
 
-        await supabase.from('profiles').upsert({
+        const { error: upsertErr } = await supabase.from('profiles').upsert({
           id: userId,
           stripe_subscription_id: null,
           subscription_status: 'canceled',
           plan: 'free',
         })
+        if (upsertErr) {
+          console.error('customer.subscription.deleted: failed to upsert profile for user', userId, upsertErr)
+          return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+        }
         break
       }
 
@@ -95,17 +111,29 @@ export async function POST(req: Request) {
         const invoice = event.data.object as any
         const customerId = invoice.customer
 
-        const { data: profile } = await supabase
+        const { data: profile, error: lookupErr } = await supabase
           .from('profiles')
           .select('id')
           .eq('stripe_customer_id', customerId)
           .single()
 
+        // .single() reports "no rows" (PGRST116) as an error even though it's
+        // an expected outcome (customer not linked to a profile) -- only
+        // treat other codes as a genuine failure worth retrying.
+        if (lookupErr && lookupErr.code !== 'PGRST116') {
+          console.error('invoice.payment_failed: failed to look up profile for customer', customerId, lookupErr)
+          return NextResponse.json({ error: 'Failed to look up profile' }, { status: 500 })
+        }
+
         if (profile) {
-          await supabase.from('profiles').upsert({
+          const { error: upsertErr } = await supabase.from('profiles').upsert({
             id: profile.id,
             subscription_status: 'past_due',
           })
+          if (upsertErr) {
+            console.error('invoice.payment_failed: failed to upsert profile for user', profile.id, upsertErr)
+            return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+          }
         }
         break
       }
@@ -144,7 +172,7 @@ export async function POST(req: Request) {
 
         // stripe_invoice_id has a unique constraint, so this is safe to call
         // even if Stripe redelivers the same webhook event.
-        await supabase.from('referral_commissions').upsert({
+        const { error: ledgerErr } = await supabase.from('referral_commissions').upsert({
           referrer_id: payer.referred_by,
           referred_user_id: payer.id,
           stripe_invoice_id: invoiceId,
@@ -156,6 +184,10 @@ export async function POST(req: Request) {
           reversal_of: null,
           paid_at: null,
         }, { onConflict: 'stripe_invoice_id' })
+        if (ledgerErr) {
+          console.error('invoice.paid: failed to upsert referral_commissions for invoice', invoiceId, ledgerErr)
+          return NextResponse.json({ error: 'Failed to record commission' }, { status: 500 })
+        }
         break
       }
 
@@ -164,11 +196,16 @@ export async function POST(req: Request) {
         if (!charge.invoice) break // not an invoice payment -- nothing to claw back
         if ((charge.amount_refunded || 0) < charge.amount) break // partial refund: out of scope for v1
 
-        const { data: original } = await supabase
+        const { data: original, error: lookupErr } = await supabase
           .from('referral_commissions')
           .select('id, referrer_id, referred_user_id, gross_amount, commission_amount, program')
           .eq('stripe_invoice_id', charge.invoice)
           .maybeSingle()
+
+        if (lookupErr) {
+          console.error('charge.refunded: failed to look up referral_commissions for invoice', charge.invoice, lookupErr)
+          return NextResponse.json({ error: 'Failed to look up commission' }, { status: 500 })
+        }
 
         if (!original) break // this invoice was never commissioned
 
@@ -176,7 +213,7 @@ export async function POST(req: Request) {
         // charge.id is stable across webhook redeliveries for the same
         // refund, so upserting on it is idempotent, exactly like the
         // invoice.paid handler above.
-        await supabase.from('referral_commissions').upsert({
+        const { error: reversalErr } = await supabase.from('referral_commissions').upsert({
           referrer_id: original.referrer_id,
           referred_user_id: original.referred_user_id,
           stripe_invoice_id: `refund_${charge.id}`,
@@ -193,6 +230,10 @@ export async function POST(req: Request) {
           reversal_of: original.id,
           paid_at: null,
         }, { onConflict: 'stripe_invoice_id' })
+        if (reversalErr) {
+          console.error('charge.refunded: failed to upsert reversal for charge', charge.id, reversalErr)
+          return NextResponse.json({ error: 'Failed to record reversal' }, { status: 500 })
+        }
         break
       }
     }
