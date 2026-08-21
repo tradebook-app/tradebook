@@ -34,10 +34,16 @@ export async function POST(request: Request) {
   const normalizedEmail = body.email.trim().toLowerCase()
   let target: User | undefined
   for (let page = 1; !target; page++) {
-    const { data: usersPage, error: listErr } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
-    if (listErr) return NextResponse.json({ error: 'Failed to look up user' }, { status: 500 })
-    target = usersPage.users.find((u: User) => (u.email || '').toLowerCase() === normalizedEmail)
-    if (usersPage.users.length < 1000) break // last page
+    const res = await admin.auth.admin.listUsers({ page, perPage: 1000 })
+    if (res.error) return NextResponse.json({ error: 'Failed to look up user' }, { status: 500 })
+    // TS can't narrow the listUsers() discriminated union here because this
+    // project runs with strict/strictNullChecks off (tsconfig.json), which
+    // defeats the null-vs-non-null discriminant on `error` -- confirmed by
+    // reproducing with `tsc --strict false` vs `--strict`. The explicit
+    // (u: User) annotation and the `'nextPage' in res.data` guard below are
+    // working around that instead of fighting the type system further.
+    target = res.data.users.find((u: User) => (u.email || '').toLowerCase() === normalizedEmail)
+    if (!('nextPage' in res.data) || res.data.nextPage === null) break // last page
   }
   if (!target) return NextResponse.json({ error: 'No account with that email' }, { status: 404 })
 
