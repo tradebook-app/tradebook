@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { stripe, planForPriceId } from '@/lib/stripe'
+import { computeCommission, isWithinCommissionWindow } from '@/lib/commission'
 import { adminClient } from '@/lib/referrals'
 
 export const dynamic = 'force-dynamic'
@@ -113,9 +114,7 @@ export async function POST(req: Request) {
         const invoice = event.data.object as any
         const customerId = invoice.customer
         const invoiceId = invoice.id
-        const amountPaid = (invoice.amount_paid || 0) / 100 // cents -> dollars
-
-        if (amountPaid <= 0) break
+        const amountPaidCents = invoice.amount_paid || 0
 
         const { data: payer } = await supabase
           .from('profiles')
@@ -125,13 +124,21 @@ export async function POST(req: Request) {
 
         if (!payer || !payer.referred_by) break // this customer wasn't referred
 
-        // Commission window: 6 months from the referred user's signup
-        const signupDate = new Date(payer.created_at)
-        const sixMonthsLater = new Date(signupDate)
-        sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6)
-        if (new Date() > sixMonthsLater) break // outside the earning window
+        const { data: referrer } = await supabase
+          .from('profiles')
+          .select('is_partner, commission_rate, commission_months')
+          .eq('id', payer.referred_by)
+          .maybeSingle()
 
-        const commissionAmount = parseFloat((amountPaid * 0.20).toFixed(2))
+        if (!referrer) break // referrer account no longer exists
+
+        if (!isWithinCommissionWindow(payer.created_at, referrer.commission_months, new Date().toISOString())) {
+          break // outside this referrer's earning window
+        }
+
+        const amounts = computeCommission(amountPaidCents, referrer.commission_rate)
+        if (!amounts) break // zero/negative payment -- nothing to commission
+
         const availableAt = new Date()
         availableAt.setDate(availableAt.getDate() + 30) // 30-day holding period
 
@@ -141,10 +148,13 @@ export async function POST(req: Request) {
           referrer_id: payer.referred_by,
           referred_user_id: payer.id,
           stripe_invoice_id: invoiceId,
-          gross_amount: amountPaid,
-          commission_amount: commissionAmount,
+          gross_amount: amounts.grossUsd,
+          commission_amount: amounts.commissionUsd,
           status: 'pending',
           available_at: availableAt.toISOString(),
+          program: referrer.is_partner ? 'partner' : 'friend',
+          reversal_of: null,
+          paid_at: null,
         }, { onConflict: 'stripe_invoice_id' })
         break
       }
