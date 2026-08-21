@@ -144,11 +144,16 @@ export async function POST(req: Request) {
         const invoiceId = invoice.id
         const amountPaidCents = invoice.amount_paid || 0
 
-        const { data: payer } = await supabase
+        const { data: payer, error: payerErr } = await supabase
           .from('profiles')
           .select('id, referred_by, created_at')
           .eq('stripe_customer_id', customerId)
           .maybeSingle()
+
+        if (payerErr) {
+          console.error('invoice.paid: failed to look up payer for customer', customerId, payerErr)
+          return NextResponse.json({ error: 'Failed to look up payer' }, { status: 500 })
+        }
 
         if (!payer || !payer.referred_by) break // this customer wasn't referred
 
@@ -159,11 +164,16 @@ export async function POST(req: Request) {
         // commission.
         if (!payer.created_at) break
 
-        const { data: referrer } = await supabase
+        const { data: referrer, error: referrerErr } = await supabase
           .from('profiles')
           .select('is_partner, commission_rate, commission_months')
           .eq('id', payer.referred_by)
           .maybeSingle()
+
+        if (referrerErr) {
+          console.error('invoice.paid: failed to look up referrer', payer.referred_by, referrerErr)
+          return NextResponse.json({ error: 'Failed to look up referrer' }, { status: 500 })
+        }
 
         if (!referrer) break // referrer account no longer exists
 
