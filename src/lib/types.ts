@@ -314,7 +314,10 @@ export type BrokerConnectionInsert = Omit<BrokerConnectionRow, 'id' | 'created_a
 export type ReferralCommissionRow = {
   id: string
   referrer_id: string
-  referred_user_id: string
+  // Nullable: the 002 catch-up migration widens this so the referred_user_id
+  // FK can ON DELETE SET NULL when a referred user deletes their own account,
+  // without erasing the referrer's earned commission history.
+  referred_user_id: string | null
   stripe_invoice_id: string
   gross_amount: number
   commission_amount: number
@@ -325,6 +328,45 @@ export type ReferralCommissionRow = {
 }
 export type ReferralCommissionInsert = Omit<ReferralCommissionRow, 'id' | 'created_at'>
 
+// Full live column set introspected via Supabase MCP (see
+// supabase/migrations/002_profiles_and_referrals_catchup.sql). created_at and
+// updated_at are technically nullable at the DB level (default now(), no NOT
+// NULL constraint) but are typed non-null here for consistency with every
+// other Row type in this file, since no code path in this repo ever inserts
+// them as null. plan/subscription_status/newsletter_opt_in are genuinely
+// nullable live (nullable with a default) and are typed accordingly; every
+// call site already falls back with `|| 'free'` / `!== 'x'` checks.
+export type ProfileRow = {
+  id: string
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  subscription_status: string | null
+  plan: string | null
+  created_at: string
+  updated_at: string
+  first_name: string | null
+  last_name: string | null
+  bio: string | null
+  avatar_url: string | null
+  trader_types: string[] | null
+  referral_code: string | null
+  referred_by: string | null
+  has_seen_intro: boolean
+  newsletter_opt_in: boolean | null
+}
+export type ProfileInsert = Partial<Omit<ProfileRow, 'id'>> & { id: string }
+export type ProfileUpdate = Partial<Omit<ProfileRow, 'id'>>
+
+// Note on `Relationships: []` / empty `Views`/`Functions` below: the
+// installed @supabase/postgrest-js (v2.108, pulled in via @supabase/supabase-js)
+// requires each table to satisfy `GenericTable` (Row/Insert/Update/
+// Relationships) and the schema to include `Views`/`Functions` keys in order
+// for `Database['public'] extends GenericSchema` to hold; without these keys
+// the whole schema fails that check and every `.from(<any table>)` call
+// resolves to `never` regardless of whether the table is listed in `Tables`.
+// This was a pre-existing structural gap (discovered while fixing the
+// `profiles`-shaped `never` errors this task targets) that silently broke
+// type-checking for every table, not just `profiles`/`referral_commissions`.
 export type Database = {
   public: {
     Tables: {
@@ -332,57 +374,80 @@ export type Database = {
         Row: TradeRow
         Insert: TradeInsert & { user_id: string }
         Update: TradeUpdate
+        Relationships: []
       }
       notes: {
         Row: NoteRow
         Insert: NoteInsert & { user_id: string }
         Update: NoteUpdate
+        Relationships: []
       }
       strategies: {
         Row: StrategyRow
         Insert: StrategyInsert & { user_id: string }
         Update: StrategyUpdate
+        Relationships: []
       }
       strategy_rule_groups: {
         Row: StrategyRuleGroupRow
         Insert: Omit<StrategyRuleGroupRow, 'id' | 'created_at'>
         Update: Partial<Omit<StrategyRuleGroupRow, 'id' | 'created_at'>>
+        Relationships: []
       }
       strategy_rules: {
         Row: StrategyRuleRow
         Insert: Omit<StrategyRuleRow, 'id' | 'created_at'>
         Update: Partial<Omit<StrategyRuleRow, 'id' | 'created_at'>>
+        Relationships: []
       }
       support_chat_usage: {
         Row: SupportChatUsageRow
         Insert: SupportChatUsageRow
         Update: Partial<SupportChatUsageRow>
+        Relationships: []
       }
       open_legs: {
         Row: OpenLegRow
         Insert: OpenLegInsert
         Update: Partial<OpenLegInsert>
+        Relationships: []
       }
       broker_connections: {
         Row: BrokerConnectionRow
         Insert: BrokerConnectionInsert
         Update: Partial<BrokerConnectionInsert>
+        Relationships: []
       }
       referral_commissions: {
         Row: ReferralCommissionRow
         Insert: ReferralCommissionInsert
-        Update: Partial<ReferralCommissionInsert>
+        Update: Partial<Omit<ReferralCommissionRow, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      profiles: {
+        Row: ProfileRow
+        Insert: ProfileInsert
+        Update: ProfileUpdate
+        Relationships: []
       }
       prop_firm_accounts: {
         Row: PropFirmAccountRow
         Insert: PropFirmAccountInsert & { user_id: string }
         Update: PropFirmAccountUpdate
+        Relationships: []
       }
       prop_firm_transactions: {
         Row: PropFirmTransactionRow
         Insert: PropFirmTransactionInsert & { user_id: string }
         Update: PropFirmTransactionUpdate
+        Relationships: []
       }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
     }
   }
 }
