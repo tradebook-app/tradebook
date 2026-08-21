@@ -466,9 +466,9 @@ Apply the equivalent change to `src/app/api/referrals/admin/payouts/route.ts`: k
 
 Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt` (Task 2's file). Expected: identical to baseline.
 
-- [ ] **Step 6: Verify mark-paid actually works now (the first real proof, given Step 1's finding)**
+- [ ] **Step 6: Verify the RLS-bypass fix at the SQL level (no login required — decided with the user in place of a live browser click)**
 
-Seed a disposable, real (committed, not rolled back — this must be visible to the separate HTTP request the running dev server makes) test row via `execute_sql`, using any two existing real profile ids:
+`ADMIN_EMAILS` is unset in this environment and no implementer may authenticate as a real user account, so this step proves the fix without a browser session: simulate the OLD session-scoped client's blocked `UPDATE` against the NEW service-role client's successful one, using one disposable, real (committed, not rolled back) test row.
 
 ```sql
 insert into public.referral_commissions
@@ -477,17 +477,34 @@ values
   ('<ANY_REAL_PROFILE_ID>', '<ANY_OTHER_REAL_PROFILE_ID>', 'evt-task3-markpaid-test', 10.00, 2.00, 'pending', now() - interval '31 days');
 ```
 
-Run `npm run dev`, sign in as an `ADMIN_EMAILS` account, visit `/admin/referrals`, confirm the seeded row now appears as payout-ready (past the 30-day hold), click "Mark Paid", and confirm via `execute_sql`:
+Prove the OLD behavior (session-scoped client, RLS enforced, matches this task's Step 1 finding — `referral_commissions` has no UPDATE policy):
 
 ```sql
-select status, paid_at from public.referral_commissions where stripe_invoice_id = 'evt-task3-markpaid-test';
+set local role authenticated;
+set local "request.jwt.claims" = '{"sub":"<ANY_REAL_PROFILE_ID>","role":"authenticated"}';
+update public.referral_commissions set status = 'paid', paid_at = now()
+where stripe_invoice_id = 'evt-task3-markpaid-test';
+-- expected: UPDATE 0 (RLS blocks it -- this is the silent no-op the old mark-paid route hit)
+reset role;
 ```
 
-Expected: `status = 'paid'`, `paid_at` set — this is the first real evidence this endpoint has ever worked end to end. Then clean up:
+Prove the NEW behavior (service-role client, RLS bypassed by design):
+
+```sql
+update public.referral_commissions set status = 'paid', paid_at = now()
+where stripe_invoice_id = 'evt-task3-markpaid-test';
+-- expected: UPDATE 1 (the default execute_sql connection is service-role-equivalent)
+select status, paid_at from public.referral_commissions where stripe_invoice_id = 'evt-task3-markpaid-test';
+-- expected: status = 'paid', paid_at set
+```
+
+Then clean up:
 
 ```sql
 delete from public.referral_commissions where stripe_invoice_id = 'evt-task3-markpaid-test';
 ```
+
+This proves the underlying RLS-bypass fix works. It does not exercise the `/admin/referrals` page or the `ADMIN_EMAILS` HTTP gate — the user will click through that themselves once `ADMIN_EMAILS` is configured, before merging this branch. Note that in your report rather than treating it as fully proven end-to-end.
 
 - [ ] **Step 7: Commit**
 
@@ -1052,9 +1069,15 @@ export async function POST(request: Request) {
 
 Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt`. Expected: identical to baseline.
 
-- [ ] **Step 3: Manual verification**
+- [ ] **Step 3: Verify the auth gate without signing in as anyone**
 
-Run `npm run dev`. Using a REST client (or `curl`) while signed in as a non-admin user, POST to `http://localhost:3000/api/referrals/admin/partners` with `{"email":"someone@example.com","code":"testcode"}` and a session cookie — expect `403`. This route needs a real browser session cookie to test properly; if curl-based testing is impractical without one, defer full verification to Task 10's page (which exercises this endpoint from the browser) and note that in the report.
+Run `npm run dev`. With NO session cookie at all (a plain unauthenticated request — this needs no credentials, since `supabase.auth.getUser()` returns no user and the route should 403 before ever reaching admin logic):
+
+```bash
+curl -i -X POST http://localhost:3000/api/referrals/admin/partners -H "Content-Type: application/json" -d '{"email":"someone@example.com","code":"testcode"}'
+```
+
+Expected: HTTP `403`, `{"error":"Not authorized"}`. This proves the gate exists; it does not exercise the success path (creating a real partner), since that needs a real `ADMIN_EMAILS` account signed in. **Do not attempt to sign in as any account to test the success path.** Note in your report that the success path is unverified pending the user's own click-through (same as Task 3's Step 6), and list the exact manual steps the user should perform: "sign in as an ADMIN_EMAILS account, POST to this endpoint (or wait for Task 10's page) with a real email + a 4-12 char lowercase-alphanumeric-or-hyphen code, confirm the target profile's `is_partner`/`referral_code`/`commission_months` updated."
 
 - [ ] **Step 4: Commit**
 
@@ -1351,11 +1374,23 @@ export default function AdminPartnersPage() {
 
 Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt`. Expected: identical to baseline.
 
-- [ ] **Step 5: Manual verification**
+- [ ] **Step 5: Verify what doesn't need a login, then hand off the rest**
 
-Run `npm run dev`, sign in with an email listed in `ADMIN_EMAILS` (check `.env.local` for the current value — do not print its contents, just confirm you have such an account), navigate to `http://localhost:3000/admin/partners`. Confirm: the page loads with "No partners yet."; submitting the create-partner form with a real user's email and a code like `test-partner-1` succeeds and the partner appears in the list; clicking the partner row expands an (empty) ledger table; submitting a duplicate code for a second user returns "That code is already taken."; signing in as a non-`ADMIN_EMAILS` user and visiting `/admin/partners` shows the page shell but the fetches return "Not authorized" (matches the existing `/admin/referrals` page's error handling — this task does not add page-level route protection beyond what that existing page already has, per the Global Constraints).
+`ADMIN_EMAILS` is unset in this environment and no implementer may sign in as any account (established in Task 3). Do what you can without one:
 
-Clean up the test partner afterward via `execute_sql` (Supabase MCP) against the confirmed `PROJECT_ID`:
+```bash
+npm run dev
+curl -i http://localhost:3000/api/referrals/admin/partners
+```
+
+Expected: `403 {"error":"Not authorized"}` — same unauthenticated-gate check as Task 9's Step 3, now covering the GET handler too. Also load `http://localhost:3000/admin/partners` in a browser with no session — confirm the page shell renders (client component mounts) even though its fetch will fail with "Not authorized" once `useEffect` runs; this proves the page doesn't crash for a signed-out visitor.
+
+Do not attempt to sign in as any account. In your report, write out the exact manual checklist for the user to run themselves once `ADMIN_EMAILS` is configured with an account they control:
+1. Sign in as that account, visit `/admin/partners` — confirm it loads "No partners yet." (or the real partner list, if any already exist).
+2. Submit the create-partner form with a real user's email and a code like `test-partner-1` — confirm it succeeds and the partner appears in the list.
+3. Click the partner row — confirm it expands an (empty) ledger table.
+4. Submit the same code for a second user — confirm "That code is already taken."
+5. Clean up via this SQL (Supabase MCP `execute_sql` against the confirmed `PROJECT_ID`), or ask the agent to run it:
 
 ```sql
 update public.profiles set is_partner = false, referral_code = null, commission_months = 6
@@ -1480,15 +1515,37 @@ stripe events resend <REFUND_EVENT_ID>
 
 Verify: `select count(*) from public.referral_commissions where stripe_invoice_id = 'refund_<CHARGE_ID>';` → still `1`.
 
-- [ ] **Step 11: Verify via the admin dashboard**
+- [ ] **Step 11: Verify the admin rollup at the SQL level (no login required — same constraint as Tasks 3/9/10: `ADMIN_EMAILS` is unset, no implementer signs in as any account)**
 
-Navigate to `http://localhost:3000/admin/partners` (signed in as an `ADMIN_EMAILS` account). Confirm the partner row's net commission reflects Steps 6 and 9 netting to zero, and expanding the row shows both ledger entries (the original and its reversal).
+Re-derive what `/admin/partners`'s GET handler would compute, directly:
 
-- [ ] **Step 12: Verify the referrer's own page shows partner copy**
+```sql
+select
+  sum(commission_amount) as net_commission,
+  count(*) as ledger_rows
+from public.referral_commissions
+where referrer_id = '<PARTNER_PROFILE_ID>';
+```
 
-Sign in as the partner account, navigate to the referrals page, confirm the description reads "first 12 months" (not 6).
+Expected: `net_commission = 0` (Steps 6 and 9's amounts cancel out), `ledger_rows = 2` (the original plus its reversal, assuming Step 10 didn't add a duplicate). This proves the underlying data the dashboard renders is correct; it does not exercise the actual page render.
 
-- [ ] **Step 13: Clean up all test data**
+- [ ] **Step 12: Verify the partner-copy logic at the data level (same constraint)**
+
+```sql
+select commission_months from public.profiles where id = '<PARTNER_PROFILE_ID>';
+```
+
+Expected: `12`. Task 8's already-reviewed code renders this value directly into the referrals page's copy ("first {commissionMonths} months"), so this confirms the data the page would display is correct without needing to view the render.
+
+- [ ] **Step 13 (handoff): write the user's manual checklist**
+
+Since Steps 11-12 can't exercise the real UI without a login, and this is the plan's final verification task, write out a complete checklist in your report for the user to run themselves (or ask the agent to re-verify data state around it) whenever `ADMIN_EMAILS` is configured with an account they control:
+
+1. Sign in as that account, visit `/admin/partners` — confirm the seeded partner's row shows net commission $0.00 and its ledger expands to show both the original and reversal entries.
+2. Sign in as the partner account (whichever real profile Step 3 flagged), visit the referrals page — confirm the description reads "first 12 months."
+3. Both checks can be re-run any time before Step 14's cleanup if the user wants to click through before the test data is removed — flag this timing dependency clearly in your report.
+
+- [ ] **Step 14: Clean up all test data**
 
 ```sql
 delete from public.referral_commissions
@@ -1501,7 +1558,9 @@ where id in ('<PARTNER_PROFILE_ID>', '<REFERRED_PROFILE_ID>');
 
 Also revert the Step 8 throwaway profile's `referred_by`/`stripe_customer_id` and delete its commission row the same way. Confirm afterward: `select count(*) from public.referral_commissions where referrer_id in ('<PARTNER_PROFILE_ID>');` → `0`.
 
-- [ ] **Step 14: Stop the CLI listener and dev server**
+If the user wants to run Step 13's checklist before data is wiped, hold off on this step and tell them so — don't clean up out from under a pending manual check.
+
+- [ ] **Step 15: Stop the CLI listener and dev server**
 
 Stop both background processes from Step 2. If `.env.local`'s `STRIPE_WEBHOOK_SECRET` was temporarily changed in Step 2, revert it to its original value.
 
