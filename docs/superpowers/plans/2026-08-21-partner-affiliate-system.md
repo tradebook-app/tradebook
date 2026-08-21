@@ -790,6 +790,7 @@ Replace the entire `case 'invoice.paid':` block (currently `src/app/api/stripe/w
           available_at: availableAt.toISOString(),
           program: referrer.is_partner ? 'partner' : 'friend',
           reversal_of: null,
+          paid_at: null,
         }, { onConflict: 'stripe_invoice_id' })
         break
       }
@@ -797,7 +798,7 @@ Replace the entire `case 'invoice.paid':` block (currently `src/app/api/stripe/w
 
 - [ ] **Step 3: Typecheck**
 
-Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt`. Expected: identical to the original baseline — the Task 6-introduced error at this file/line (missing `program`/`reversal_of`) is now gone, since the object above supplies both.
+Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt`. Expected: identical to the current baseline (Task 2's file) — the pre-existing error at this file/line (missing `program`/`reversal_of`/`paid_at` on the `referral_commissions` upsert) is now gone, since the object above supplies all three.
 
 - [ ] **Step 4: Commit**
 
@@ -854,6 +855,7 @@ In `src/app/api/stripe/webhook/route.ts`, inside the `switch (event.type) {` blo
           available_at: new Date().toISOString(),
           program: original.program,
           reversal_of: original.id,
+          paid_at: null,
         }, { onConflict: 'stripe_invoice_id' })
         break
       }
@@ -861,7 +863,7 @@ In `src/app/api/stripe/webhook/route.ts`, inside the `switch (event.type) {` blo
 
 - [ ] **Step 2: Typecheck**
 
-Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt`. Expected: identical to baseline (the `stripe.ts` apiVersion error from the "`tsc --noEmit` baseline" section will still appear in this file's error output if TypeScript reports it per-file rather than per-project-error — that's the same pre-existing error, not a new one).
+Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt` (the current one, from Task 2). Expected: identical to that baseline (the `stripe.ts` apiVersion error from the "`tsc --noEmit` baseline" section will still appear in this file's error output if TypeScript reports it per-file rather than per-project-error — that's the same pre-existing error, not a new one).
 
 - [ ] **Step 3: Commit**
 
