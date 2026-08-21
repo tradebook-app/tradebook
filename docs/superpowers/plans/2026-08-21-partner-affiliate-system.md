@@ -985,7 +985,16 @@ Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt`.
 
 - [ ] **Step 4: Manual verification**
 
-Run `npm run dev`, sign in as any existing user with a `profiles` row, navigate to the page that renders `<ReferralsPage />` (check `src/components/layout/Sidebar.tsx` or search for where `ReferralsPage` is imported to find the route), and confirm the description reads "first 6 months" (the default). This cannot be fully verified for a partner account until Task 9's admin endpoint exists to flag one — note that in the report rather than skipping verification entirely.
+No implementer signs in as any account (standing rule established in Task 3 — `ADMIN_EMAILS` is unset and this applies to every account, not just admin ones). Verify what's possible without a session:
+
+```bash
+npm run dev
+curl -i http://localhost:3000/api/referrals/me
+```
+
+Expected: `401 {"error":"Not authenticated"}` — proves the route still gates correctly and didn't regress. Also re-read your own diff once more: confirm `commissionMonths` is read from the CALLER's own profile (`.eq('id', user.id)`, unchanged from before your edit) — this is a self-service page, so there's no cross-user lookup risk here, unlike the admin routes.
+
+In your report, write the manual checklist for the user to run themselves whenever convenient (no urgency — this is a one-line copy change): "sign in as any user, visit the page that renders `<ReferralsPage />` (find the route via `src/components/layout/Sidebar.tsx` or by searching where `ReferralsPage` is imported), confirm the description reads 'first 6 months' for an ordinary account and 'first 12 months' for an account Task 9 has flagged as a partner."
 
 - [ ] **Step 5: Commit**
 
