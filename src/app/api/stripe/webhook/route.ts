@@ -158,6 +158,43 @@ export async function POST(req: Request) {
         }, { onConflict: 'stripe_invoice_id' })
         break
       }
+
+      case 'charge.refunded': {
+        const charge = event.data.object as any
+        if (!charge.invoice) break // not an invoice payment -- nothing to claw back
+        if ((charge.amount_refunded || 0) < charge.amount) break // partial refund: out of scope for v1
+
+        const { data: original } = await supabase
+          .from('referral_commissions')
+          .select('id, referrer_id, referred_user_id, gross_amount, commission_amount, program')
+          .eq('stripe_invoice_id', charge.invoice)
+          .maybeSingle()
+
+        if (!original) break // this invoice was never commissioned
+
+        // stripe_invoice_id is unique, so the reversal needs its own key.
+        // charge.id is stable across webhook redeliveries for the same
+        // refund, so upserting on it is idempotent, exactly like the
+        // invoice.paid handler above.
+        await supabase.from('referral_commissions').upsert({
+          referrer_id: original.referrer_id,
+          referred_user_id: original.referred_user_id,
+          stripe_invoice_id: `refund_${charge.id}`,
+          gross_amount: -Number(original.gross_amount),
+          commission_amount: -Number(original.commission_amount),
+          status: 'pending',
+          // No 30-day hold on a reversal -- it should net against the next
+          // payout run immediately, even if the original commission was
+          // already paid out (that case produces a negative balance for
+          // the admin to resolve manually; cash already wired can't be
+          // un-sent by this system).
+          available_at: new Date().toISOString(),
+          program: original.program,
+          reversal_of: original.id,
+          paid_at: null,
+        }, { onConflict: 'stripe_invoice_id' })
+        break
+      }
     }
   } catch (err: any) {
     console.error('Webhook handler error:', err)
