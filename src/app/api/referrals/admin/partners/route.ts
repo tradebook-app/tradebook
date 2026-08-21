@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { adminClient } from '@/lib/referrals'
 
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
   const { data: usersPage, error: listErr } = await admin.auth.admin.listUsers()
   if (listErr) return NextResponse.json({ error: 'Failed to look up user' }, { status: 500 })
 
-  const target = usersPage.users.find(u => (u.email || '').toLowerCase() === body.email.trim().toLowerCase())
+  const target = usersPage.users.find((u: User) => (u.email || '').toLowerCase() === body.email.trim().toLowerCase())
   if (!target) return NextResponse.json({ error: 'No account with that email' }, { status: 404 })
 
   const { error: updateErr } = await admin

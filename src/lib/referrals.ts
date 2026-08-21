@@ -2,6 +2,7 @@
 // falling back to a random code, and retrying on collision.
 
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/types'
 
 function slugify(input: string): string {
   return input
@@ -60,7 +61,7 @@ export async function ensureReferralCode(supabase: any, userId: string, seed: st
 // has a confirmed session (e.g. immediately after signUp(), or server-side
 // during the OAuth callback before any RLS-scoped client is available).
 export function adminClient() {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
