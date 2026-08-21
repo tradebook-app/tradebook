@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { stripe, planForPriceId } from '@/lib/stripe'
-import { createClient } from '@/lib/supabase/server'
+import { adminClient } from '@/lib/referrals'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +18,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message }, { status: 400 })
   }
 
-  const supabase = createClient()
+  // Service-role: a Stripe webhook carries no Supabase session cookie, so the
+  // old session-scoped client ran as anon here -- which the profiles column
+  // lockdown (migration 004) now correctly blocks for privilege-bearing
+  // columns (subscription_status, plan, Stripe ids). This request is already
+  // trusted via the signature check above; it needs a real elevated client,
+  // not an accidental one via a leftover grant.
+  const supabase = adminClient()
 
   try {
     switch (event.type) {

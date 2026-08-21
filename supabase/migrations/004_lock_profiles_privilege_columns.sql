@@ -33,7 +33,12 @@
 
 drop policy if exists "Service role full access" on public.profiles;
 
-revoke insert, update on public.profiles from anon, authenticated;
+-- DELETE is revoked too: after dropping the rogue policy above, RLS is the
+-- ONLY remaining barrier against a caller wiping a profiles row (no DELETE
+-- policy exists), and no legitimate feature deletes a profiles row from a
+-- client-scoped context (account deletion, if ever added, belongs on a
+-- service-role path, same as everything else this migration locks down).
+revoke insert, update, delete on public.profiles from anon, authenticated;
 
 -- Exactly the columns genuinely written by a signed-in user's own session,
 -- confirmed by an audit of every profiles write in the codebase:

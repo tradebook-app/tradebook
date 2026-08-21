@@ -20,8 +20,11 @@ function randomSuffix(len = 4): string {
 }
 
 // Ensures the given user has a referral_code on their profile row, generating
-// one if missing. Returns the code. `supabase` should be a client with
-// permission to read/write this user's profile row (service-role or session).
+// one if missing. Returns the code. `supabase` MUST be a service-role client
+// (adminClient()): the collision check needs to see every OTHER user's
+// referral_code too, which a session-scoped client's RLS-restricted view
+// (own row only) can never do -- a session client would silently believe
+// every already-taken code is free.
 export async function ensureReferralCode(supabase: any, userId: string, seed: string): Promise<string> {
   const { data: existing } = await supabase
     .from('profiles')
@@ -43,8 +46,17 @@ export async function ensureReferralCode(supabase: any, userId: string, seed: st
       .maybeSingle()
 
     if (!taken) {
-      const { error } = await supabase.from('profiles').upsert({ id: userId, referral_code: code })
+      // update, not upsert -- every profiles row already exists (created by
+      // the handle_new_user() signup trigger), and the profiles column
+      // lockdown (migration 004) only grants UPDATE, not INSERT, to
+      // authenticated sessions.
+      const { error } = await supabase.from('profiles').update({ referral_code: code }).eq('id', userId)
       if (!error) return code
+      // A genuine write failure -- not a taken-code collision, which the
+      // .maybeSingle() check above already handles -- must not be
+      // swallowed: silently returning an unpersisted code hands the user a
+      // referral link that can never be attributed to them.
+      throw new Error(`Failed to persist referral code: ${error.message}`)
     }
     code = `${base}-${randomSuffix()}`
     attempt++
@@ -52,7 +64,8 @@ export async function ensureReferralCode(supabase: any, userId: string, seed: st
 
   // Extremely unlikely fallback: fully random code
   const fallback = randomSuffix(10)
-  await supabase.from('profiles').upsert({ id: userId, referral_code: fallback })
+  const { error } = await supabase.from('profiles').update({ referral_code: fallback }).eq('id', userId)
+  if (error) throw new Error(`Failed to persist fallback referral code: ${error.message}`)
   return fallback
 }
 

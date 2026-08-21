@@ -57,7 +57,10 @@ export async function POST(req: Request) {
       // this value is server-computed (a real Stripe customer was just
       // created), so it writes via the service-role client instead of the
       // caller's own session, matching the webhook's existing pattern.
-      await adminClient().from('profiles').upsert({ id: user.id, stripe_customer_id: customerId })
+      const { error: customerIdErr } = await adminClient()
+        .from('profiles')
+        .upsert({ id: user.id, stripe_customer_id: customerId })
+      if (customerIdErr) console.error('checkout: failed to save stripe_customer_id for user', user.id, customerIdErr)
     }
 
     const session = await stripe.checkout.sessions.create({
