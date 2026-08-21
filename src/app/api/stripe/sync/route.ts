@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { adminClient } from '@/lib/referrals'
 import { stripe, planForPriceId } from '@/lib/stripe'
 
 export async function POST() {
@@ -32,7 +33,13 @@ export async function POST() {
     const priceId = sub.items.data[0]?.price?.id
     const plan = planForPriceId(priceId)
 
-    await supabase.from('profiles').upsert({
+    // Service-role: subscription_status/plan are no longer client-column-
+    // writable (see supabase/migrations/004_lock_profiles_privilege_columns.sql)
+    // -- these values are only trustworthy here because Stripe itself was
+    // just queried above to confirm an active subscription, so the write
+    // goes via the service-role client instead of the caller's own session,
+    // matching the webhook's existing pattern.
+    await adminClient().from('profiles').upsert({
       id: user.id,
       stripe_subscription_id: sub.id,
       subscription_status: 'active',

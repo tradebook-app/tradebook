@@ -59,7 +59,9 @@ export async function ensureReferralCode(supabase: any, userId: string, seed: st
 // Service-role client — needed because attribution can run before the user
 // has a confirmed session (e.g. immediately after signUp(), or server-side
 // during the OAuth callback before any RLS-scoped client is available).
-function adminClient() {
+// Exported so other routes writing privilege-bearing profiles columns
+// (checkout, sync — see migration 004) can reuse it instead of duplicating.
+export function adminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
