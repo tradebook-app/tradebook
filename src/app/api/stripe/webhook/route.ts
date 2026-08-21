@@ -162,7 +162,10 @@ export async function POST(req: Request) {
         // check below on every future payment for this user. Skip this one
         // event rather than silently and permanently losing the referrer's
         // commission.
-        if (!payer.created_at) break
+        if (!payer.created_at) {
+          console.error('invoice.paid: payer has no created_at, skipping commission window check', payer.id)
+          break
+        }
 
         const { data: referrer, error: referrerErr } = await supabase
           .from('profiles')
