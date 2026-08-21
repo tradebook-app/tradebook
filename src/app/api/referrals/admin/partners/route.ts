@@ -28,14 +28,17 @@ export async function POST(request: Request) {
   const admin = adminClient()
 
   // profiles has no email column -- resolve the target user via auth admin.
-  // listUsers() is unpaginated here by default (first page only), which is
-  // fine at the partner-program's expected scale (a handful of partners);
-  // revisit if the user base grows large enough that a partner's account
-  // might be past the first page.
-  const { data: usersPage, error: listErr } = await admin.auth.admin.listUsers()
-  if (listErr) return NextResponse.json({ error: 'Failed to look up user' }, { status: 500 })
-
-  const target = usersPage.users.find((u: User) => (u.email || '').toLowerCase() === body.email.trim().toLowerCase())
+  // listUsers() defaults to the first 50 users only, so page through until
+  // the target is found or the user list is exhausted -- otherwise a
+  // partner's account past page 1 looks like a typo (a false 404).
+  const normalizedEmail = body.email.trim().toLowerCase()
+  let target: User | undefined
+  for (let page = 1; !target; page++) {
+    const { data: usersPage, error: listErr } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
+    if (listErr) return NextResponse.json({ error: 'Failed to look up user' }, { status: 500 })
+    target = usersPage.users.find((u: User) => (u.email || '').toLowerCase() === normalizedEmail)
+    if (usersPage.users.length < 1000) break // last page
+  }
   if (!target) return NextResponse.json({ error: 'No account with that email' }, { status: 404 })
 
   const { error: updateErr } = await admin
