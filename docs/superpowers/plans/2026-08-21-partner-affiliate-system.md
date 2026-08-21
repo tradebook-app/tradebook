@@ -29,17 +29,17 @@
 ## Execution prerequisites
 
 1. Supabase MCP tools available (`list_projects`, `list_tables`, `execute_sql`, `apply_migration`). Confirm the project by name: call `list_projects` and use the entry named **"tradebook"** — do NOT assume an id from a prior session; a previous mistake in this workspace built against the wrong project entirely, so this check is not optional.
-2. `.env.local` already exists in the repo root (gitignored, real values) — Task 9 depends on it for local dev + Stripe CLI. Before running any `stripe trigger` command, the Task 9 implementer must confirm `STRIPE_SECRET_KEY` in `.env.local` starts with `sk_test_` (test mode). If it does not, STOP and escalate — never fire synthetic events at a live Stripe key.
-3. Stripe CLI (`stripe`) must be installed for Task 9 (`stripe --version`); if missing, install it first (`scoop install stripe` or the Windows binary from Stripe's docs) — this is a one-time local dev tool, not a project dependency.
+2. `.env.local` already exists in the repo root (gitignored, real values) — Task 11 depends on it for local dev + Stripe CLI. Before running any `stripe trigger` command, the Task 11 implementer must confirm `STRIPE_SECRET_KEY` in `.env.local` starts with `sk_test_` (test mode). If it does not, STOP and escalate — never fire synthetic events at a live Stripe key.
+3. Stripe CLI (`stripe`) must be installed for Task 11 (`stripe --version`); if missing, install it first (`scoop install stripe` or the Windows binary from Stripe's docs) — this is a one-time local dev tool, not a project dependency.
 
 ## `tsc --noEmit` baseline — read before any task's "Typecheck" step
 
 **This repo already fails `npx tsc --noEmit` with ~50+ pre-existing errors**, unrelated to this project (`Scanner.tsx`, `strategyService.ts`, `tradeService.ts`, `noteService.ts`, `propTrackerService.ts`, `support-chat/route.ts`, and others). Two categories matter specifically to this plan:
 
-- **`src/lib/stripe.ts(4,3): error TS2322: Type '"2024-04-10"' is not assignable to type '"2026-05-27.dahlia"'`** — the installed `stripe` npm package's types expect a newer API-version literal than the code uses. Pre-existing, in a file Tasks 4 and 5 both modify. **Do not fix this** (changing the pinned API version is out of scope and could change webhook payload shapes) — it will still be present after your change, and that is correct, not a regression.
-- **`Property 'first_name' does not exist on type 'never'`** (and similarly for `last_name`, `bio`, `avatar_url`, `trader_types`, `has_seen_intro`) in `src/components/Settings.tsx`, `ProfileMenu.tsx`, `Sidebar.tsx`, `OnboardingTour.tsx`, `AIAnalysis.tsx`, and `src/app/api/subscription/route.ts` — these happen because `profiles` is not currently registered in the `Database` type (`src/lib/supabase/server.ts:8` passes `createServerClient<Database>`, so every `.from('profiles')` call today resolves to `never`). **Task 1 fixes these as a side effect** of registering `profiles` in `Database.Tables` — expect this specific category of error to mostly disappear, not persist.
+- **`src/lib/stripe.ts(4,3): error TS2322: Type '"2024-04-10"' is not assignable to type '"2026-05-27.dahlia"'`** — the installed `stripe` npm package's types expect a newer API-version literal than the code uses. Pre-existing, in a file Tasks 6 and 7 both modify. **Do not fix this** (changing the pinned API version is out of scope and could change webhook payload shapes) — it will still be present after your change, and that is correct, not a regression.
+- **`Property 'first_name' does not exist on type 'never'`** (and similarly for `last_name`, `bio`, `avatar_url`, `trader_types`, `has_seen_intro`) in `src/components/Settings.tsx`, `ProfileMenu.tsx`, `Sidebar.tsx`, `OnboardingTour.tsx`, `AIAnalysis.tsx`, and `src/app/api/subscription/route.ts` — root cause (found during Task 1): `@supabase/ssr@0.5.2`'s type declarations import a subpath (`@supabase/supabase-js/dist/module/lib/types`) that no longer exists in the installed `@supabase/supabase-js@2.108.2`, silently breaking the `Database` generic for **every** `.from(<table>)` call app-wide, masked by `skipLibCheck: true`. Registering `profiles`/`referral_commissions` in `Database.Tables` (Task 1) is necessary but NOT sufficient to fix this — **Task 2 fixes the actual root cause** by upgrading `@supabase/ssr`. Expect these errors to persist through Task 1 and disappear only after Task 2.
 
-Task 1's Step 0 below captures the exact baseline to a file. Every later task's "Typecheck" step means: run `npx tsc --noEmit`, then confirm every line in the new output either (a) also appears in the baseline file, or (b) is one of the `profiles`-shaped `never` errors expected to have been resolved by Task 1 — never "eyeball it and assume it's fine." If a task's typecheck step shows a genuinely new error outside those two cases, stop and report it — don't fix it silently and don't ignore it.
+Task 1's Step 0 below captures the exact baseline to a file. Every later task's "Typecheck" step means: run `npx tsc --noEmit`, then confirm every line in the new output either (a) also appears in the baseline file, or (b) is one of the `profiles`-shaped `never` errors expected to be resolved once Task 2 lands (not Task 1 alone) — never "eyeball it and assume it's fine." If a task's typecheck step shows a genuinely new error outside those two cases, stop and report it — don't fix it silently and don't ignore it.
 
 ---
 
@@ -242,7 +242,7 @@ Then inside the `Database.public.Tables` object (after the `strategies` entry at
 
 - [ ] **Step 8: Typecheck — compare against the Step 0 baseline**
 
-Run: `npx tsc --noEmit > .superpowers/sdd/tsc-after-task1.txt 2>&1` then diff it against `.superpowers/sdd/tsc-baseline.txt` (e.g. `diff .superpowers/sdd/tsc-baseline.txt .superpowers/sdd/tsc-after-task1.txt`). Expected: the `profiles`-shaped `never`-type errors listed in the "`tsc --noEmit` baseline" section above (in `Settings.tsx`, `ProfileMenu.tsx`, `Sidebar.tsx`, `OnboardingTour.tsx`, `AIAnalysis.tsx`, `subscription/route.ts`) should now be GONE from the new output — that's this task's `ProfileRow` type working correctly. No genuinely new error should appear (an error is "new" if it references a line/file not in the baseline and isn't one of the just-fixed `profiles`-`never` errors). If your `ProfileRow` is missing a column some other file references, a NEW `Property 'x' does not exist on type 'ProfileRow'`-style error will appear at that call site — that means your Step 7 column list is incomplete; go back to Step 1's introspection and add the missing column, then re-run this diff.
+Run: `npx tsc --noEmit > .superpowers/sdd/tsc-after-task1.txt 2>&1` then diff it against `.superpowers/sdd/tsc-baseline.txt` (e.g. `diff .superpowers/sdd/tsc-baseline.txt .superpowers/sdd/tsc-after-task1.txt`). **Expected: the diff is empty (zero lines differ).** The `profiles`-shaped `never`-type errors do NOT disappear yet — a separate pre-existing bug (an `@supabase/ssr`/`@supabase/supabase-js` version mismatch breaking the `Database` generic app-wide) prevents that regardless of what this task adds to `Database.Tables`; Task 2 fixes the actual root cause. If you discover this bug independently while investigating an unexpectedly-empty diff, do not attempt to fix it here — it's out of this task's two-file scope; just confirm the diff is empty and move on. If the diff shows anything OTHER than an empty result (any new error, anywhere), that IS a real problem with this task's changes — stop and report it.
 
 - [ ] **Step 9: Commit**
 
@@ -255,7 +255,250 @@ git commit -m "db: catch up profiles/referral_commissions migration; ledger FKs 
 
 ---
 
-### Task 2: Partner columns migration
+> **Tasks 2 and 3 were added after Task 1 uncovered two pre-existing issues beyond this plan's original scope**: (a) an `@supabase/ssr`/`@supabase/supabase-js` version mismatch silently disables real TypeScript checking for every Supabase table call in the app, and (b) the Stripe webhook and the two existing referral-admin routes use a session-scoped client with no applicable RLS policy for their cross-user writes, so `/api/referrals/admin/mark-paid` likely reports success while updating zero rows. Both are fixed here, in this branch, before any partner-specific code is built on top of them — confirmed with the user as the right scope (a related but separate `profiles` RLS policy misconfiguration, found at the same time, is being fixed independently on its own branch and is NOT touched by this plan).
+
+### Task 2: Restore Supabase `Database` type-checking (fix `@supabase/ssr` version mismatch)
+
+Task 1 found that `@supabase/ssr@0.5.2`'s type declarations import a subpath (`@supabase/supabase-js/dist/module/lib/types`) that doesn't exist in the installed `@supabase/supabase-js@2.108.2`, silently breaking the `Database` generic for every `.from(<table>)` call app-wide (masked by `tsconfig.json`'s `skipLibCheck: true`). This means EVERY table — not just `profiles`/`referral_commissions` — has been resolving to `never`-typed rows, and none of this plan's later "compare against baseline" typecheck steps can catch a real Supabase-shape mistake until this is fixed. This task fixes the actual root cause and produces a new, trustworthy baseline for every task after it.
+
+**Files:**
+- Modify: `package.json`, `package-lock.json` (dependency version bump)
+- Possibly modify: `src/lib/supabase/server.ts`, `src/lib/supabase/client.ts`, `src/lib/supabase/middleware.ts` — only if the chosen version's cookie-handling API (`getAll`/`setAll`) actually changed shape (see Step 1).
+
+**Interfaces:**
+- Consumes: `.superpowers/sdd/tsc-baseline.txt` from Task 1 (read-only, for comparison).
+- Produces: a working `Database` generic through `createServerClient<Database>()`/`createBrowserClient<Database>()`; a NEW `.superpowers/sdd/tsc-baseline.txt` (this task overwrites Task 1's file) that Tasks 4 onward diff against instead of the original.
+
+- [ ] **Step 1: Determine the target version and check for breaking changes**
+
+```bash
+npm ls @supabase/ssr @supabase/supabase-js
+npm view @supabase/ssr versions --json
+```
+
+Pick the latest published `@supabase/ssr` version. Before installing, check whether its cookie-handling interface differs from what's currently used in `src/lib/supabase/server.ts` (`cookies: { getAll() {...}, setAll(cookiesToSet) {...} }` — the modern `@supabase/ssr` 0.4+ shape). Check the package's CHANGELOG (via `npm view @supabase/ssr@<version>` metadata, or by reading `node_modules/@supabase/ssr/CHANGELOG.md` after a trial install in a scratch location, or the GitHub releases page) for ANY change to `getAll`/`setAll`'s signature or to how `createServerClient`/`createBrowserClient` are called. If you find such a change, note exactly what's different — you'll need to update `src/lib/supabase/server.ts`, `src/lib/supabase/client.ts`, and `src/lib/supabase/middleware.ts` to match in Step 2. If you cannot find clear changelog information and the diff between the installed version and latest spans multiple major/minor versions with unclear cookie-API stability, escalate as BLOCKED rather than guessing — this touches every user's session cookie handling in production.
+
+- [ ] **Step 2: Install and adapt if needed**
+
+```bash
+npm install @supabase/ssr@<chosen-version>
+```
+
+If Step 1 found a cookie-API change, update the affected file(s) to match the new signature now. If not, no source changes are needed — this is a pure dependency bump.
+
+- [ ] **Step 3: Typecheck and evaluate the diff carefully**
+
+```bash
+npx tsc --noEmit > .superpowers/sdd/tsc-after-ssr-fix.txt 2>&1
+diff .superpowers/sdd/tsc-baseline.txt .superpowers/sdd/tsc-after-ssr-fix.txt
+```
+
+Categorize every line in the diff into exactly one of three buckets:
+1. **Expected resolutions** — the `profiles`-shaped `never` errors in `Settings.tsx`, `ProfileMenu.tsx`, `Sidebar.tsx`, `OnboardingTour.tsx`, `AIAnalysis.tsx`, `subscription/route.ts` should now be GONE. Confirm they are.
+2. **Newly-exposed errors on OTHER tables** — since this bug affected `.from(<any table>)` universally, fixing it may reveal genuinely new type mismatches in code that was previously silently unchecked for `trades`, `notes`, `strategies`, `open_legs`, `broker_connections`, `prop_firm_accounts`, etc. (all of which already have `Row`/`Insert` types defined in `src/lib/types.ts`, but were never actually being checked against them until now). **Do not fix these.** They are a separate, potentially large pre-existing-bug-surface this task did not create and should not silently expand into fixing. List every one found, with file:line, in your report and stop there.
+3. **Anything else** — a genuinely new error unrelated to either of the above (e.g., from the version bump itself, or a cookie-API mismatch you missed in Step 1) — this DOES need fixing or escalating, since it's a regression this task introduced.
+
+- [ ] **Step 4: Verify auth still works (critical — this is the production session/cookie path)**
+
+```bash
+npm run dev
+```
+
+Manually verify: sign up a new throwaway test account, confirm you land in a signed-in state; sign out; sign back in with the same credentials; reload the page while signed in and confirm the session persists (no bounce to `/login`); visit a protected route while signed out and confirm the middleware redirect to `/login` still fires. If ANY of these regress, this is a Critical issue — do not proceed to commit; investigate whether Step 1's changelog check missed something.
+
+- [ ] **Step 5: Save the new baseline**
+
+```bash
+cp .superpowers/sdd/tsc-after-ssr-fix.txt .superpowers/sdd/tsc-baseline.txt
+```
+
+Every later task in this plan diffs against this file, not the one Task 1 created.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add package.json package-lock.json
+git commit -m "deps: upgrade @supabase/ssr to restore Database type-checking"
+```
+
+(Add any Step 2 source files to this commit too, if the cookie API required adaptation. Do not commit `.superpowers/sdd/*.txt`.)
+
+---
+
+### Task 3: Convert the Stripe webhook and referral-admin routes to a service-role Supabase client
+
+Task 1 found that `referral_commissions` has no INSERT/UPDATE/DELETE RLS policy at all, and the Stripe webhook and both existing `/api/referrals/admin/*` routes use the plain session-scoped (cookie-based) client — which has no session at all for the webhook (Stripe's POST carries no Supabase auth cookie) and, for the admin routes, a session that can't satisfy any policy scoped to `auth.uid() = referrer_id`. Under Postgres RLS, this means `/api/referrals/admin/mark-paid`'s `UPDATE` likely matches zero rows silently (no error, no rows changed) while still reporting success. The right fix is architectural, not a permissive policy: none of these three routes are acting on behalf of a browser session anyway (the webhook is server-to-server; the admin routes are already gated by the `ADMIN_EMAILS` allowlist at the application layer) — they should use a service-role client for their data operations, exactly like the pattern `src/lib/referrals.ts`'s existing (currently unexported) `adminClient()` already establishes for `ensureReferralCode`/`attributeReferral`.
+
+**Files:**
+- Modify: `src/lib/referrals.ts:62-67` (export the existing `adminClient()` instead of leaving it file-private)
+- Modify: `src/app/api/stripe/webhook/route.ts` (swap the client construction only)
+- Modify: `src/app/api/referrals/admin/mark-paid/route.ts`
+- Modify: `src/app/api/referrals/admin/payouts/route.ts`
+
+**Interfaces:**
+- Consumes: nothing new from earlier tasks.
+- Produces: `adminClient()` exported from `src/lib/referrals.ts`, consumed by Task 9 (which imports it instead of defining its own local copy) and by this task's own three call sites.
+
+- [ ] **Step 1: Diagnostic — has `referral_commissions` ever actually been written to?**
+
+Via Supabase MCP `execute_sql` against the confirmed `PROJECT_ID` (same "tradebook" project Task 1 confirmed):
+
+```sql
+select count(*) as total_rows, count(*) filter (where status = 'paid') as paid_rows
+from public.referral_commissions;
+```
+
+Record the result in your report either way — this settles whether the friend-referral commission ledger has ever recorded anything in production, independent of whether this task's fix later gets exercised.
+
+- [ ] **Step 2: Export the existing `adminClient()` helper**
+
+In `src/lib/referrals.ts`, change:
+
+```ts
+function adminClient() {
+```
+
+to:
+
+```ts
+export function adminClient() {
+```
+
+No other change to that function.
+
+- [ ] **Step 3: Convert the webhook to the service-role client**
+
+In `src/app/api/stripe/webhook/route.ts`, this repo's webhook currently does:
+
+```ts
+import { stripe, planForPriceId } from '@/lib/stripe'
+import { createClient } from '@/lib/supabase/server'
+```
+...
+```ts
+  const supabase = createClient()
+```
+
+Replace the import and the client construction (keep the local variable name `supabase` — every `.from(...)` call site in this file stays untouched):
+
+```ts
+import { stripe, planForPriceId } from '@/lib/stripe'
+import { adminClient } from '@/lib/referrals'
+```
+...
+```ts
+  // Service-role: a Stripe webhook has no browser session/cookie at all, and
+  // needs to write profiles/referral_commissions rows for users other than
+  // any caller. Session-scoped RLS was never the right model here.
+  const supabase = adminClient()
+```
+
+Do not touch anything else in this file — no case in the event switch needs to change, since they all already refer to `supabase.from(...)`.
+
+- [ ] **Step 4: Convert the two admin routes — keep the auth check, add a service-role client for data**
+
+In `src/app/api/referrals/admin/mark-paid/route.ts`, currently:
+
+```ts
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+```
+...
+```ts
+export async function POST(request: Request) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !ADMIN_EMAILS.includes((user.email || '').toLowerCase())) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+  }
+
+  const { commissionIds } = await request.json()
+  if (!Array.isArray(commissionIds) || commissionIds.length === 0) {
+    return NextResponse.json({ error: 'commissionIds array is required' }, { status: 400 })
+  }
+
+  const { error } = await supabase
+    .from('referral_commissions')
+    .update({ status: 'paid', paid_at: new Date().toISOString() })
+    .in('id', commissionIds)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true, marked: commissionIds.length })
+}
+```
+
+Change to (add the import, keep `supabase` for the auth check only, add `admin` for the data write, and check `data`'s row count so a genuine zero-match no longer silently reports success):
+
+```ts
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { adminClient } from '@/lib/referrals'
+```
+...
+```ts
+export async function POST(request: Request) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !ADMIN_EMAILS.includes((user.email || '').toLowerCase())) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+  }
+
+  const { commissionIds } = await request.json()
+  if (!Array.isArray(commissionIds) || commissionIds.length === 0) {
+    return NextResponse.json({ error: 'commissionIds array is required' }, { status: 400 })
+  }
+
+  const admin = adminClient()
+  const { data, error } = await admin
+    .from('referral_commissions')
+    .update({ status: 'paid', paid_at: new Date().toISOString() })
+    .in('id', commissionIds)
+    .select('id')
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true, marked: data?.length ?? 0 })
+}
+```
+
+Apply the equivalent change to `src/app/api/referrals/admin/payouts/route.ts`: keep its `const supabase = createClient()` + `auth.getUser()` check as-is for the `ADMIN_EMAILS` gate, add `import { adminClient } from '@/lib/referrals'`, add `const admin = adminClient()` after the auth check, and change its two read queries (`.from('referral_commissions')...` and `.from('profiles')...`) from `supabase.` to `admin.`.
+
+- [ ] **Step 5: Typecheck**
+
+Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt` (Task 2's file). Expected: identical to baseline.
+
+- [ ] **Step 6: Verify mark-paid actually works now (the first real proof, given Step 1's finding)**
+
+Seed a disposable, real (committed, not rolled back — this must be visible to the separate HTTP request the running dev server makes) test row via `execute_sql`, using any two existing real profile ids:
+
+```sql
+insert into public.referral_commissions
+  (referrer_id, referred_user_id, stripe_invoice_id, gross_amount, commission_amount, status, available_at)
+values
+  ('<ANY_REAL_PROFILE_ID>', '<ANY_OTHER_REAL_PROFILE_ID>', 'evt-task3-markpaid-test', 10.00, 2.00, 'pending', now() - interval '31 days');
+```
+
+Run `npm run dev`, sign in as an `ADMIN_EMAILS` account, visit `/admin/referrals`, confirm the seeded row now appears as payout-ready (past the 30-day hold), click "Mark Paid", and confirm via `execute_sql`:
+
+```sql
+select status, paid_at from public.referral_commissions where stripe_invoice_id = 'evt-task3-markpaid-test';
+```
+
+Expected: `status = 'paid'`, `paid_at` set — this is the first real evidence this endpoint has ever worked end to end. Then clean up:
+
+```sql
+delete from public.referral_commissions where stripe_invoice_id = 'evt-task3-markpaid-test';
+```
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/lib/referrals.ts src/app/api/stripe/webhook/route.ts src/app/api/referrals/admin/mark-paid/route.ts src/app/api/referrals/admin/payouts/route.ts
+git commit -m "admin: use a service-role client for webhook + referral-admin writes (mark-paid was silently no-op-ing)"
+```
+
+---
+
+### Task 4: Partner columns migration
 
 **Files:**
 - Create: `supabase/migrations/003_add_partner_columns.sql`
@@ -334,7 +577,7 @@ Update `ReferralCommissionRow` (existing, at line ~314) to add:
 
 - [ ] **Step 5: Typecheck**
 
-Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt` (same method as Task 1 Step 8, comparing against the ORIGINAL baseline file — Task 2 doesn't create its own). Expected new error: `src/app/api/stripe/webhook/route.ts:137-145`'s existing `invoice.paid` upsert call no longer supplies `program`/`reversal_of`, which `ReferralCommissionInsert = Omit<ReferralCommissionRow, 'id' | 'created_at'>` now requires (both new fields are non-optional on insert). This ONE new error at that exact call site is expected — Task 4 fixes it by rewriting that block. If any OTHER new error appears, report it, don't fix it here.
+Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt` (same method as Task 1 Step 8, comparing against the ORIGINAL baseline file — Task 4 doesn't create its own). Expected new error: `src/app/api/stripe/webhook/route.ts:137-145`'s existing `invoice.paid` upsert call no longer supplies `program`/`reversal_of`, which `ReferralCommissionInsert = Omit<ReferralCommissionRow, 'id' | 'created_at'>` now requires (both new fields are non-optional on insert). This ONE new error at that exact call site is expected — Task 6 fixes it by rewriting that block. If any OTHER new error appears, report it, don't fix it here.
 
 - [ ] **Step 6: Commit**
 
@@ -345,9 +588,9 @@ git commit -m "db: add partner columns (is_partner, commission_rate, commission_
 
 ---
 
-### Task 3: Pure commission module + Vitest setup
+### Task 5: Pure commission module + Vitest setup
 
-This repo has no test framework. This task adds Vitest (minimal config, no DOM needed — pure TS module tests only) and the commission math module both the webhook (Task 4/5) and nothing else will depend on.
+This repo has no test framework. This task adds Vitest (minimal config, no DOM needed — pure TS module tests only) and the commission math module both the webhook (Task 8/7) and nothing else will depend on.
 
 **Files:**
 - Create: `src/lib/commission.ts`
@@ -357,7 +600,7 @@ This repo has no test framework. This task adds Vitest (minimal config, no DOM n
 
 **Interfaces:**
 - Consumes: nothing (pure, dependency-free module).
-- Produces (from `src/lib/commission.ts`, imported by Task 4/5's webhook changes):
+- Produces (from `src/lib/commission.ts`, imported by Task 8/7's webhook changes):
   - `isWithinCommissionWindow(signupIso: string, months: number, nowIso: string): boolean`
   - `computeCommission(amountPaidCents: number, rate: number): { grossUsd: number; commissionUsd: number } | null`
 
@@ -481,14 +724,14 @@ git commit -m "test: add Vitest and pure commission math module"
 
 ---
 
-### Task 4: Webhook — partner-aware `invoice.paid`
+### Task 6: Webhook — partner-aware `invoice.paid`
 
 **Files:**
 - Modify: `src/app/api/stripe/webhook/route.ts:109-147` (the `invoice.paid` case)
 
 **Interfaces:**
-- Consumes: `isWithinCommissionWindow`, `computeCommission` from `./commission` (Task 3); `profiles.is_partner`/`commission_rate`/`commission_months`, `referral_commissions.program` (Task 2).
-- Produces: no new exports — this is the webhook's behavior, consumed only by Stripe's real delivery and Task 9's verification.
+- Consumes: `isWithinCommissionWindow`, `computeCommission` from `./commission` (Task 5); `profiles.is_partner`/`commission_rate`/`commission_months`, `referral_commissions.program` (Task 4); the `supabase` variable in this file is now a service-role client via `adminClient()` (Task 3) — this task must run after Task 3.
+- Produces: no new exports — this is the webhook's behavior, consumed only by Stripe's real delivery and Task 11's verification.
 
 - [ ] **Step 1: Add the import**
 
@@ -554,7 +797,7 @@ Replace the entire `case 'invoice.paid':` block (currently `src/app/api/stripe/w
 
 - [ ] **Step 3: Typecheck**
 
-Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt`. Expected: identical to the original baseline — the Task 2-introduced error at this file/line (missing `program`/`reversal_of`) is now gone, since the object above supplies both.
+Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt`. Expected: identical to the original baseline — the Task 6-introduced error at this file/line (missing `program`/`reversal_of`) is now gone, since the object above supplies both.
 
 - [ ] **Step 4: Commit**
 
@@ -565,13 +808,13 @@ git commit -m "webhook: invoice.paid reads per-referrer rate/window instead of h
 
 ---
 
-### Task 5: Webhook — `charge.refunded` clawback
+### Task 7: Webhook — `charge.refunded` clawback
 
 **Files:**
 - Modify: `src/app/api/stripe/webhook/route.ts` (add a new `case` to the event switch)
 
 **Interfaces:**
-- Consumes: `referral_commissions.program`/`reversal_of` (Task 2).
+- Consumes: `referral_commissions.program`/`reversal_of` (Task 4); the `supabase` variable in this file is a service-role client via `adminClient()` (Task 3) — this task must run after Task 3.
 - Produces: no new exports.
 
 - [ ] **Step 1: Add the new case**
@@ -629,7 +872,7 @@ git commit -m "webhook: charge.refunded reverses commission via a negative ledge
 
 ---
 
-### Task 6: Partner-aware `/api/referrals/me` and `ReferralsPage` copy
+### Task 8: Partner-aware `/api/referrals/me` and `ReferralsPage` copy
 
 `ReferralsPage.tsx:48` hardcodes "first 6 months" — once partners exist, a partner viewing this same shared page would see the wrong number.
 
@@ -638,7 +881,7 @@ git commit -m "webhook: charge.refunded reverses commission via a negative ledge
 - Modify: `src/components/ReferralsPage.tsx:6-11,44-49`
 
 **Interfaces:**
-- Consumes: `profiles.commission_months` (Task 2).
+- Consumes: `profiles.commission_months` (Task 4).
 - Produces: `GET /api/referrals/me` response gains a top-level `commissionMonths: number` field, consumed by `ReferralsPage.tsx`.
 
 - [ ] **Step 1: Extend the API response**
@@ -723,7 +966,7 @@ Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt`.
 
 - [ ] **Step 4: Manual verification**
 
-Run `npm run dev`, sign in as any existing user with a `profiles` row, navigate to the page that renders `<ReferralsPage />` (check `src/components/layout/Sidebar.tsx` or search for where `ReferralsPage` is imported to find the route), and confirm the description reads "first 6 months" (the default). This cannot be fully verified for a partner account until Task 7's admin endpoint exists to flag one — note that in the report rather than skipping verification entirely.
+Run `npm run dev`, sign in as any existing user with a `profiles` row, navigate to the page that renders `<ReferralsPage />` (check `src/components/layout/Sidebar.tsx` or search for where `ReferralsPage` is imported to find the route), and confirm the description reads "first 6 months" (the default). This cannot be fully verified for a partner account until Task 9's admin endpoint exists to flag one — note that in the report rather than skipping verification entirely.
 
 - [ ] **Step 5: Commit**
 
@@ -734,14 +977,14 @@ git commit -m "referrals: show the viewer's actual commission window instead of 
 
 ---
 
-### Task 7: Admin partner-management endpoint
+### Task 9: Admin partner-management endpoint
 
 **Files:**
-- Create: `src/app/api/referrals/admin/partners/route.ts` (POST handler in this task; Task 8 adds a GET handler to the same file)
+- Create: `src/app/api/referrals/admin/partners/route.ts` (POST handler in this task; Task 10 adds a GET handler to the same file)
 
 **Interfaces:**
-- Consumes: `ADMIN_EMAILS` pattern (Global Constraints); service-role client pattern from `src/lib/referrals.ts:62-67`.
-- Produces: `POST /api/referrals/admin/partners` — request body `{ email: string; code: string }`, consumed by Task 8's admin page.
+- Consumes: `ADMIN_EMAILS` pattern (Global Constraints); the shared, now-exported `adminClient()` service-role helper from `src/lib/referrals.ts` (Task 3 exports it — this task must run after Task 3).
+- Produces: `POST /api/referrals/admin/partners` — request body `{ email: string; code: string }`, consumed by Task 10's admin page.
 
 - [ ] **Step 1: Write the endpoint**
 
@@ -749,23 +992,13 @@ git commit -m "referrals: show the viewer's actual commission window instead of 
 
 ```ts
 import { NextResponse } from 'next/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import { adminClient } from '@/lib/referrals'
 
 export const dynamic = 'force-dynamic'
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 const VANITY_CODE_RE = /^[a-z0-9-]{3,20}$/
-
-// Service-role client: this endpoint writes to an ARBITRARY user's profiles
-// row (not the caller's own), same pattern as adminClient() in
-// src/lib/referrals.ts. Independent of whatever RLS state Task 1 found.
-function adminClient() {
-  return createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
 
 export async function POST(request: Request) {
   const supabase = createClient()
@@ -819,7 +1052,7 @@ Run: `npx tsc --noEmit` and compare against `.superpowers/sdd/tsc-baseline.txt`.
 
 - [ ] **Step 3: Manual verification**
 
-Run `npm run dev`. Using a REST client (or `curl`) while signed in as a non-admin user, POST to `http://localhost:3000/api/referrals/admin/partners` with `{"email":"someone@example.com","code":"testcode"}` and a session cookie — expect `403`. This route needs a real browser session cookie to test properly; if curl-based testing is impractical without one, defer full verification to Task 8's page (which exercises this endpoint from the browser) and note that in the report.
+Run `npm run dev`. Using a REST client (or `curl`) while signed in as a non-admin user, POST to `http://localhost:3000/api/referrals/admin/partners` with `{"email":"someone@example.com","code":"testcode"}` and a session cookie — expect `403`. This route needs a real browser session cookie to test properly; if curl-based testing is impractical without one, defer full verification to Task 10's page (which exercises this endpoint from the browser) and note that in the report.
 
 - [ ] **Step 4: Commit**
 
@@ -830,15 +1063,15 @@ git commit -m "admin: add partner assignment endpoint (vanity code + 12-month wi
 
 ---
 
-### Task 8: Admin partners dashboard
+### Task 10: Admin partners dashboard
 
 **Files:**
-- Modify: `src/app/api/referrals/admin/partners/route.ts` (add a GET handler alongside Task 7's POST)
+- Modify: `src/app/api/referrals/admin/partners/route.ts` (add a GET handler alongside Task 9's POST)
 - Create: `src/app/api/referrals/admin/partners/[id]/route.ts`
 - Create: `src/app/admin/partners/page.tsx`
 
 **Interfaces:**
-- Consumes: `POST /api/referrals/admin/partners` (Task 7).
+- Consumes: `POST /api/referrals/admin/partners` (Task 9).
 - Produces: `GET /api/referrals/admin/partners` (rollup list), `GET /api/referrals/admin/partners/[id]` (single partner + full ledger) — used only by this task's page.
 
 - [ ] **Step 1: Add the GET handler for the partner rollup list**
@@ -1136,11 +1369,11 @@ git commit -m "admin: add partners dashboard (rollup list, per-partner ledger, c
 
 ---
 
-### Task 9: End-to-end verification with Stripe CLI
+### Task 11: End-to-end verification with Stripe CLI
 
 **Files:** none created — this task seeds data and drives real Stripe test-mode events against the local dev server.
 
-**Interfaces:** consumes everything from Tasks 1-8; produces the proof the full flow works together.
+**Interfaces:** consumes everything from Tasks 1-10; produces the proof the full flow works together.
 
 - [ ] **Step 1: Safety check**
 
