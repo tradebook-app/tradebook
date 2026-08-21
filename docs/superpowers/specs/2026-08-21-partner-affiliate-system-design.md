@@ -169,9 +169,21 @@ New case in the webhook's event switch:
   already wired can't be un-sent by this system). `created_at` reflects
   the refund event's own timestamp, not the original invoice's.
 
+## Referrer-facing correctness
+
+### Task 6 — partner-aware `/api/referrals/me` and `ReferralsPage`
+
+`ReferralsPage.tsx:48` hardcodes "Earn 20% of what your referrals pay for
+their first 6 months" — once partners exist, a partner viewing their own
+referrals page would see the wrong window. `GET /api/referrals/me`
+additionally returns `commissionMonths` (read from the caller's own
+`profiles.commission_months`); `ReferralsPage.tsx` renders that value in
+place of the hardcoded "6" so both programs show correct copy on the same
+shared page. No new page — this is a same-file, minimal-diff fix.
+
 ## Vanity codes and admin surface
 
-### Task 6 — admin partner-management endpoint
+### Task 7 — admin partner-management endpoint
 
 `POST /api/referrals/admin/partners` (same `ADMIN_EMAILS` gate as the
 existing admin routes): body `{ email, code }` — looks up the user by email
@@ -181,7 +193,7 @@ sets `is_partner = true`, `referral_code = code`, `commission_months = 12`
 Returns a friendly error on a duplicate code (unique-constraint violation
 from Task 1) or unknown email.
 
-### Task 7 — admin partners dashboard (`/admin/partners`)
+### Task 8 — admin partners dashboard (`/admin/partners`)
 
 New page alongside (not replacing) `/admin/referrals`:
 
@@ -202,7 +214,7 @@ Reuses the existing per-route `ADMIN_EMAILS` check pattern from
 
 ## Testing
 
-### Task 8 — end-to-end verification with Stripe CLI
+### Task 9 — end-to-end verification with Stripe CLI
 
 Using `stripe trigger` against a local dev server (real signature
 verification, not synthetic HTTP):
