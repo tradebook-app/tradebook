@@ -152,6 +152,13 @@ export async function POST(req: Request) {
 
         if (!payer || !payer.referred_by) break // this customer wasn't referred
 
+        // created_at is nullable in the schema; new Date(null) evaluates to
+        // the Unix epoch, which would permanently fail the "within window"
+        // check below on every future payment for this user. Skip this one
+        // event rather than silently and permanently losing the referrer's
+        // commission.
+        if (!payer.created_at) break
+
         const { data: referrer } = await supabase
           .from('profiles')
           .select('is_partner, commission_rate, commission_months')
