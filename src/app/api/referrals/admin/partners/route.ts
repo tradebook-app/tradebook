@@ -51,3 +51,72 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, userId: target.id, code: normalizedCode })
 }
+
+// Partner rollup list. Uses adminClient() (service-role) for the data reads,
+// matching the pattern in ./payouts and ./mark-paid: profiles' "Service role
+// full access" policy is unconditional (see migration 002) so a plain session
+// client happens to work there, but referral_commissions has only one policy
+// ("Users can view their own referral commissions", USING auth.uid() =
+// referrer_id) with no admin bypass -- a plain session client would silently
+// return zero rows for every partner other than the signed-in admin
+// themselves, exactly the payouts/mark-paid pitfall documented in migration
+// 002. The auth check itself still uses the plain session client, since it
+// only needs the caller's own identity.
+export async function GET() {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !ADMIN_EMAILS.includes((user.email || '').toLowerCase())) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+  }
+
+  const admin = adminClient()
+
+  const { data: partners } = await admin
+    .from('profiles')
+    .select('id, first_name, referral_code, commission_rate, commission_months')
+    .eq('is_partner', true)
+
+  const partnerIds = (partners || []).map(p => p.id)
+  const emptyIdList = ['00000000-0000-0000-0000-000000000000']
+
+  const { data: commissions } = await admin
+    .from('referral_commissions')
+    .select('referrer_id, gross_amount, commission_amount, status, available_at')
+    .in('referrer_id', partnerIds.length ? partnerIds : emptyIdList)
+
+  const { data: referredCounts } = await admin
+    .from('profiles')
+    .select('referred_by')
+    .in('referred_by', partnerIds.length ? partnerIds : emptyIdList)
+
+  const now = Date.now()
+  const rows = commissions || []
+
+  const result = (partners || []).map(p => {
+    const own = rows.filter(r => r.referrer_id === p.id)
+    const grossTotal = own.reduce((s, r) => s + Number(r.gross_amount), 0)
+    const commissionTotal = own.reduce((s, r) => s + Number(r.commission_amount), 0)
+    const owed = own
+      .filter(r => r.status === 'pending' && new Date(r.available_at).getTime() <= now)
+      .reduce((s, r) => s + Number(r.commission_amount), 0)
+    const paid = own
+      .filter(r => r.status === 'paid')
+      .reduce((s, r) => s + Number(r.commission_amount), 0)
+    const signups = (referredCounts || []).filter(r => r.referred_by === p.id).length
+
+    return {
+      id: p.id,
+      name: p.first_name || 'Unknown',
+      code: p.referral_code,
+      rate: p.commission_rate,
+      months: p.commission_months,
+      signups,
+      grossTotal,
+      commissionTotal,
+      owed,
+      paid,
+    }
+  })
+
+  return NextResponse.json({ partners: result })
+}
