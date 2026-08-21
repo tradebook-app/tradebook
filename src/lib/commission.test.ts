@@ -1,0 +1,35 @@
+import { describe, expect, it } from 'vitest'
+import { computeCommission, isWithinCommissionWindow } from './commission'
+
+describe('isWithinCommissionWindow', () => {
+  it('is true on the exact boundary (N months later, same day)', () => {
+    expect(isWithinCommissionWindow('2026-01-15T00:00:00.000Z', 6, '2026-07-15T00:00:00.000Z')).toBe(true)
+  })
+  it('is true well within the window', () => {
+    expect(isWithinCommissionWindow('2026-01-15T00:00:00.000Z', 6, '2026-03-01T00:00:00.000Z')).toBe(true)
+  })
+  it('is false one day past the boundary', () => {
+    expect(isWithinCommissionWindow('2026-01-15T00:00:00.000Z', 6, '2026-07-16T00:00:00.000Z')).toBe(false)
+  })
+  it('handles a 12-month partner window', () => {
+    expect(isWithinCommissionWindow('2026-01-15T00:00:00.000Z', 12, '2027-01-15T00:00:00.000Z')).toBe(true)
+    expect(isWithinCommissionWindow('2026-01-15T00:00:00.000Z', 12, '2027-01-16T00:00:00.000Z')).toBe(false)
+  })
+})
+
+describe('computeCommission', () => {
+  it('computes 20% of the gross amount, rounded to cents', () => {
+    expect(computeCommission(2900, 0.20)).toEqual({ grossUsd: 29, commissionUsd: 5.8 })
+  })
+  it('computes a non-20% rate correctly', () => {
+    expect(computeCommission(999, 0.15)).toEqual({ grossUsd: 9.99, commissionUsd: 1.5 })
+  })
+  it('rounds to the nearest cent rather than truncating', () => {
+    // 33.33 cents of gross at 20% = 6.666 -> rounds to 6.67, not 6.66
+    expect(computeCommission(3333, 0.20)).toEqual({ grossUsd: 33.33, commissionUsd: 6.67 })
+  })
+  it('returns null for zero or negative amounts', () => {
+    expect(computeCommission(0, 0.20)).toBeNull()
+    expect(computeCommission(-500, 0.20)).toBeNull()
+  })
+})
