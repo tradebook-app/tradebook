@@ -75,7 +75,9 @@ export function PartnerEarningsChart({ commissions }: Props) {
   return (
     <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '16px', marginBottom: '20px' }}>
       <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '10px' }}>Earnings over time</div>
-      <canvas ref={ref} style={{ width: '100%', height: '160px' }} />
+      <div style={{ position: 'relative', height: '160px' }}>
+        <canvas ref={ref} />
+      </div>
     </div>
   )
 }

@@ -85,7 +85,9 @@ export function PartnerTrendChart({ monthlyTrend }: Props) {
     <div style={{ background: '#15151a', border: '1px solid #222', borderRadius: '10px', padding: '16px', flex: 1, minWidth: '280px' }}>
       <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>Commission earnings over time</div>
       <div style={{ fontSize: '10px', color: '#666', marginBottom: '10px' }}>Includes partners since removed</div>
-      <canvas ref={ref} style={{ width: '100%', height: '200px' }} />
+      <div style={{ position: 'relative', height: '200px' }}>
+        <canvas ref={ref} />
+      </div>
     </div>
   )
 }
