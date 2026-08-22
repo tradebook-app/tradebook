@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { adminClient } from '@/lib/referrals'
+import { bucketMonthlyCommissions } from '@/lib/commission'
 
 export const dynamic = 'force-dynamic'
 
@@ -116,6 +117,16 @@ export async function GET() {
     .select('referred_by')
     .in('referred_by', partnerIds.length ? partnerIds : emptyIdList)
 
+  // Independent of partnerIds/is_partner: this trend reflects the ledger's
+  // own program tag at write time, so a partner later reverted to friend
+  // status still contributes their historical months here.
+  const { data: partnerLedger } = await admin
+    .from('referral_commissions')
+    .select('created_at, commission_amount')
+    .eq('program', 'partner')
+
+  const monthlyTrend = bucketMonthlyCommissions(partnerLedger || [])
+
   const now = Date.now()
   const rows = commissions || []
 
@@ -147,5 +158,5 @@ export async function GET() {
     }
   })
 
-  return NextResponse.json({ partners: result })
+  return NextResponse.json({ partners: result, monthlyTrend })
 }
