@@ -16,9 +16,7 @@ export async function GET(request: Request) {
     .maybeSingle()
 
   const seed = profile?.first_name || user.email?.split('@')[0] || 'user'
-  // Service-role: ensureReferralCode's collision check needs to see every
-  // user's referral_code, not just the caller's own row (see its doc comment).
-  const code = profile?.referral_code || await ensureReferralCode(adminClient(), user.id, seed)
+  const code = profile?.referral_code || await ensureReferralCode(user.id, seed)
 
   const origin = new URL(request.url).origin
   const link = `${origin}/signup?ref=${code}`

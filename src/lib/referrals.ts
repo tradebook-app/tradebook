@@ -20,12 +20,14 @@ function randomSuffix(len = 4): string {
 }
 
 // Ensures the given user has a referral_code on their profile row, generating
-// one if missing. Returns the code. `supabase` MUST be a service-role client
-// (adminClient()): the collision check needs to see every OTHER user's
+// one if missing. Returns the code. Always uses a service-role client
+// internally: the collision check needs to see every OTHER user's
 // referral_code too, which a session-scoped client's RLS-restricted view
 // (own row only) can never do -- a session client would silently believe
 // every already-taken code is free.
-export async function ensureReferralCode(supabase: any, userId: string, seed: string): Promise<string> {
+export async function ensureReferralCode(userId: string, seed: string): Promise<string> {
+  const supabase = adminClient()
+
   const { data: existing } = await supabase
     .from('profiles')
     .select('referral_code')
@@ -49,14 +51,32 @@ export async function ensureReferralCode(supabase: any, userId: string, seed: st
       // update, not upsert -- every profiles row already exists (created by
       // the handle_new_user() signup trigger), and the profiles column
       // lockdown (migration 004) only grants UPDATE, not INSERT, to
-      // authenticated sessions.
-      const { error } = await supabase.from('profiles').update({ referral_code: code }).eq('id', userId)
-      if (!error) return code
-      // A genuine write failure -- not a taken-code collision, which the
-      // .maybeSingle() check above already handles -- must not be
-      // swallowed: silently returning an unpersisted code hands the user a
-      // referral link that can never be attributed to them.
-      throw new Error(`Failed to persist referral code: ${error.message}`)
+      // authenticated sessions. .select('id') lets us tell "wrote" apart
+      // from "matched nothing" -- a bare update() reports no error either way.
+      const { data: updated, error } = await supabase
+        .from('profiles')
+        .update({ referral_code: code })
+        .eq('id', userId)
+        .select('id')
+
+      if (error) {
+        // The .maybeSingle() check above isn't atomic, so a genuine
+        // collision on the unique constraint is possible under a race --
+        // retry with a new suffix instead of failing the whole request.
+        if (error.code === '23505') {
+          code = `${base}-${randomSuffix()}`
+          attempt++
+          continue
+        }
+        throw new Error(`Failed to persist referral code: ${error.message}`)
+      }
+      // Zero rows matched means no profiles row exists for this user at all
+      // (e.g. an auth.users row predating the handle_new_user() trigger) --
+      // returning `code` here would hand out a link that was never saved.
+      if (!updated || updated.length === 0) {
+        throw new Error(`No profiles row found for user ${userId} -- cannot persist referral code`)
+      }
+      return code
     }
     code = `${base}-${randomSuffix()}`
     attempt++
@@ -64,8 +84,15 @@ export async function ensureReferralCode(supabase: any, userId: string, seed: st
 
   // Extremely unlikely fallback: fully random code
   const fallback = randomSuffix(10)
-  const { error } = await supabase.from('profiles').update({ referral_code: fallback }).eq('id', userId)
+  const { data: updated, error } = await supabase
+    .from('profiles')
+    .update({ referral_code: fallback })
+    .eq('id', userId)
+    .select('id')
   if (error) throw new Error(`Failed to persist fallback referral code: ${error.message}`)
+  if (!updated || updated.length === 0) {
+    throw new Error(`No profiles row found for user ${userId} -- cannot persist fallback referral code`)
+  }
   return fallback
 }
 
