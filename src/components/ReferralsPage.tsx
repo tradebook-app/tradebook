@@ -6,6 +6,8 @@ export function ReferralsPage() {
   const [data, setData] = useState<{
     code: string
     link: string
+    commissionMonths: number
+    commissionRate: number
     stats: { referredCount: number; pendingAmount: number; availableAmount: number; paidAmount: number }
     commissions: any[]
   } | null>(null)
@@ -45,7 +47,7 @@ export function ReferralsPage() {
     <div style={{ maxWidth: '760px' }}>
       <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>Refer & Earn</div>
       <div style={{ fontSize: '13px', color: 'var(--txt3)', marginBottom: '24px' }}>
-        Earn 20% of what your referrals pay for their first 6 months. New users get nothing extra yet — ask us about a signup discount if you want one added.
+        Earn {Math.round(data.commissionRate * 100)}% of what your referrals pay for their first {data.commissionMonths} months. New users get nothing extra yet — ask us about a signup discount if you want one added.
       </div>
 
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px', marginBottom: '20px' }}>
@@ -81,9 +83,13 @@ export function ReferralsPage() {
                   const isAvailable = c.status === 'pending' && new Date(c.available_at).getTime() <= Date.now()
                   const label = c.status === 'paid' ? 'Paid' : isAvailable ? 'Available' : 'Pending'
                   const color = c.status === 'paid' ? 'var(--txt3)' : isAvailable ? 'var(--ac2)' : 'var(--orange)'
+                  const isReversal = !!c.reversal_of
                   return (
                     <tr key={c.id} style={{ borderBottom: '1px solid var(--brd)' }}>
-                      <td style={{ padding: '10px 14px', fontFamily: 'var(--mono)' }}>{new Date(c.created_at).toLocaleDateString()}</td>
+                      <td style={{ padding: '10px 14px', fontFamily: 'var(--mono)' }}>
+                        {new Date(c.created_at).toLocaleDateString()}
+                        {isReversal && <span style={{ marginLeft: '6px', fontSize: '10px', color: 'var(--red)' }}>(refund)</span>}
+                      </td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: 'var(--mono)' }}>${Number(c.gross_amount).toFixed(2)}</td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontFamily: 'var(--mono)' }}>${Number(c.commission_amount).toFixed(2)}</td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', color }}>{label}</td>

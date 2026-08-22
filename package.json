@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
@@ -14,7 +15,7 @@
     "@sanity/client": "^7.23.0",
     "@sanity/image-url": "^2.1.1",
     "@stripe/stripe-js": "^9.8.0",
-    "@supabase/ssr": "^0.5.2",
+    "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
     "chart.js": "^4.4.0",
     "clsx": "^2.1.1",
@@ -37,6 +38,7 @@
     "eslint-config-next": "14.2.5",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }

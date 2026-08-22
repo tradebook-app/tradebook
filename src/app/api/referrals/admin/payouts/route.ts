@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { adminClient } from '@/lib/referrals'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
   }
 
-  const { data: commissions } = await supabase
+  const admin = adminClient()
+  const { data: commissions } = await admin
     .from('referral_commissions')
     .select('*')
     .eq('status', 'pending')
@@ -24,7 +26,7 @@ export async function GET() {
   const availableRows = (commissions || []).filter(r => new Date(r.available_at).getTime() <= now)
 
   const referrerIds = [...new Set(availableRows.map(r => r.referrer_id))]
-  const { data: profiles } = await supabase
+  const { data: profiles } = await admin
     .from('profiles')
     .select('id, first_name, referral_code')
     .in('id', referrerIds.length > 0 ? referrerIds : ['00000000-0000-0000-0000-000000000000'])

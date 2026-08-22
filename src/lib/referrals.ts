@@ -2,6 +2,7 @@
 // falling back to a random code, and retrying on collision.
 
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/types'
 
 function slugify(input: string): string {
   return input
@@ -20,9 +21,14 @@ function randomSuffix(len = 4): string {
 }
 
 // Ensures the given user has a referral_code on their profile row, generating
-// one if missing. Returns the code. `supabase` should be a client with
-// permission to read/write this user's profile row (service-role or session).
-export async function ensureReferralCode(supabase: any, userId: string, seed: string): Promise<string> {
+// one if missing. Returns the code. Always uses a service-role client
+// internally: the collision check needs to see every OTHER user's
+// referral_code too, which a session-scoped client's RLS-restricted view
+// (own row only) can never do -- a session client would silently believe
+// every already-taken code is free.
+export async function ensureReferralCode(userId: string, seed: string): Promise<string> {
+  const supabase = adminClient()
+
   const { data: existing } = await supabase
     .from('profiles')
     .select('referral_code')
@@ -43,8 +49,35 @@ export async function ensureReferralCode(supabase: any, userId: string, seed: st
       .maybeSingle()
 
     if (!taken) {
-      const { error } = await supabase.from('profiles').upsert({ id: userId, referral_code: code })
-      if (!error) return code
+      // update, not upsert -- every profiles row already exists (created by
+      // the handle_new_user() signup trigger), and the profiles column
+      // lockdown (migration 004) only grants UPDATE, not INSERT, to
+      // authenticated sessions. .select('id') lets us tell "wrote" apart
+      // from "matched nothing" -- a bare update() reports no error either way.
+      const { data: updated, error } = await supabase
+        .from('profiles')
+        .update({ referral_code: code })
+        .eq('id', userId)
+        .select('id')
+
+      if (error) {
+        // The .maybeSingle() check above isn't atomic, so a genuine
+        // collision on the unique constraint is possible under a race --
+        // retry with a new suffix instead of failing the whole request.
+        if (error.code === '23505') {
+          code = `${base}-${randomSuffix()}`
+          attempt++
+          continue
+        }
+        throw new Error(`Failed to persist referral code: ${error.message}`)
+      }
+      // Zero rows matched means no profiles row exists for this user at all
+      // (e.g. an auth.users row predating the handle_new_user() trigger) --
+      // returning `code` here would hand out a link that was never saved.
+      if (!updated || updated.length === 0) {
+        throw new Error(`No profiles row found for user ${userId} -- cannot persist referral code`)
+      }
+      return code
     }
     code = `${base}-${randomSuffix()}`
     attempt++
@@ -52,15 +85,25 @@ export async function ensureReferralCode(supabase: any, userId: string, seed: st
 
   // Extremely unlikely fallback: fully random code
   const fallback = randomSuffix(10)
-  await supabase.from('profiles').upsert({ id: userId, referral_code: fallback })
+  const { data: updated, error } = await supabase
+    .from('profiles')
+    .update({ referral_code: fallback })
+    .eq('id', userId)
+    .select('id')
+  if (error) throw new Error(`Failed to persist fallback referral code: ${error.message}`)
+  if (!updated || updated.length === 0) {
+    throw new Error(`No profiles row found for user ${userId} -- cannot persist fallback referral code`)
+  }
   return fallback
 }
 
 // Service-role client — needed because attribution can run before the user
 // has a confirmed session (e.g. immediately after signUp(), or server-side
 // during the OAuth callback before any RLS-scoped client is available).
-function adminClient() {
-  return createClient(
+// Exported so other routes writing privilege-bearing profiles columns
+// (checkout, sync — see migration 004) can reuse it instead of duplicating.
+export function adminClient() {
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )

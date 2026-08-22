@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { ensureReferralCode } from '@/lib/referrals'
+import { adminClient, ensureReferralCode } from '@/lib/referrals'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,12 +11,12 @@ export async function GET(request: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('first_name, referral_code')
+    .select('first_name, referral_code, commission_months, commission_rate')
     .eq('id', user.id)
     .maybeSingle()
 
   const seed = profile?.first_name || user.email?.split('@')[0] || 'user'
-  const code = profile?.referral_code || await ensureReferralCode(supabase, user.id, seed)
+  const code = profile?.referral_code || await ensureReferralCode(user.id, seed)
 
   const origin = new URL(request.url).origin
   const link = `${origin}/signup?ref=${code}`
@@ -42,7 +42,10 @@ export async function GET(request: Request) {
     .filter(r => r.status === 'paid')
     .reduce((s, r) => s + Number(r.commission_amount), 0)
 
-  const { count: referredCount } = await supabase
+  // Service-role: counting rows where referred_by = the caller means reading
+  // OTHER users' profiles, which the caller's own session (RLS: own row
+  // only) can never see -- this would otherwise always report zero.
+  const { count: referredCount } = await adminClient()
     .from('profiles')
     .select('id', { count: 'exact', head: true })
     .eq('referred_by', user.id)
@@ -50,6 +53,8 @@ export async function GET(request: Request) {
   return NextResponse.json({
     code,
     link,
+    commissionMonths: profile?.commission_months ?? 6,
+    commissionRate: profile?.commission_rate ?? 0.20,
     stats: {
       referredCount: referredCount || 0,
       pendingAmount,
