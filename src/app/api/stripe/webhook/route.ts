@@ -217,17 +217,71 @@ export async function POST(req: Request) {
 
       case 'charge.refunded': {
         const charge = event.data.object as any
-        if (!charge.invoice) break // not an invoice payment -- nothing to claw back
         if ((charge.amount_refunded || 0) < charge.amount) break // partial refund: out of scope for v1
+
+        // On older API versions the Charge object carried a top-level
+        // `invoice` field directly. On this account's current API version
+        // (confirmed live via a real test-mode refund: 2026-05-27.dahlia)
+        // that field no longer exists at all -- the Charge object only
+        // carries `payment_intent`, and the invoice id has to be recovered
+        // one hop away by retrieving the PaymentIntent and reading
+        // `payment_details.order_reference`. Try the direct field first for
+        // compatibility with any older-pinned webhook endpoint, then fall
+        // back to the PaymentIntent hop -- also checking its own `invoice`
+        // field, in case the version this request actually goes out on
+        // (src/lib/stripe.ts's pinned apiVersion, independent of the
+        // account's webhook-payload version above) still carries it.
+        //
+        // NOTE: order_reference is a merchant-settable field on PaymentIntent
+        // ("a unique value assigned by the business to identify the
+        // transaction" per Stripe's own docs) -- Stripe Invoicing happens to
+        // auto-populate it with the invoice id, which is what this depends
+        // on. Nothing else in this codebase sets it today; if that ever
+        // changes, this linkage would need revisiting.
+        let invoiceId: string | null = typeof charge.invoice === 'string' ? charge.invoice : null
+        if (!invoiceId && charge.payment_intent) {
+          try {
+            const paymentIntentId =
+              typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent.id
+            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+            // invoice first: Stripe's own authoritative linkage when present.
+            // order_reference is a merchant-settable field Stripe Invoicing
+            // happens to auto-populate with the same id -- only relevant as
+            // a fallback for API versions where `invoice` is gone entirely.
+            invoiceId = (paymentIntent as any).invoice || paymentIntent.payment_details?.order_reference || null
+          } catch (piErr: any) {
+            console.error('charge.refunded: failed to retrieve payment intent', charge.payment_intent, piErr)
+            // Transient Stripe-side failures (rate limit, connection reset,
+            // a 5xx) must not be treated the same as "this genuinely isn't
+            // an invoice payment" -- this handler is the ONLY writer of
+            // reversal rows and there is no reconciliation job behind it,
+            // so silently 200-ing here would permanently forfeit the
+            // clawback instead of letting Stripe's retry try again. 429 is
+            // included explicitly: it's the canonical transient failure and
+            // escapes both the SDK's internal retry (which doesn't cover
+            // rate limits) and a bare statusCode >= 500 check.
+            if (
+              piErr?.type === 'StripeConnectionError' ||
+              piErr?.type === 'StripeAPIError' ||
+              piErr?.type === 'StripeRateLimitError' ||
+              piErr?.statusCode >= 500 ||
+              piErr?.statusCode === 429
+            ) {
+              return NextResponse.json({ error: 'Failed to resolve invoice for refund' }, { status: 500 })
+            }
+          }
+        }
+
+        if (!invoiceId) break // not an invoice payment (or unresolvable) -- nothing to claw back
 
         const { data: original, error: lookupErr } = await supabase
           .from('referral_commissions')
           .select('id, referrer_id, referred_user_id, gross_amount, commission_amount, program')
-          .eq('stripe_invoice_id', charge.invoice)
+          .eq('stripe_invoice_id', invoiceId)
           .maybeSingle()
 
         if (lookupErr) {
-          console.error('charge.refunded: failed to look up referral_commissions for invoice', charge.invoice, lookupErr)
+          console.error('charge.refunded: failed to look up referral_commissions for invoice', invoiceId, lookupErr)
           return NextResponse.json({ error: 'Failed to look up commission' }, { status: 500 })
         }
 
