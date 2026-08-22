@@ -124,9 +124,10 @@ export default function AdminPartnersPage() {
         commission_window_end: `${editEnd}T23:59:59.999Z`,
       }),
     })
-    const json = await res.json()
     setEditSaving(false)
     if (!res.ok) {
+      let json: { error?: string } = {}
+      try { json = await res.json() } catch { /* non-JSON error response */ }
       setEditError(json.error || 'Failed to save changes')
       return
     }
@@ -147,7 +148,8 @@ export default function AdminPartnersPage() {
     })
     setEditSaving(false)
     if (!res.ok) {
-      const json = await res.json()
+      let json: { error?: string } = {}
+      try { json = await res.json() } catch { /* non-JSON error response */ }
       setEditError(json.error || 'Failed to remove partner')
       return
     }
@@ -210,7 +212,7 @@ export default function AdminPartnersPage() {
                     <div style={{ fontSize: '11px', color: '#888' }}>
                       {p.signups} signups &middot; {(p.rate * 100).toFixed(0)}%
                       {p.windowStart && p.windowEnd
-                        ? ` from ${new Date(p.windowStart).toLocaleDateString()} to ${new Date(p.windowEnd).toLocaleDateString()}`
+                        ? ` from ${new Date(p.windowStart).toLocaleDateString('en-US', { timeZone: 'UTC' })} to ${new Date(p.windowEnd).toLocaleDateString('en-US', { timeZone: 'UTC' })}`
                         : ' (no window set)'}
                     </div>
                   </div>
@@ -240,6 +242,7 @@ export default function AdminPartnersPage() {
                           type="number"
                           min={1}
                           max={100}
+                          step={1}
                           value={editRate}
                           onChange={e => setEditRate(e.target.value)}
                           style={{ display: 'block', width: '80px', marginTop: '4px', padding: '6px 8px', borderRadius: '6px', border: '1px solid #333', background: '#1a1a1f', color: '#fff' }}

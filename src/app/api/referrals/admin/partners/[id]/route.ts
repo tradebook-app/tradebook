@@ -36,7 +36,14 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     .eq('referrer_id', params.id)
     .order('created_at', { ascending: false })
 
-  return NextResponse.json({ partner, ledger: ledger || [] })
+  return NextResponse.json({
+    partner: {
+      ...partner,
+      windowStart: partner.commission_window_start,
+      windowEnd: partner.commission_window_end,
+    },
+    ledger: ledger || [],
+  })
 }
 
 // Edits a partner's rate/window, or reverts them to normal/friend status.
