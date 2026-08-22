@@ -15,6 +15,22 @@ export function isWithinCommissionWindow(signupIso: string, months: number, nowI
   return new Date(nowIso).getTime() <= cutoff.getTime()
 }
 
+// True when `nowIso` falls on or between `windowStart` and `windowEnd`
+// (inclusive both ends). Used for the partner track's absolute
+// commission-eligibility date range, set by an admin -- unlike
+// isWithinCommissionWindow, this is NOT relative to any referred user's
+// signup date. Either bound missing means no window has been configured,
+// which is treated as "not eligible", never "always eligible".
+export function isWithinAbsoluteWindow(
+  windowStartIso: string | null,
+  windowEndIso: string | null,
+  nowIso: string,
+): boolean {
+  if (!windowStartIso || !windowEndIso) return false
+  const now = new Date(nowIso).getTime()
+  return now >= new Date(windowStartIso).getTime() && now <= new Date(windowEndIso).getTime()
+}
+
 // `amountPaidCents` is Stripe's integer cents (e.g. invoice.amount_paid).
 // Returns null for zero/negative amounts -- there is nothing to commission.
 export function computeCommission(

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { stripe, planForPriceId } from '@/lib/stripe'
-import { computeCommission, isWithinCommissionWindow } from '@/lib/commission'
+import { computeCommission, isWithinAbsoluteWindow, isWithinCommissionWindow } from '@/lib/commission'
 import { adminClient } from '@/lib/referrals'
 
 export const dynamic = 'force-dynamic'
@@ -173,7 +173,7 @@ export async function POST(req: Request) {
 
         const { data: referrer, error: referrerErr } = await supabase
           .from('profiles')
-          .select('is_partner, commission_rate, commission_months')
+          .select('is_partner, commission_rate, commission_months, commission_window_start, commission_window_end')
           .eq('id', payer.referred_by)
           .maybeSingle()
 
@@ -184,9 +184,14 @@ export async function POST(req: Request) {
 
         if (!referrer) break // referrer account no longer exists
 
-        if (!isWithinCommissionWindow(payer.created_at, referrer.commission_months, new Date().toISOString())) {
-          break // outside this referrer's earning window
-        }
+        const nowIso = new Date().toISOString()
+        // Partners use an absolute admin-set date range; friends keep the
+        // existing relative-to-signup-date window, unchanged.
+        const eligible = referrer.is_partner
+          ? isWithinAbsoluteWindow(referrer.commission_window_start, referrer.commission_window_end, nowIso)
+          : isWithinCommissionWindow(payer.created_at, referrer.commission_months, nowIso)
+
+        if (!eligible) break // outside this referrer's earning window
 
         const amounts = computeCommission(amountPaidCents, referrer.commission_rate)
         if (!amounts) break // zero/negative payment -- nothing to commission

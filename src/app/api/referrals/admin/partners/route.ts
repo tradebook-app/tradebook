@@ -47,9 +47,22 @@ export async function POST(request: Request) {
   }
   if (!target) return NextResponse.json({ error: 'No account with that email' }, { status: 404 })
 
+  // Normalized to day boundaries (UTC) so a freshly created partner's window
+  // already matches the convention the edit form uses (see toDateInputValue /
+  // saveEdit in admin/partners/page.tsx) -- otherwise the first edit would
+  // silently shift both boundaries from the creation instant to midnight/EOD.
+  const now = new Date()
+  const windowStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0))
+  const windowEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 12, now.getUTCDate(), 23, 59, 59, 999)) // same UTC-month arithmetic as isWithinCommissionWindow
+
   const { error: updateErr } = await admin
     .from('profiles')
-    .update({ is_partner: true, referral_code: normalizedCode, commission_months: 12 })
+    .update({
+      is_partner: true,
+      referral_code: normalizedCode,
+      commission_window_start: windowStart.toISOString(),
+      commission_window_end: windowEnd.toISOString(),
+    })
     .eq('id', target.id)
 
   if (updateErr) {
@@ -81,10 +94,14 @@ export async function GET() {
 
   const admin = adminClient()
 
-  const { data: partners } = await admin
+  const { data: partners, error: partnersErr } = await admin
     .from('profiles')
-    .select('id, first_name, referral_code, commission_rate, commission_months')
+    .select('id, first_name, referral_code, commission_rate, commission_months, commission_window_start, commission_window_end')
     .eq('is_partner', true)
+
+  if (partnersErr) {
+    console.error('GET /api/referrals/admin/partners: failed to look up partners', partnersErr)
+  }
 
   const partnerIds = (partners || []).map(p => p.id)
   const emptyIdList = ['00000000-0000-0000-0000-000000000000']
@@ -120,6 +137,8 @@ export async function GET() {
       code: p.referral_code,
       rate: p.commission_rate,
       months: p.commission_months,
+      windowStart: p.commission_window_start,
+      windowEnd: p.commission_window_end,
       signups,
       grossTotal,
       commissionTotal,

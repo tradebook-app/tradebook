@@ -8,6 +8,8 @@ export function ReferralsPage() {
     link: string
     commissionMonths: number
     commissionRate: number
+    isPartner: boolean
+    commissionWindowEnd: string | null
     stats: { referredCount: number; pendingAmount: number; availableAmount: number; paidAmount: number }
     commissions: any[]
   } | null>(null)
@@ -47,7 +49,9 @@ export function ReferralsPage() {
     <div style={{ maxWidth: '760px' }}>
       <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>Refer & Earn</div>
       <div style={{ fontSize: '13px', color: 'var(--txt3)', marginBottom: '24px' }}>
-        Earn {Math.round(data.commissionRate * 100)}% of what your referrals pay for their first {data.commissionMonths} months. New users get nothing extra yet — ask us about a signup discount if you want one added.
+        {data.isPartner && data.commissionWindowEnd
+          ? <>Earn {Math.round(data.commissionRate * 100)}% of what your referrals pay through {new Date(data.commissionWindowEnd).toLocaleDateString(undefined, { timeZone: 'UTC' })}. New users get nothing extra yet — ask us about a signup discount if you want one added.</>
+          : <>Earn {Math.round(data.commissionRate * 100)}% of what your referrals pay for their first {data.commissionMonths} months. New users get nothing extra yet — ask us about a signup discount if you want one added.</>}
       </div>
 
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px', marginBottom: '20px' }}>

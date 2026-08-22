@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeCommission, isWithinCommissionWindow } from './commission'
+import { computeCommission, isWithinAbsoluteWindow, isWithinCommissionWindow } from './commission'
 
 describe('isWithinCommissionWindow', () => {
   it('is true on the exact boundary (N months later, same day)', () => {
@@ -31,5 +31,28 @@ describe('computeCommission', () => {
   it('returns null for zero or negative amounts', () => {
     expect(computeCommission(0, 0.20)).toBeNull()
     expect(computeCommission(-500, 0.20)).toBeNull()
+  })
+})
+
+describe('isWithinAbsoluteWindow', () => {
+  it('is true when now falls inside the window', () => {
+    expect(isWithinAbsoluteWindow('2026-01-01T00:00:00.000Z', '2026-12-31T00:00:00.000Z', '2026-06-15T00:00:00.000Z')).toBe(true)
+  })
+  it('is true on the exact start boundary (inclusive)', () => {
+    expect(isWithinAbsoluteWindow('2026-01-01T00:00:00.000Z', '2026-12-31T00:00:00.000Z', '2026-01-01T00:00:00.000Z')).toBe(true)
+  })
+  it('is true on the exact end boundary (inclusive)', () => {
+    expect(isWithinAbsoluteWindow('2026-01-01T00:00:00.000Z', '2026-12-31T00:00:00.000Z', '2026-12-31T00:00:00.000Z')).toBe(true)
+  })
+  it('is false before the window starts', () => {
+    expect(isWithinAbsoluteWindow('2026-01-01T00:00:00.000Z', '2026-12-31T00:00:00.000Z', '2025-12-31T23:59:59.999Z')).toBe(false)
+  })
+  it('is false after the window ends', () => {
+    expect(isWithinAbsoluteWindow('2026-01-01T00:00:00.000Z', '2026-12-31T00:00:00.000Z', '2027-01-01T00:00:00.000Z')).toBe(false)
+  })
+  it('is false when either or both bounds are null', () => {
+    expect(isWithinAbsoluteWindow(null, '2026-12-31T00:00:00.000Z', '2026-06-15T00:00:00.000Z')).toBe(false)
+    expect(isWithinAbsoluteWindow('2026-01-01T00:00:00.000Z', null, '2026-06-15T00:00:00.000Z')).toBe(false)
+    expect(isWithinAbsoluteWindow(null, null, '2026-06-15T00:00:00.000Z')).toBe(false)
   })
 })

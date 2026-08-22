@@ -358,6 +358,8 @@ export type ProfileRow = {
   is_partner: boolean
   commission_rate: number
   commission_months: number
+  commission_window_start: string | null
+  commission_window_end: string | null
 }
 export type ProfileInsert = Partial<Omit<ProfileRow, 'id'>> & { id: string }
 export type ProfileUpdate = Partial<Omit<ProfileRow, 'id'>>
