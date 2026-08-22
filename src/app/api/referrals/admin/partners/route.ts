@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { adminClient } from '@/lib/referrals'
+import { bucketMonthlyCommissions } from '@/lib/commission'
 
 export const dynamic = 'force-dynamic'
 
@@ -116,6 +117,33 @@ export async function GET() {
     .select('referred_by')
     .in('referred_by', partnerIds.length ? partnerIds : emptyIdList)
 
+  // Independent of partnerIds/is_partner: this trend reflects the ledger's
+  // own program tag at write time, so a partner later reverted to friend
+  // status still contributes their historical months here.
+  //
+  // Paged rather than a single unbounded select: PostgREST caps any single
+  // response at its configured max-rows setting (1000 by default) and
+  // truncates silently past that -- with no .order(), a truncated result
+  // would be an arbitrary subset of rows, making the monthly sums silently
+  // wrong rather than just short a few months. 500 is comfortably under the
+  // default cap; if a lower cap is ever configured, this still terminates
+  // correctly, just in more round trips.
+  const PAGE_SIZE = 500
+  let partnerLedger: { created_at: string; commission_amount: number }[] = []
+  for (let page = 0; ; page++) {
+    const { data: batch } = await admin
+      .from('referral_commissions')
+      .select('created_at, commission_amount')
+      .eq('program', 'partner')
+      .order('created_at', { ascending: true })
+      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
+    if (!batch || batch.length === 0) break
+    partnerLedger = partnerLedger.concat(batch)
+    if (batch.length < PAGE_SIZE) break
+  }
+
+  const monthlyTrend = bucketMonthlyCommissions(partnerLedger)
+
   const now = Date.now()
   const rows = commissions || []
 
@@ -147,5 +175,5 @@ export async function GET() {
     }
   })
 
-  return NextResponse.json({ partners: result })
+  return NextResponse.json({ partners: result, monthlyTrend })
 }

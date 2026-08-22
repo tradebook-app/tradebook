@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { PartnerEarningsChart } from '@/components/PartnerEarningsChart'
 
 export function ReferralsPage() {
   const [data, setData] = useState<{
@@ -68,6 +69,8 @@ export function ReferralsPage() {
         {statCard('Available for payout', `$${data.stats.availableAmount.toFixed(2)}`, 'var(--ac2)')}
         {statCard('Total paid out', `$${data.stats.paidAmount.toFixed(2)}`)}
       </div>
+
+      <PartnerEarningsChart commissions={data.commissions} />
 
       {data.commissions.length > 0 && (
         <div>
