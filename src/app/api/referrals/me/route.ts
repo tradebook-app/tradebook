@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('first_name, referral_code, commission_months')
+    .select('first_name, referral_code, commission_months, commission_rate')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -54,6 +54,7 @@ export async function GET(request: Request) {
     code,
     link,
     commissionMonths: profile?.commission_months ?? 6,
+    commissionRate: profile?.commission_rate ?? 0.20,
     stats: {
       referredCount: referredCount || 0,
       pendingAmount,

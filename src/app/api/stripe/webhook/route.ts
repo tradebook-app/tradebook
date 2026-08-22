@@ -114,16 +114,17 @@ export async function POST(req: Request) {
         const invoice = event.data.object as any
         const customerId = invoice.customer
 
+        // maybeSingle(), not single(): "no matching customer" is an expected,
+        // non-error outcome here (error: null, data: null) -- single() would
+        // report that same case as a PGRST116 error indistinguishable from a
+        // genuine lookup failure.
         const { data: profile, error: lookupErr } = await supabase
           .from('profiles')
           .select('id')
           .eq('stripe_customer_id', customerId)
-          .single()
+          .maybeSingle()
 
-        // .single() reports "no rows" (PGRST116) as an error even though it's
-        // an expected outcome (customer not linked to a profile) -- only
-        // treat other codes as a genuine failure worth retrying.
-        if (lookupErr && lookupErr.code !== 'PGRST116') {
+        if (lookupErr) {
           console.error('invoice.payment_failed: failed to look up profile for customer', customerId, lookupErr)
           return NextResponse.json({ error: 'Failed to look up profile' }, { status: 500 })
         }
