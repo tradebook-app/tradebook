@@ -225,19 +225,37 @@ export async function POST(req: Request) {
         // that field no longer exists at all -- the Charge object only
         // carries `payment_intent`, and the invoice id has to be recovered
         // one hop away by retrieving the PaymentIntent and reading
-        // `payment_details.order_reference` (the PaymentIntent's own
-        // `invoice` field is gone too on this API version). Try the direct
-        // field first for compatibility with any older-pinned webhook
-        // endpoint, then fall back to the PaymentIntent hop.
-        let invoiceId: string | null = charge.invoice || null
+        // `payment_details.order_reference`. Try the direct field first for
+        // compatibility with any older-pinned webhook endpoint, then fall
+        // back to the PaymentIntent hop -- also checking its own `invoice`
+        // field, in case the version this request actually goes out on
+        // (src/lib/stripe.ts's pinned apiVersion, independent of the
+        // account's webhook-payload version above) still carries it.
+        //
+        // NOTE: order_reference is a merchant-settable field on PaymentIntent
+        // ("a unique value assigned by the business to identify the
+        // transaction" per Stripe's own docs) -- Stripe Invoicing happens to
+        // auto-populate it with the invoice id, which is what this depends
+        // on. Nothing else in this codebase sets it today; if that ever
+        // changes, this linkage would need revisiting.
+        let invoiceId: string | null = typeof charge.invoice === 'string' ? charge.invoice : null
         if (!invoiceId && charge.payment_intent) {
           try {
             const paymentIntentId =
               typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent.id
-            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
-            invoiceId = paymentIntent.payment_details?.order_reference || null
-          } catch (piErr) {
+            const paymentIntent: any = await stripe.paymentIntents.retrieve(paymentIntentId)
+            invoiceId = paymentIntent.payment_details?.order_reference || paymentIntent.invoice || null
+          } catch (piErr: any) {
             console.error('charge.refunded: failed to retrieve payment intent', charge.payment_intent, piErr)
+            // Transient Stripe-side failures (rate limit, connection reset,
+            // a 5xx) must not be treated the same as "this genuinely isn't
+            // an invoice payment" -- this handler is the ONLY writer of
+            // reversal rows and there is no reconciliation job behind it,
+            // so silently 200-ing here would permanently forfeit the
+            // clawback instead of letting Stripe's retry try again.
+            if (piErr?.type === 'StripeConnectionError' || piErr?.type === 'StripeAPIError' || piErr?.statusCode >= 500) {
+              return NextResponse.json({ error: 'Failed to resolve invoice for refund' }, { status: 500 })
+            }
           }
         }
 
