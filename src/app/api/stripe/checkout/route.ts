@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { adminClient } from '@/lib/referrals'
 import { stripe } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
@@ -51,7 +52,15 @@ export async function POST(req: Request) {
         metadata: { supabase_user_id: user.id },
       })
       customerId = customer.id
-      await supabase.from('profiles').upsert({ id: user.id, stripe_customer_id: customerId })
+      // Service-role: stripe_customer_id is no longer client-column-writable
+      // (see supabase/migrations/004_lock_profiles_privilege_columns.sql) --
+      // this value is server-computed (a real Stripe customer was just
+      // created), so it writes via the service-role client instead of the
+      // caller's own session, matching the webhook's existing pattern.
+      const { error: customerIdErr } = await adminClient()
+        .from('profiles')
+        .upsert({ id: user.id, stripe_customer_id: customerId })
+      if (customerIdErr) console.error('checkout: failed to save stripe_customer_id for user', user.id, customerIdErr)
     }
 
     const session = await stripe.checkout.sessions.create({

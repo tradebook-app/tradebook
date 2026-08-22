@@ -21,7 +21,10 @@ export async function POST(req: Request) {
 
   // Service-role: a Stripe webhook has no browser session/cookie at all, and
   // needs to write profiles/referral_commissions rows for users other than
-  // any caller. Session-scoped RLS was never the right model here.
+  // any caller. Session-scoped RLS was never the right model here -- and the
+  // profiles column lockdown (migration 004) now actively enforces that for
+  // privilege-bearing columns (subscription_status, plan, Stripe ids), so a
+  // session-scoped client here would silently fail regardless.
   const supabase = adminClient()
 
   try {
