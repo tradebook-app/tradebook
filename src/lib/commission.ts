@@ -41,3 +41,23 @@ export function computeCommission(
   const grossUsd = round2(amountPaidCents / 100)
   return { grossUsd, commissionUsd: round2(grossUsd * rate) }
 }
+
+// Groups commission rows by the UTC calendar month of `created_at`
+// (YYYY-MM), summing `commission_amount` per month. A reversal row's
+// commission_amount is already negative, so a reversal in the same month
+// as its original nets out automatically -- no special-casing needed.
+// Sorted ascending by month; a month with no rows is simply absent (no
+// zero-filled gaps) -- callers decide how to render sparse data.
+export function bucketMonthlyCommissions(
+  rows: { created_at: string; commission_amount: number }[]
+): { month: string; commission: number }[] {
+  const totals = new Map<string, number>()
+  for (const row of rows) {
+    const d = new Date(row.created_at)
+    const month = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+    totals.set(month, (totals.get(month) || 0) + Number(row.commission_amount))
+  }
+  return Array.from(totals.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, commission]) => ({ month, commission: round2(commission) }))
+}
