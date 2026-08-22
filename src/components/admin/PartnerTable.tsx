@@ -93,7 +93,7 @@ export function PartnerTable({ partners, onChanged }: Props) {
       return
     }
     setEditingId(null)
-    if (selected === id) setSelected(null)
+    if (selected === id) { setSelected(null); setLedger(null) }
     onChanged()
   }
 
@@ -112,6 +112,7 @@ export function PartnerTable({ partners, onChanged }: Props) {
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#888', fontWeight: 600 }}>Date window</th>
               <th style={{ textAlign: 'right', padding: '12px 16px', color: '#888', fontWeight: 600 }}>Signups</th>
               <th style={{ textAlign: 'right', padding: '12px 16px', color: '#888', fontWeight: 600 }}>Owed</th>
+              <th style={{ textAlign: 'right', padding: '12px 16px', color: '#888', fontWeight: 600 }}>Paid</th>
               <th style={{ textAlign: 'right', padding: '12px 16px', color: '#888', fontWeight: 600 }}>Actions</th>
             </tr>
           </thead>
@@ -131,6 +132,7 @@ export function PartnerTable({ partners, onChanged }: Props) {
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'right' }}>{p.signups}</td>
                   <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700 }}>{usd(p.owed)}</td>
+                  <td style={{ padding: '12px 16px', textAlign: 'right' }}>{usd(p.paid)}</td>
                   <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                     <button
                       onClick={e => openEdit(p, e)}
@@ -143,7 +145,7 @@ export function PartnerTable({ partners, onChanged }: Props) {
 
                 {editingId === p.id && (
                   <tr>
-                    <td colSpan={6} style={{ padding: 0 }}>
+                    <td colSpan={7} style={{ padding: 0 }}>
                       <div
                         onClick={e => e.stopPropagation()}
                         style={{ padding: '14px 16px', background: '#0a0a0d', borderBottom: '1px solid #222', display: 'flex', flexDirection: 'column', gap: '10px' }}
@@ -191,7 +193,7 @@ export function PartnerTable({ partners, onChanged }: Props) {
 
                 {selected === p.id && ledger && (
                   <tr>
-                    <td colSpan={6} style={{ padding: '14px 16px', background: '#0a0a0d', borderBottom: '1px solid #222' }}>
+                    <td colSpan={7} style={{ padding: '14px 16px', background: '#0a0a0d', borderBottom: '1px solid #222' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid #222' }}>

@@ -51,7 +51,7 @@ export function PartnerEarningsChart({ commissions }: Props) {
           },
         },
         scales: {
-          x: { grid: { color: tc.grid }, ticks: { color: tc.tick, font: { size: 9 } } },
+          x: { grid: { color: tc.grid }, ticks: { color: tc.tick, font: { size: 9 }, maxTicksLimit: 10 } },
           y: {
             grid: { color: tc.grid },
             ticks: { color: tc.tick, font: { size: 9 }, callback: v => `$${Number(v).toFixed(0)}` },
@@ -66,7 +66,7 @@ export function PartnerEarningsChart({ commissions }: Props) {
   const monthlyTrend = bucketMonthlyCommissions(commissions)
   if (monthlyTrend.length === 0) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '160px', color: 'var(--txt3)', fontSize: '11px' }}>
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '16px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '160px', color: 'var(--txt3)', fontSize: '11px' }}>
         No commissions yet
       </div>
     )

@@ -95,4 +95,13 @@ describe('bucketMonthlyCommissions', () => {
       { created_at: '2026-07-02T00:00:00.000Z', commission_amount: 1.111 },
     ])).toEqual([{ month: '2026-07', commission: 2.22 }])
   })
+  it('buckets by UTC month, not local time, for timestamps with a non-UTC offset', () => {
+    expect(bucketMonthlyCommissions([
+      { created_at: '2026-02-28T23:00:00-05:00', commission_amount: 5 }, // = 2026-03-01T04:00:00Z
+      { created_at: '2026-03-01T00:30:00+02:00', commission_amount: 7 }, // = 2026-02-28T22:30:00Z
+    ])).toEqual([
+      { month: '2026-02', commission: 7 },
+      { month: '2026-03', commission: 5 },
+    ])
+  })
 })
