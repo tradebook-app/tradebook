@@ -47,9 +47,18 @@ export async function POST(request: Request) {
   }
   if (!target) return NextResponse.json({ error: 'No account with that email' }, { status: 404 })
 
+  const windowStart = new Date()
+  const windowEnd = new Date(windowStart)
+  windowEnd.setUTCMonth(windowEnd.getUTCMonth() + 12) // same UTC-month arithmetic as isWithinCommissionWindow
+
   const { error: updateErr } = await admin
     .from('profiles')
-    .update({ is_partner: true, referral_code: normalizedCode, commission_months: 12 })
+    .update({
+      is_partner: true,
+      referral_code: normalizedCode,
+      commission_window_start: windowStart.toISOString(),
+      commission_window_end: windowEnd.toISOString(),
+    })
     .eq('id', target.id)
 
   if (updateErr) {
@@ -83,7 +92,7 @@ export async function GET() {
 
   const { data: partners } = await admin
     .from('profiles')
-    .select('id, first_name, referral_code, commission_rate, commission_months')
+    .select('id, first_name, referral_code, commission_rate, commission_months, commission_window_start, commission_window_end')
     .eq('is_partner', true)
 
   const partnerIds = (partners || []).map(p => p.id)
@@ -120,6 +129,8 @@ export async function GET() {
       code: p.referral_code,
       rate: p.commission_rate,
       months: p.commission_months,
+      windowStart: p.commission_window_start,
+      windowEnd: p.commission_window_end,
       signups,
       grossTotal,
       commissionTotal,
