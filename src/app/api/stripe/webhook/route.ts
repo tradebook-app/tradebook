@@ -243,8 +243,12 @@ export async function POST(req: Request) {
           try {
             const paymentIntentId =
               typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent.id
-            const paymentIntent: any = await stripe.paymentIntents.retrieve(paymentIntentId)
-            invoiceId = paymentIntent.payment_details?.order_reference || paymentIntent.invoice || null
+            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+            // invoice first: Stripe's own authoritative linkage when present.
+            // order_reference is a merchant-settable field Stripe Invoicing
+            // happens to auto-populate with the same id -- only relevant as
+            // a fallback for API versions where `invoice` is gone entirely.
+            invoiceId = (paymentIntent as any).invoice || paymentIntent.payment_details?.order_reference || null
           } catch (piErr: any) {
             console.error('charge.refunded: failed to retrieve payment intent', charge.payment_intent, piErr)
             // Transient Stripe-side failures (rate limit, connection reset,
@@ -252,8 +256,17 @@ export async function POST(req: Request) {
             // an invoice payment" -- this handler is the ONLY writer of
             // reversal rows and there is no reconciliation job behind it,
             // so silently 200-ing here would permanently forfeit the
-            // clawback instead of letting Stripe's retry try again.
-            if (piErr?.type === 'StripeConnectionError' || piErr?.type === 'StripeAPIError' || piErr?.statusCode >= 500) {
+            // clawback instead of letting Stripe's retry try again. 429 is
+            // included explicitly: it's the canonical transient failure and
+            // escapes both the SDK's internal retry (which doesn't cover
+            // rate limits) and a bare statusCode >= 500 check.
+            if (
+              piErr?.type === 'StripeConnectionError' ||
+              piErr?.type === 'StripeAPIError' ||
+              piErr?.type === 'StripeRateLimitError' ||
+              piErr?.statusCode >= 500 ||
+              piErr?.statusCode === 429
+            ) {
               return NextResponse.json({ error: 'Failed to resolve invoice for refund' }, { status: 500 })
             }
           }
