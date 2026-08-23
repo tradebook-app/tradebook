@@ -160,16 +160,16 @@ export function Notebook({ userId, onEdit }: Props) {
             const shot = t.screenshot_url ? shotUrls[t.screenshot_url] : null
             const pnl = t.pnl || 0
             return (
-              <div key={`trade-${t.id}`} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+              <div key={`trade-${t.id}`} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 {shot && (
                   <div style={{ height: '140px', overflow: 'hidden', background: 'var(--bg4)', cursor: 'zoom-in' }} onClick={() => setLightbox(shot)}>
                     <img src={shot} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                 )}
-                <div style={{ padding: '14px' }}>
+                <div style={{ padding: '14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <div style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--mono)' }}>
-                      {t.symbol} <span style={{ fontSize: '10px', color: 'var(--txt3)' }}>{(t.type || 'Long')}</span>
+                      {t.symbol} <span style={{ fontSize: '10px', color: 'var(--txt2)' }}>{(t.type || 'Long')}</span>
                     </div>
                     <span style={{ fontSize: '11px', fontWeight: 800, fontFamily: 'var(--mono)', color: pnl >= 0 ? 'var(--ac)' : 'var(--red)' }}>
                       {pnl >= 0 ? '+' : '-'}${Math.abs(pnl).toFixed(2)}
@@ -180,8 +180,8 @@ export function Notebook({ userId, onEdit }: Props) {
                       {t.notes}
                     </div>
                   )}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '9px', color: 'var(--txt4)', fontFamily: 'var(--mono)' }}>{t.date ? fmtDate(t.date) : ''}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+                    <span style={{ fontSize: '9px', color: 'var(--txt2)', fontFamily: 'var(--mono)' }}>{t.date ? fmtDate(t.date) : ''}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '8px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', background: 'var(--blue-d, rgba(59,130,246,.12))', color: 'var(--blue, #60a5fa)' }}>FROM TRADE</span>
                       <CardMenu onEdit={() => onEdit(t)} onDelete={() => handleDeleteTradeNote(t)} />
@@ -196,13 +196,13 @@ export function Notebook({ userId, onEdit }: Props) {
           {noteCards.map(n => {
             const imgUrl = n.img_url ? imgUrls[n.img_url] : null
             return (
-              <div key={n.id} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+              <div key={n.id} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 {imgUrl && (
                   <div style={{ height: '140px', overflow: 'hidden', background: 'var(--bg4)', cursor: 'zoom-in' }} onClick={() => setLightbox(imgUrl)}>
                     <img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                 )}
-                <div style={{ padding: '14px' }}>
+                <div style={{ padding: '14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <div style={{ fontSize: '13px', fontWeight: 700, flex: 1, marginRight: '8px' }}>{n.title}</div>
                     <span style={{ fontSize: '8px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', flexShrink: 0, background: n.category === 'trade' ? 'var(--blue-d, rgba(59,130,246,.12))' : 'var(--bg5)', color: n.category === 'trade' ? 'var(--blue, #60a5fa)' : 'var(--txt3)' }}>
@@ -214,8 +214,8 @@ export function Notebook({ userId, onEdit }: Props) {
                       {n.body}
                     </div>
                   )}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '9px', color: 'var(--txt4)', fontFamily: 'var(--mono)' }}>{fmtDate(n.created_at)}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+                    <span style={{ fontSize: '9px', color: 'var(--txt2)', fontFamily: 'var(--mono)' }}>{fmtDate(n.created_at)}</span>
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <CardMenu onEdit={() => openEdit(n)} onDelete={() => handleDelete(n.id)} />
                     </div>
