@@ -61,7 +61,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
       overflowY: 'auto',
     }}>
       <div style={{ padding: '14px', borderBottom: '1px solid var(--brd)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+        <Link href="/dashboard" data-tour="logo" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
           <svg width="34" height="34" viewBox="0 0 64 64" style={{ flexShrink: 0 }}>
             <rect x="0" y="0" width="64" height="64" rx="14" fill="#062e21"/>
             <rect x="11" y="13" width="42" height="4" rx="2" fill="#5DCAA5"/>

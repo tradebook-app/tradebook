@@ -9,20 +9,19 @@ type Step = {
   body: string
   // Which side of the target the card should appear on.
   side: 'right' | 'bottom' | 'left'
+  // False for steps that anchor to an element only for card positioning
+  // (e.g. the logo) but aren't actually introducing that element -- the
+  // spotlight ring would be misleading there, so it's suppressed.
+  highlight?: boolean
 }
 
 const STEPS: Step[] = [
-  { selector: '[data-tour="add-trade"]',        side: 'right',  title: '1 of 11 · Log a trade',  body: 'Add a trade manually, import a CSV, or connect a broker to auto-sync.' },
-  { selector: '[data-tour="nav-/dashboard"]',    side: 'right',  title: '2 of 11 · Dashboard',    body: 'Your home base for a quick overview of how you\u2019re doing.' },
-  { selector: '[data-tour="nav-/trades"]',       side: 'right',  title: '3 of 11 · Trade view',   body: 'Every trade you\u2019ve logged, with filters and live stats like win rate and P&L.' },
-  { selector: '[data-tour="nav-/journal"]',      side: 'right',  title: '4 of 11 · Journal',      body: 'Reflect on trades \u2014 notes, screenshots, and lessons learned.' },
-  { selector: '[data-tour="nav-/position-size"]',side: 'right',  title: '5 of 11 · Position size',body: 'Work out the right size for a trade before you enter, based on your risk.' },
-  { selector: '[data-tour="nav-/notebook"]',     side: 'right',  title: '6 of 11 · Notebook',     body: 'Keep structured trading notes and playbooks. Pro feature.' },
-  { selector: '[data-tour="nav-/reports"]',      side: 'right',  title: '7 of 11 · Reports',      body: 'Deeper analytics on your performance over time. Pro feature.' },
-  { selector: '[data-tour="nav-/strategies"]',   side: 'right',  title: '8 of 11 · Strategies',   body: 'Define and track the setups you trade. Pro feature.' },
-  { selector: '[data-tour="nav-/ai-analysis"]',  side: 'right',  title: '9 of 11 · Sleek AI',     body: 'AI-powered analysis and coaching on your trades. Elite feature.' },
-  { selector: '[data-tour="nav-/prop-tracker"]', side: 'right',  title: '10 of 11 · Prop tracker',body: 'Track prop firm accounts, fees, and payouts in one place. Elite feature.' },
-  { selector: '[data-tour="profile"]',           side: 'bottom', title: '11 of 11 · Your profile',body: 'Manage billing, settings, and log out from here.' },
+  { selector: '[data-tour="logo"]',           side: 'right', highlight: false, title: '1 of 6 · Welcome',              body: 'Let’s get you set up in under 10 minutes.' },
+  { selector: '[data-tour="logo"]',           side: 'right', highlight: false, title: '2 of 6 · Trader type',          body: 'Are you a stocks trader, futures trader, or funded/prop firm trader? This tailors your dashboard.' },
+  { selector: '[data-tour="nav-/dashboard"]', side: 'right',                   title: '3 of 6 · Your dashboard',       body: 'Win rate, profit factor, expectancy, drawdown, broken down by setup, ticker, and time of day.' },
+  { selector: '[data-tour="nav-/trades"]',    side: 'right',                   title: '4 of 6 · Connect your broker',  body: 'Connect IBKR or another supported broker to import your trade history automatically, or upload a CSV.' },
+  { selector: '[data-tour="nav-/journal"]',   side: 'right',                   title: '5 of 6 · Build your journal',   body: 'Add your strategies and risk rules now, before your next trade. This is what turns a log into a journal.' },
+  { selector: '[data-tour="add-trade"]',      side: 'right',                   title: '6 of 6 · Log your first trade', body: 'Click here anytime to add a trade manually. Add a screenshot and a note on why you took it.' },
 ]
 
 type Rect = { top: number; left: number; width: number; height: number }
@@ -75,14 +74,14 @@ export function OnboardingTour() {
   }
 
   // X button: always just hides the tour for this session. Only writes has_seen_intro
-  // if the "Skip intro" box is checked \u2014 otherwise it reappears next login.
+  // if the "Skip intro" box is checked -- otherwise it reappears next login.
   function handleClose() {
     setActive(false)
     if (skipChecked) markSeen()
   }
 
   // Reaching the end naturally (clicking through every step) also permanently
-  // dismisses it \u2014 no reason to show a completed tour again.
+  // dismisses it -- no reason to show a completed tour again.
   function handleNext() {
     if (step < STEPS.length - 1) {
       setStep(s => s + 1)
@@ -113,14 +112,28 @@ export function OnboardingTour() {
 
   return (
     <>
-      {/* Highlight ring around the current target */}
-      <div style={{
-        position: 'fixed', zIndex: 998, pointerEvents: 'none',
-        top: rect.top - 4, left: rect.left - 4,
-        width: rect.width + 8, height: rect.height + 8,
-        borderRadius: '8px', boxShadow: '0 0 0 2px var(--ac), 0 0 0 4000px rgba(0,0,0,.35)',
-        transition: 'top .2s, left .2s, width .2s, height .2s',
-      }} />
+      {/* Highlight ring around the current target. A white ring is sandwiched
+          between the target and the accent-colored ring so the highlight
+          still reads clearly against a target that's itself accent-colored
+          (e.g. the solid-green "+ Add Trade" button) -- a plain single
+          var(--ac) ring would blend straight into a var(--ac) background. */}
+      {s.highlight !== false && (
+        <div style={{
+          position: 'fixed', zIndex: 998, pointerEvents: 'none',
+          top: rect.top - 4, left: rect.left - 4,
+          width: rect.width + 8, height: rect.height + 8,
+          borderRadius: '8px',
+          boxShadow: '0 0 0 2px #fff, 0 0 0 4px var(--ac), 0 0 0 4000px rgba(0,0,0,.35)',
+          transition: 'top .2s, left .2s, width .2s, height .2s',
+        }} />
+      )}
+      {s.highlight === false && (
+        <div style={{
+          position: 'fixed', zIndex: 998, pointerEvents: 'none',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,.35)',
+        }} />
+      )}
 
       {/* Tour card */}
       <div style={{
