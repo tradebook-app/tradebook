@@ -16,12 +16,20 @@ type Step = {
 }
 
 const STEPS: Step[] = [
-  { selector: '[data-tour="logo"]',           side: 'right', highlight: false, title: '1 of 6 · Welcome',              body: 'Let’s get you set up in under 10 minutes.' },
-  { selector: '[data-tour="logo"]',           side: 'right', highlight: false, title: '2 of 6 · Trader type',          body: 'Are you a stocks trader, futures trader, or funded/prop firm trader? This tailors your dashboard.' },
-  { selector: '[data-tour="nav-/dashboard"]', side: 'right',                   title: '3 of 6 · Your dashboard',       body: 'Win rate, profit factor, expectancy, drawdown, broken down by setup, ticker, and time of day.' },
-  { selector: '[data-tour="nav-/trades"]',    side: 'right',                   title: '4 of 6 · Connect your broker',  body: 'Connect IBKR or another supported broker to import your trade history automatically, or upload a CSV.' },
-  { selector: '[data-tour="nav-/journal"]',   side: 'right',                   title: '5 of 6 · Build your journal',   body: 'Add your strategies and risk rules now, before your next trade. This is what turns a log into a journal.' },
-  { selector: '[data-tour="add-trade"]',      side: 'right',                   title: '6 of 6 · Log your first trade', body: 'Click here anytime to add a trade manually. Add a screenshot and a note on why you took it.' },
+  { selector: '[data-tour="logo"]',            side: 'right',  highlight: false, title: '1 of 14 · Welcome',              body: 'Let’s get you set up in under 10 minutes.' },
+  { selector: '[data-tour="logo"]',            side: 'right',  highlight: false, title: '2 of 14 · Trader type',          body: 'Are you a stocks trader, futures trader, or funded/prop firm trader? This tailors your dashboard.' },
+  { selector: '[data-tour="nav-/dashboard"]',  side: 'right',                    title: '3 of 14 · Your dashboard',       body: 'Win rate, profit factor, expectancy, drawdown, broken down by setup, ticker, and time of day.' },
+  { selector: '[data-tour="nav-/trades"]',     side: 'right',                    title: '4 of 14 · Connect your broker',  body: 'Connect IBKR or another supported broker to import your trade history automatically, or upload a CSV.' },
+  { selector: '[data-tour="nav-/journal"]',    side: 'right',                    title: '5 of 14 · Build your journal',   body: 'Add your strategies and risk rules now, before your next trade. This is what turns a log into a journal.' },
+  { selector: '[data-tour="nav-/notebook"]',   side: 'right',                    title: '6 of 14 · Notebook',             body: 'Keep trade ideas, mistakes, and lessons in one place.' },
+  { selector: '[data-tour="nav-/reports"]',    side: 'right',                    title: '7 of 14 · Reports',              body: 'Deeper breakdowns: by strategy, symbol, time of day, and more.' },
+  { selector: '[data-tour="nav-/strategies"]', side: 'right',                    title: '8 of 14 · Strategies',           body: 'Define your setups and track how each one performs.' },
+  { selector: '[data-tour="nav-/position-size"]', side: 'right',                 title: '9 of 14 · Position Size',        body: 'Calculate exact share/contract size based on your risk per trade.' },
+  { selector: '[data-tour="nav-/ai-analysis"]', side: 'right',                   title: '10 of 14 · Sleek AI',            body: 'Ask AI to analyze your trades and spot patterns.' },
+  { selector: '[data-tour="nav-/prop-tracker"]', side: 'right',                  title: '11 of 14 · Prop Tracker',        body: 'Track funded/prop firm account rules and progress.' },
+  { selector: '[data-tour="nav-/referrals"]',  side: 'right',                    title: '12 of 14 · Refer & Earn',        body: 'Invite other traders and earn commission.' },
+  { selector: '[data-tour="profile"]',         side: 'bottom',                   title: '13 of 14 · Profile',             body: 'Manage your account, billing, and settings here.' },
+  { selector: '[data-tour="add-trade"]',       side: 'right',                    title: '14 of 14 · Log your first trade', body: 'Click here anytime to add a trade manually. Add a screenshot and a note on why you took it.' },
 ]
 
 type Rect = { top: number; left: number; width: number; height: number }
