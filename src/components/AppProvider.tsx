@@ -1,270 +1,284 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AppShell } from '@/components/layout/AppShell'
-import { AddTradeModal, type TradeFormPayload } from '@/components/trades/AddTradeModal'
-import { TradeView } from '@/components/trades/TradeView'
-import { Dashboard } from '@/components/dashboard/Dashboard'
-import { fetchStrategies } from '@/lib/strategyService'
-import type { TradeRow, DateRangeFilter, StrategyRow } from '@/lib/types'
+import type { NoteRow, TradeRow } from '@/lib/types'
 import {
-  fetchTrades, insertTrade, updateTrade,
-  deleteTrade, deleteTrades, uploadScreenshot,
-} from '@/lib/tradeService'
-import { usePathname } from 'next/navigation'
-import { BrokerImport } from '@/components/import/BrokerImport'
-import { Reports } from '@/components/reports/Reports'
-import { PositionSize } from '@/components/PositionSize'
-import { Strategies } from '@/components/strategies/Strategies'
-import { Notebook } from '@/components/notebook/Notebook'
-import { PlanProvider, usePlan } from '@/components/PlanProvider'
-import { AccountProvider, useAccounts } from '@/components/AccountProvider'
-import { UpgradeWall, UpgradeBanner } from '@/components/UpgradeWall'
-import { Settings } from '@/components/Settings'
-import { ReferralsPage } from '@/components/ReferralsPage'
-import { Journal } from '@/components/Journal'
-import { AIAnalysis } from '@/components/AIAnalysis'
-import { Billing } from '@/components/Billing'
-import { Scanner } from '@/components/Scanner'
-import { PropTracker } from '@/components/proptracker/PropTracker'
+  fetchNotes, insertNote, updateNote, deleteNote,
+  uploadNoteImage, getNoteImageUrl,
+} from '@/lib/noteService'
+import { fetchTrades, getScreenshotUrl, updateTrade } from '@/lib/tradeService'
+import { Modal } from '@/components/ui/Modal'
+import { CardMenu } from '@/components/ui/CardMenu'
 
+type Props = { userId: string, onEdit: (trade: TradeRow) => void }
+type Cat   = 'all' | 'trade' | 'my'
 
-type Props = {
-  userId: string
-  userEmail?: string
-}
+export function Notebook({ userId, onEdit }: Props) {
+  const [notes,    setNotes]    = useState<NoteRow[]>([])
+  const [trades,   setTrades]   = useState<TradeRow[]>([])
+  const [loading,  setLoading]  = useState(true)
+  const [cat,      setCat]      = useState<Cat>('all')
+  const [search,   setSearch]   = useState('')
+  const [modal,    setModal]    = useState(false)
+  const [editing,  setEditing]  = useState<NoteRow | null>(null)
+  const [lightbox, setLightbox] = useState<string | null>(null)
 
-function GatedReports({ trades, filter }: { trades: any[], filter: any }) {
-  const { isPro, loading } = usePlan()
-  if (loading) return null
-  if (!isPro) return <UpgradeWall feature="Full Reports - Pro Feature" description="Upgrade to Pro to unlock all 7 report tabs with 25+ performance metrics including Day and Time, Symbols, Risk/R-Multiple, Win vs Loss, and Setups." />
-  return <Reports trades={trades} filter={filter} />
-}
+  // Form state
+  const [title,    setTitle]    = useState('')
+  const [body,     setBody]     = useState('')
+  const [noteCat,  setNoteCat]  = useState<'trade' | 'my'>('my')
+  const [imgFile,  setImgFile]  = useState<File | null>(null)
+  const [imgPrev,  setImgPrev]  = useState<string | null>(null)
+  const [saving,   setSaving]   = useState(false)
 
-function GatedNotebook({ userId }: { userId: string }) {
-  const { isPro, loading } = usePlan()
-  if (loading) return null
-  if (!isPro) return <UpgradeWall feature="Notebook - Pro Feature" description="Upgrade to Pro to unlock the Notebook and keep all your trade ideas, rules, and notes in one place." />
-  return <Notebook userId={userId} />
-}
+  // Image URL caches
+  const [imgUrls,  setImgUrls]  = useState<Record<string, string>>({})
+  const [shotUrls, setShotUrls] = useState<Record<string, string>>({})
 
-function GatedStrategies({ userId, trades }: { userId: string, trades: TradeRow[] }) {
-  const { isPro, loading } = usePlan()
-  if (loading) return null
-  if (!isPro) return <UpgradeWall feature="Strategies - Pro Feature" description="Upgrade to Pro to build and manage your trading strategies with full notes and screenshots." />
-  return <Strategies userId={userId} trades={trades} />
-}
+  useEffect(() => {
+    Promise.all([fetchNotes(), fetchTrades()]).then(([n, t]) => {
+      setNotes(n); setTrades(t); setLoading(false)
+    })
+  }, [])
 
-function GatedImport({ userId, existingTrades, onImported }: { userId: string, existingTrades: any[], onImported: () => void }) {
-  const { isPro, loading } = usePlan()
-  if (loading) return null
-  if (!isPro) return <UpgradeWall feature="Broker Import - Pro Feature" description="Upgrade to Pro to import your trades from DAS Trader, ThinkOrSwim, and more brokers coming soon." />
-  return <BrokerImport userId={userId} existingTrades={existingTrades} onImported={onImported} />
-}
+  // Signed URLs for manual-note images
+  useEffect(() => {
+    notes.forEach(n => {
+      if (n.img_url && !imgUrls[n.img_url]) {
+        getNoteImageUrl(n.img_url).then(url => { if (url) setImgUrls(prev => ({ ...prev, [n.img_url!]: url })) })
+      }
+    })
+  }, [notes])
 
-function GatedAIAnalysis({ trades }: { trades: any[] }) {
-  const { isElite, loading } = usePlan()
-  if (loading) return null
-  if (!isElite) return <UpgradeWall feature="Sleek AI - Elite Feature" description="Upgrade to Elite to unlock AI-powered trade analysis. Get personalized insights, pattern detection, and coaching from your own trading data." tier="elite" />
-  return <AIAnalysis trades={trades} />
-}
+  // Signed URLs for trade screenshots
+  useEffect(() => {
+    trades.forEach(t => {
+      if (t.screenshot_url && !shotUrls[t.screenshot_url]) {
+        getScreenshotUrl(t.screenshot_url).then(url => { if (url) setShotUrls(prev => ({ ...prev, [t.screenshot_url!]: url })) })
+      }
+    })
+  }, [trades])
 
-function GatedScanner() {
-  const { isElite, loading } = usePlan()
-  if (loading) return null
-  if (!isElite) return <UpgradeWall feature="Scanner - Elite Feature" description="Upgrade to Elite to unlock the full US-market Scanner with Momentum, Themes, and Fundamentals screening." tier="elite" />
-  return <Scanner />
-}
+  function openNew() {
+    setEditing(null); setTitle(''); setBody('')
+    setNoteCat('my'); setImgFile(null); setImgPrev(null)
+    setModal(true)
+  }
+  function openEdit(n: NoteRow) {
+    setEditing(n); setTitle(n.title); setBody(n.body)
+    setNoteCat(n.category as 'trade' | 'my')
+    setImgFile(null); setImgPrev(null)
+    setModal(true)
+  }
+  function handleImgChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setImgFile(f)
+    const reader = new FileReader()
+    reader.onload = ev => setImgPrev(ev.target?.result as string)
+    reader.readAsDataURL(f)
+  }
+  async function handleSave() {
+    if (!title.trim()) return alert('Enter a title')
+    setSaving(true)
+    let imgUrl = editing?.img_url || null
+    if (imgFile) imgUrl = await uploadNoteImage(imgFile, userId)
+    if (editing) {
+      const updated = await updateNote(editing.id, { title, body, category: noteCat, img_url: imgUrl })
+      if (updated) setNotes(prev => prev.map(n => n.id === editing.id ? updated : n))
+    } else {
+      const inserted = await insertNote({ title, body, category: noteCat, img_url: imgUrl }, userId)
+      if (inserted) setNotes(prev => [inserted, ...prev])
+    }
+    setSaving(false); setModal(false)
+  }
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this note?')) return
+    const ok = await deleteNote(id)
+    if (ok) setNotes(prev => prev.filter(n => n.id !== id))
+  }
 
-function GatedPropTracker({ userId }: { userId: string }) {
-  const { isElite, loading } = usePlan()
-  if (loading) return null
-  if (!isElite) return <UpgradeWall feature="Prop Tracker - Elite Feature" description="Upgrade to Elite to track fees, resets, and payouts across every prop firm account and see your true net P&L and ROI." tier="elite" />
-  return <PropTracker userId={userId} />
-}
+  // "Deleting" a trade-derived card doesn't delete the trade itself — it
+  // clears the notes text and screenshot on that trade, which is what
+  // actually put the card here in the first place (see tradeCards filter
+  // below). The trade and its P&L stay intact.
+  async function handleDeleteTradeNote(t: TradeRow) {
+    if (!confirm('Remove this note and screenshot from the trade? The trade itself will not be deleted.')) return
+    const updated = await updateTrade(t.id, { notes: null, screenshot_url: null })
+    if (updated) setTrades(prev => prev.map(tr => tr.id === t.id ? updated : tr))
+  }
 
-function DashboardWithBanner({ trades, filter, onEdit, onDelete, userId, onReload }: any) {
-  const { tradeCount, isPro } = usePlan()
+  const q = search.toLowerCase()
+
+  // Manual notes (My Notes + any note tagged trade)
+  const noteCards = notes
+    .filter(n => cat === 'all' || n.category === cat)
+    .filter(n => !q || n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q))
+
+  // Trade-derived cards: any trade that has a screenshot OR notes
+  const tradeCards = (cat === 'all' || cat === 'trade')
+    ? trades
+        .filter(t => t.screenshot_url || (t.notes && t.notes.trim()))
+        .filter(t => !q || t.symbol.toLowerCase().includes(q) || (t.notes || '').toLowerCase().includes(q))
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    : []
+
+  const isEmpty = noteCards.length === 0 && tradeCards.length === 0
+  const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
   return (
     <div>
-      {!isPro && <UpgradeBanner tradeCount={tradeCount} limit={50} />}
-      <Dashboard trades={trades} filter={filter} onEdit={onEdit} onDelete={onDelete} userId={userId} onReload={onReload} />
-    </div>
-  )
-}
-
-const PAGE_TITLES: Record<string, string> = {
-  '/dashboard':     'Dashboard',
-  '/trades':        'Trade View',
-  '/journal':       'Journal',
-  '/notebook':      'Notebook',
-  '/reports':       'Reports',
-  '/strategies':    'Strategies',
-  '/scanner':       'Scanner',
-  '/prop-tracker':  'Prop Tracker',
-  '/position-size': 'Position Size',
-  '/ai-analysis':   'Sleek AI',
-  '/billing':       'Billing',
-  '/import':        'Import Trades',
-  '/settings':      'Settings',
-  '/referrals':     'Refer & Earn',
-}
-
-// Pages whose trade lists should respect the account switcher in the topbar.
-// Settings, Billing, Scanner, Strategies, Notebook, Import, Position Size
-// aren't account-scoped views, so they always get the unfiltered set.
-const ACCOUNT_SCOPED_PAGES = new Set(['/dashboard', '/trades', '/journal', '/reports', '/ai-analysis'])
-
-// Rendered INSIDE AccountProvider so it can read the selected account and
-// filter trades before anything downstream sees them. AppProvider itself
-// can't do this directly since it sits above PlanProvider/AccountProvider.
-function AppInner({
-  pathname, title, trades, loading, filter, setFilter, userId, userEmail,
-  openAdd, openEdit, handleSave, handleDelete, handleDeleteMany, reloadTrades,
-  modalOpen, setModalOpen, editTrade, setEditTrade, strategyList, setStrategyList,
-}: any) {
-  const { selectedAccountId } = useAccounts()
-
-  const scopedTrades = (ACCOUNT_SCOPED_PAGES.has(pathname) && selectedAccountId)
-    ? trades.filter((t: TradeRow) => t.account_id === selectedAccountId)
-    : trades
-
-  function renderPage() {
-    if (loading && pathname !== '/scanner') {
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '50vh', color: 'var(--txt3)' }}>
-          Loading...
-        </div>
-      )
-    }
-
-    if (pathname === '/scanner')      return <GatedScanner />
-    if (pathname === '/trades')       return <TradeView trades={scopedTrades} filter={filter} onFilterChange={setFilter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} />
-    if (pathname === '/dashboard')    return <DashboardWithBanner trades={scopedTrades} filter={filter} onEdit={openEdit} onDelete={handleDelete} userId={userId} onReload={reloadTrades} />
-    if (pathname === '/journal')      return <Journal trades={scopedTrades} onEdit={openEdit} />
-    if (pathname === '/reports')      return <GatedReports trades={scopedTrades} filter={filter} />
-    if (pathname === '/position-size')return <PositionSize />
-    if (pathname === '/strategies')   return <GatedStrategies userId={userId} trades={trades} />
-    if (pathname === '/notebook')     return <GatedNotebook userId={userId} />
-    if (pathname === '/import')       return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
-    if (pathname === '/settings')     return <Settings userEmail={userEmail} />
-    if (pathname === '/referrals')    return <ReferralsPage />
-    if (pathname === '/ai-analysis')  return <GatedAIAnalysis trades={scopedTrades} />
-    if (pathname === '/prop-tracker') return <GatedPropTracker userId={userId} />
-    if (pathname === '/billing')      return <Billing />
-
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: '12px' }}>
-        <div style={{ fontSize: '32px' }}>🚧</div>
-        <div style={{ fontSize: '16px', fontWeight: 700 }}>Coming soon</div>
-        <div style={{ fontSize: '12px', color: 'var(--txt2)' }}>This section is being built in the next phase.</div>
+      {/* Toolbar */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+        {(['all', 'trade', 'my'] as Cat[]).map(c => (
+          <button key={c} onClick={() => setCat(c)} style={{
+            padding: '5px 14px', borderRadius: 'var(--r)', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+            background: cat === c ? 'var(--ac)' : 'var(--bg4)',
+            color: cat === c ? '#000' : 'var(--txt2)',
+            border: '1px solid ' + (cat === c ? 'var(--ac)' : 'var(--brd2)'), fontFamily: 'var(--sans)',
+          }}>
+            {c === 'all' ? 'All Notes' : c === 'trade' ? 'Trade Notes' : 'My Notes'}
+          </button>
+        ))}
+        <input className="fi" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes..." style={{ width: '180px', marginLeft: '4px' }} />
+        <button className="btn btn-p" onClick={openNew} style={{ marginLeft: 'auto' }}>+ New Note</button>
       </div>
-    )
-  }
 
-  return (
-    <>
-      <AppShell title={title} userEmail={userEmail} filter={filter} onFilterChange={setFilter} onAddTrade={openAdd}>
-        {renderPage()}
-      </AppShell>
-      <AddTradeModal
-        open={modalOpen}
-        onClose={() => { setModalOpen(false); setEditTrade(null) }}
-        onSave={handleSave}
-        editTrade={editTrade}
-        strategies={strategyList}
-        userId={userId}
-        onStrategyCreated={(s: StrategyRow) => setStrategyList((prev: StrategyRow[]) => [s, ...prev])}
-      />
-    </>
-  )
-}
+      {loading ? (
+        <div style={{ textAlign: 'center', color: 'var(--txt3)', padding: '40px' }}>Loading...</div>
+      ) : isEmpty ? (
+        <div style={{ textAlign: 'center', color: 'var(--txt3)', padding: '40px', fontSize: '12px' }}>
+          {cat === 'trade'
+            ? 'No trade notes yet. Add a screenshot or notes to a trade and it will appear here.'
+            : 'No notes yet. Click "+ New Note" to start your trading journal.'}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
 
-export function AppProvider({ userId, userEmail }: Props) {
-  const pathname = usePathname()
+          {/* Trade-derived cards */}
+          {tradeCards.map(t => {
+            const shot = t.screenshot_url ? shotUrls[t.screenshot_url] : null
+            const pnl = t.pnl || 0
+            return (
+              <div key={`trade-${t.id}`} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+                {shot && (
+                  <div style={{ height: '140px', overflow: 'hidden', background: 'var(--bg4)', cursor: 'zoom-in' }} onClick={() => setLightbox(shot)}>
+                    <img src={shot} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )}
+                <div style={{ padding: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--mono)' }}>
+                      {t.symbol} <span style={{ fontSize: '10px', color: 'var(--txt3)' }}>{(t.type || 'Long')}</span>
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 800, fontFamily: 'var(--mono)', color: pnl >= 0 ? 'var(--ac)' : 'var(--red)' }}>
+                      {pnl >= 0 ? '+' : '-'}${Math.abs(pnl).toFixed(2)}
+                    </span>
+                  </div>
+                  {t.notes && t.notes.trim() && (
+                    <div style={{ fontSize: '11px', color: 'var(--txt2)', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '10px' }}>
+                      {t.notes}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '9px', color: 'var(--txt4)', fontFamily: 'var(--mono)' }}>{t.date ? fmtDate(t.date) : ''}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '8px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', background: 'var(--blue-d, rgba(59,130,246,.12))', color: 'var(--blue, #60a5fa)' }}>FROM TRADE</span>
+                      <CardMenu onEdit={() => onEdit(t)} onDelete={() => handleDeleteTradeNote(t)} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
 
-  const [trades,    setTrades]    = useState<TradeRow[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editTrade, setEditTrade] = useState<TradeRow | null>(null)
-  const [filter,    setFilter]    = useState<DateRangeFilter>({ range: 'all' })
-  const [strategyList, setStrategyList] = useState<StrategyRow[]>([])
+          {/* Manual note cards */}
+          {noteCards.map(n => {
+            const imgUrl = n.img_url ? imgUrls[n.img_url] : null
+            return (
+              <div key={n.id} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+                {imgUrl && (
+                  <div style={{ height: '140px', overflow: 'hidden', background: 'var(--bg4)', cursor: 'zoom-in' }} onClick={() => setLightbox(imgUrl)}>
+                    <img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )}
+                <div style={{ padding: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, flex: 1, marginRight: '8px' }}>{n.title}</div>
+                    <span style={{ fontSize: '8px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', flexShrink: 0, background: n.category === 'trade' ? 'var(--blue-d, rgba(59,130,246,.12))' : 'var(--bg5)', color: n.category === 'trade' ? 'var(--blue, #60a5fa)' : 'var(--txt3)' }}>
+                      {n.category === 'trade' ? 'TRADE' : 'MY NOTE'}
+                    </span>
+                  </div>
+                  {n.body && (
+                    <div style={{ fontSize: '11px', color: 'var(--txt2)', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '10px' }}>
+                      {n.body}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '9px', color: 'var(--txt4)', fontFamily: 'var(--mono)' }}>{fmtDate(n.created_at)}</span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <CardMenu onEdit={() => openEdit(n)} onDelete={() => handleDelete(n.id)} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
-  useEffect(() => {
-    fetchTrades().then(data => {
-      setTrades(data)
-      setLoading(false)
-    })
-    fetchStrategies().then(setStrategyList)
-  }, [])
+      {/* Note Modal */}
+      <Modal
+        open={modal}
+        onClose={() => setModal(false)}
+        title={editing ? 'Edit Note' : 'New Note'}
+        footer={
+          <>
+            <button className="btn btn-o" onClick={() => setModal(false)}>Cancel</button>
+            <button className="btn btn-p" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Note'}</button>
+          </>
+        }
+      >
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '4px' }}>Category</label>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {(['my', 'trade'] as const).map(c => (
+              <button key={c} onClick={() => setNoteCat(c)} style={{
+                padding: '5px 14px', borderRadius: 'var(--r)', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                background: noteCat === c ? 'var(--ac-d)' : 'var(--bg4)',
+                color: noteCat === c ? 'var(--ac2)' : 'var(--txt2)',
+                border: '1px solid ' + (noteCat === c ? 'var(--ac)' : 'var(--brd2)'), fontFamily: 'var(--sans)',
+              }}>{c === 'my' ? 'My Note' : 'Trade Note'}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '4px' }}>Title</label>
+          <input className="fi" value={title} onChange={e => setTitle(e.target.value)} placeholder="Note title..." autoFocus />
+        </div>
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '4px' }}>Content</label>
+          <textarea className="fi" value={body} onChange={e => setBody(e.target.value)} rows={6} placeholder="Write your notes here..." />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '4px' }}>Image (optional)</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label className="btn btn-o" style={{ cursor: 'pointer' }}>
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImgChange} />
+              📷 Upload Image
+            </label>
+            {imgPrev && <img src={imgPrev} style={{ height: '40px', borderRadius: '4px', border: '1px solid var(--brd)' }} />}
+            {!imgPrev && editing?.img_url && <span style={{ fontSize: '10px', color: 'var(--ac)' }}>✓ Image saved</span>}
+          </div>
+        </div>
+      </Modal>
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (
-        e.key === 'n' && !e.ctrlKey && !e.metaKey &&
-        !['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)
-      ) {
-        setEditTrade(null)
-        setModalOpen(true)
-        fetchStrategies().then(setStrategyList)
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [])
-
-  function openAdd() { setEditTrade(null); setModalOpen(true); fetchStrategies().then(setStrategyList) }
-  function openEdit(trade: TradeRow) { setEditTrade(trade); setModalOpen(true); fetchStrategies().then(setStrategyList) }
-
-  async function handleSave(payload: TradeFormPayload, screenshotFile: File | null) {
-    let screenshotUrl: string | null = editTrade?.screenshot_url || null
-    if (screenshotFile) screenshotUrl = await uploadScreenshot(screenshotFile, userId)
-    const tradeData = {
-      ...payload,
-      screenshot_url: screenshotUrl,
-      trade_group_id: editTrade ? editTrade.trade_group_id : null,
-    }
-    if (editTrade) {
-      const updated = await updateTrade(editTrade.id, tradeData)
-      if (updated) setTrades(prev => prev.map(t => t.id === editTrade.id ? updated : t))
-    } else {
-      const inserted = await insertTrade(tradeData, userId)
-      if (inserted) setTrades(prev => [inserted, ...prev])
-    }
-  }
-
-  async function handleDelete(id: string) {
-    const ok = await deleteTrade(id)
-    if (ok) setTrades(prev => prev.filter(t => t.id !== id))
-  }
-
-  async function handleDeleteMany(ids: string[]) {
-    const ok = await deleteTrades(ids)
-    if (ok) {
-      const idSet = new Set(ids)
-      setTrades(prev => prev.filter(t => !idSet.has(t.id)))
-    }
-  }
-
-  async function reloadTrades() {
-    const data = await fetchTrades()
-    setTrades(data)
-  }
-
-  const title = PAGE_TITLES[pathname] || 'Sleektrade'
-
-  return (
-    <PlanProvider>
-      <AccountProvider>
-        <AppInner
-          pathname={pathname} title={title} trades={trades} loading={loading}
-          filter={filter} setFilter={setFilter} userId={userId} userEmail={userEmail}
-          openAdd={openAdd} openEdit={openEdit} handleSave={handleSave}
-          handleDelete={handleDelete} handleDeleteMany={handleDeleteMany} reloadTrades={reloadTrades}
-          modalOpen={modalOpen} setModalOpen={setModalOpen} editTrade={editTrade} setEditTrade={setEditTrade}
-          strategyList={strategyList} setStrategyList={setStrategyList}
-        />
-      </AccountProvider>
-    </PlanProvider>
+      {/* Lightbox */}
+      {lightbox && (
+        <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.9)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
+          <img src={lightbox} style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 'var(--r)', objectFit: 'contain' }} />
+        </div>
+      )}
+    </div>
   )
 }
