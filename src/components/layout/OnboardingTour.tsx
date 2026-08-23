@@ -46,15 +46,6 @@ export function OnboardingTour() {
     async function check() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      // TEMPORARY dev tool: append ?replay_intro=1 to any page's URL (e.g.
-      // /dashboard?replay_intro=1) to force the tour to show again without
-      // editing the database. Doesn't touch has_seen_intro itself -- finishing
-      // or skipping during a replay still persists exactly like a real run.
-      // Remove this block once the tour copy/positioning is done being iterated on.
-      if (new URLSearchParams(window.location.search).get('replay_intro') === '1') {
-        if (!cancelled) { setStep(0); setSkipChecked(false); setActive(true) }
-        return
-      }
       const { data } = await supabase
         .from('profiles')
         .select('has_seen_intro')
