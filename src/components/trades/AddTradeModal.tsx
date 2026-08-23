@@ -59,6 +59,8 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
   const [creatingStrategy, setCreatingStrategy] = useState(false)
   const [newStrategyName, setNewStrategyName] = useState('')
   const [creatingStrategySaving, setCreatingStrategySaving] = useState(false)
+  const [strategyOpen, setStrategyOpen] = useState(false)
+  const strategyRef = useRef<HTMLDivElement>(null)
   const [grade,      setGrade]      = useState('')
   const [tags,       setTags]       = useState<string[]>([])
   const [tagInput,   setTagInput]   = useState('')
@@ -108,6 +110,20 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
   useEffect(() => {
     if (open) setTimeout(() => symRef.current?.focus(), 80)
   }, [open])
+
+  // Native <select> was triggering a GPU rendering glitch (visible zigzag
+  // artifact) in Chromium browsers when the popup opened — same root cause
+  // as the fix already applied to the futures Contract picker. Custom
+  // dropdown removes the native OS popup layer entirely.
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (strategyRef.current && !strategyRef.current.contains(e.target as Node)) {
+        setStrategyOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   function resetForm() {
     setSymbol(''); setSide('Long')
@@ -398,20 +414,43 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
               >✕</button>
             </div>
           ) : (
-            <select
-              className="fi"
-              value={strategyId}
-              onChange={e => {
-                if (e.target.value === '__new__') { setCreatingStrategy(true); return }
-                setStrategyId(e.target.value)
-                if (e.target.value) setLegacySetup(null)
-              }}
-              style={{ fontSize: '11px' }}
-            >
-              <option value="">— No Strategy —</option>
-              {strategies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              <option value="__new__">+ New Strategy...</option>
-            </select>
+            <div ref={strategyRef} style={{ position: 'relative' }}>
+              <div onClick={() => setStrategyOpen(o => !o)} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)',
+                borderRadius: 'var(--r)', padding: '8px 11px', fontSize: '11px', color: 'var(--txt)',
+                cursor: 'pointer', userSelect: 'none',
+              }}>
+                <span>{strategies.find(s => s.id === strategyId)?.name ?? '— No Strategy —'}</span>
+                <span style={{ color: 'var(--txt3)', fontSize: '9px' }}>{strategyOpen ? '▴' : '▾'}</span>
+              </div>
+              {strategyOpen && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
+                  background: '#141419', border: '1px solid var(--brd)', borderRadius: 'var(--r)',
+                  maxHeight: '220px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,.4)',
+                }}>
+                  <div onClick={() => { setStrategyId(''); setStrategyOpen(false) }} style={{
+                    padding: '8px 12px', fontSize: '11px', cursor: 'pointer',
+                    background: strategyId === '' ? 'var(--bg4, #21212E)' : 'transparent',
+                    color: strategyId === '' ? 'var(--txt)' : 'var(--txt2)',
+                    fontWeight: strategyId === '' ? 700 : 400,
+                  }}>— No Strategy —</div>
+                  {strategies.map(s => (
+                    <div key={s.id} onClick={() => { setStrategyId(s.id); setLegacySetup(null); setStrategyOpen(false) }} style={{
+                      padding: '8px 12px', fontSize: '11px', cursor: 'pointer',
+                      background: s.id === strategyId ? 'var(--bg4, #21212E)' : 'transparent',
+                      color: s.id === strategyId ? 'var(--txt)' : 'var(--txt2)',
+                      fontWeight: s.id === strategyId ? 700 : 400,
+                    }}>{s.name}</div>
+                  ))}
+                  <div onClick={() => { setCreatingStrategy(true); setStrategyOpen(false) }} style={{
+                    padding: '8px 12px', fontSize: '11px', cursor: 'pointer', color: 'var(--ac)',
+                    borderTop: '1px solid var(--brd)',
+                  }}>+ New Strategy...</div>
+                </div>
+              )}
+            </div>
           )}
           {legacySetup && !strategyId && !creatingStrategy && (
             <div style={{ fontSize: '10px', color: 'var(--txt3)', marginTop: '4px' }}>
