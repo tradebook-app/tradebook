@@ -6,14 +6,14 @@ import {
   fetchNotes, insertNote, updateNote, deleteNote,
   uploadNoteImage, getNoteImageUrl,
 } from '@/lib/noteService'
-import { fetchTrades, getScreenshotUrl } from '@/lib/tradeService'
+import { fetchTrades, getScreenshotUrl, updateTrade } from '@/lib/tradeService'
 import { Modal } from '@/components/ui/Modal'
 import { CardMenu } from '@/components/ui/CardMenu'
 
-type Props = { userId: string }
+type Props = { userId: string, onEdit: (trade: TradeRow) => void }
 type Cat   = 'all' | 'trade' | 'my'
 
-export function Notebook({ userId }: Props) {
+export function Notebook({ userId, onEdit }: Props) {
   const [notes,    setNotes]    = useState<NoteRow[]>([])
   const [trades,   setTrades]   = useState<TradeRow[]>([])
   const [loading,  setLoading]  = useState(true)
@@ -98,6 +98,16 @@ export function Notebook({ userId }: Props) {
     if (ok) setNotes(prev => prev.filter(n => n.id !== id))
   }
 
+  // "Deleting" a trade-derived card doesn't delete the trade itself — it
+  // clears the notes text and screenshot on that trade, which is what
+  // actually put the card here in the first place (see tradeCards filter
+  // below). The trade and its P&L stay intact.
+  async function handleDeleteTradeNote(t: TradeRow) {
+    if (!confirm('Remove this note and screenshot from the trade? The trade itself will not be deleted.')) return
+    const updated = await updateTrade(t.id, { notes: null, screenshot_url: null })
+    if (updated) setTrades(prev => prev.map(tr => tr.id === t.id ? updated : tr))
+  }
+
   const q = search.toLowerCase()
 
   // Manual notes (My Notes + any note tagged trade)
@@ -172,7 +182,10 @@ export function Notebook({ userId }: Props) {
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '9px', color: 'var(--txt4)', fontFamily: 'var(--mono)' }}>{t.date ? fmtDate(t.date) : ''}</span>
-                    <span style={{ fontSize: '8px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', background: 'var(--blue-d, rgba(59,130,246,.12))', color: 'var(--blue, #60a5fa)' }}>FROM TRADE</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '8px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', background: 'var(--blue-d, rgba(59,130,246,.12))', color: 'var(--blue, #60a5fa)' }}>FROM TRADE</span>
+                      <CardMenu onEdit={() => onEdit(t)} onDelete={() => handleDeleteTradeNote(t)} />
+                    </div>
                   </div>
                 </div>
               </div>
