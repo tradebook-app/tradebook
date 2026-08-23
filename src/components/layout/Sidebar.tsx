@@ -168,7 +168,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
       </div>
 
       <div style={{ marginTop: 'auto' }}>
-        <Link href="/referrals" style={{
+        <Link href="/referrals" data-tour="nav-/referrals" style={{
           display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px',
           cursor: 'pointer', fontSize: '12px', fontWeight: 500, transition: '.1s',
           borderLeft: `2px solid ${pathname === '/referrals' ? 'var(--ac)' : 'transparent'}`,
