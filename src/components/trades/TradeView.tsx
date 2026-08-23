@@ -146,7 +146,11 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
     if (stFilter === 'be')    r = r.filter(t => t.pnl === 0)
     if (sideFilter !== 'all') r = r.filter(t => t.type === sideFilter)
     if (setupFilter !== 'all') r = r.filter(t => t.setup === setupFilter)
-    return r.slice().reverse()
+    // trades already arrives newest-first from fetchTrades(), and the table
+    // (via buildGroupedRows) sorts newest-first too — this must match that
+    // order exactly, or the Trade Preview panel's up/down keyboard nav ends
+    // up walking the list backwards relative to what's on screen.
+    return r.slice()
   }, [trades, filter, symFilter, stFilter, sideFilter, setupFilter])
 
   const kpi = useMemo(() => calcKPIs(filterByDate(closedTrades(trades), filter)), [trades, filter])
