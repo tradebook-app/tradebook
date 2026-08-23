@@ -61,6 +61,8 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
   const [creatingStrategySaving, setCreatingStrategySaving] = useState(false)
   const [strategyOpen, setStrategyOpen] = useState(false)
   const strategyRef = useRef<HTMLDivElement>(null)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const accountRef = useRef<HTMLDivElement>(null)
   const [grade,      setGrade]      = useState('')
   const [tags,       setTags]       = useState<string[]>([])
   const [tagInput,   setTagInput]   = useState('')
@@ -119,6 +121,9 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
     function handleClickOutside(e: MouseEvent) {
       if (strategyRef.current && !strategyRef.current.contains(e.target as Node)) {
         setStrategyOpen(false)
+      }
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
+        setAccountOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -358,9 +363,33 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
       {accounts.length > 1 && (
         <div style={fg}>
           <label style={lbl}>Trading Account</label>
-          <select className="fi" value={accountId} onChange={e => setAccountId(e.target.value)} style={{ fontSize: '11px' }}>
-            {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
+          <div ref={accountRef} style={{ position: 'relative' }}>
+            <div onClick={() => setAccountOpen(o => !o)} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)',
+              borderRadius: 'var(--r)', padding: '8px 11px', fontSize: '11px', color: 'var(--txt)',
+              cursor: 'pointer', userSelect: 'none',
+            }}>
+              <span>{accounts.find(a => a.id === accountId)?.name ?? 'Select account'}</span>
+              <span style={{ color: 'var(--txt3)', fontSize: '9px' }}>{accountOpen ? '▴' : '▾'}</span>
+            </div>
+            {accountOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
+                background: '#141419', border: '1px solid var(--brd)', borderRadius: 'var(--r)',
+                maxHeight: '220px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,.4)',
+              }}>
+                {accounts.map(a => (
+                  <div key={a.id} onClick={() => { setAccountId(a.id); setAccountOpen(false) }} style={{
+                    padding: '8px 12px', fontSize: '11px', cursor: 'pointer',
+                    background: a.id === accountId ? 'var(--bg4, #21212E)' : 'transparent',
+                    color: a.id === accountId ? 'var(--txt)' : 'var(--txt2)',
+                    fontWeight: a.id === accountId ? 700 : 400,
+                  }}>{a.name}</div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
