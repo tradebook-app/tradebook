@@ -38,6 +38,15 @@ export function OnboardingTour() {
     async function check() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      // TEMPORARY dev tool: append ?replay_intro=1 to any page's URL (e.g.
+      // /dashboard?replay_intro=1) to force the tour to show again without
+      // editing the database. Doesn't touch has_seen_intro itself -- finishing
+      // or skipping during a replay still persists exactly like a real run.
+      // Remove this block once the tour copy/positioning is done being iterated on.
+      if (new URLSearchParams(window.location.search).get('replay_intro') === '1') {
+        if (!cancelled) { setStep(0); setSkipChecked(false); setActive(true) }
+        return
+      }
       const { data } = await supabase
         .from('profiles')
         .select('has_seen_intro')
@@ -94,12 +103,23 @@ export function OnboardingTour() {
   if (!active || !rect) return null
 
   const s = STEPS[step]
-  const cardWidth = 240
   const gap = 14
+  const cardWidth = 240
   let cardStyle: React.CSSProperties = {}
-  let arrowStyle: React.CSSProperties = {}
+  let arrowStyle: React.CSSProperties | null = null
 
-  if (s.side === 'right') {
+  // Steps 1-2 have no real highlight target (they're general intro content),
+  // so they're centered in the viewport instead of anchored to the logo.
+  // The logo sits at the very top of a 175px sidebar with the "+ Add Trade"
+  // button right underneath it -- there's no width/position near the logo
+  // that fits this copy without either spilling into the dashboard content
+  // (at the full 240px card width) or covering that button (at any width
+  // narrow enough to stay inside the sidebar). `rect` is still measured
+  // against the logo purely so the component has a non-null rect to render
+  // at all (see the early return above) -- its coordinates aren't used here.
+  if (s.highlight === false) {
+    cardStyle = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
+  } else if (s.side === 'right') {
     cardStyle = { top: rect.top + rect.height / 2 - 46, left: rect.left + rect.width + gap }
     arrowStyle = { left: -7, top: 20, borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '7px solid var(--ac)' }
   } else if (s.side === 'bottom') {
@@ -116,22 +136,18 @@ export function OnboardingTour() {
           between the target and the accent-colored ring so the highlight
           still reads clearly against a target that's itself accent-colored
           (e.g. the solid-green "+ Add Trade" button) -- a plain single
-          var(--ac) ring would blend straight into a var(--ac) background. */}
+          var(--ac) ring would blend straight into a var(--ac) background.
+          No dimming anywhere -- the rest of the page (sidebar, stat cards,
+          calendar, chat widget) stays fully visible and undimmed through
+          every step, including steps 1-2 which have no ring at all. */}
       {s.highlight !== false && (
         <div style={{
           position: 'fixed', zIndex: 998, pointerEvents: 'none',
           top: rect.top - 4, left: rect.left - 4,
           width: rect.width + 8, height: rect.height + 8,
           borderRadius: '8px',
-          boxShadow: '0 0 0 2px #fff, 0 0 0 4px var(--ac), 0 0 0 4000px rgba(0,0,0,.35)',
+          boxShadow: '0 0 0 2px #fff, 0 0 0 4px var(--ac)',
           transition: 'top .2s, left .2s, width .2s, height .2s',
-        }} />
-      )}
-      {s.highlight === false && (
-        <div style={{
-          position: 'fixed', zIndex: 998, pointerEvents: 'none',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,.35)',
         }} />
       )}
 
@@ -143,7 +159,7 @@ export function OnboardingTour() {
         transition: 'top .2s, left .2s',
         ...cardStyle,
       }}>
-        <div style={{ position: 'absolute', width: 0, height: 0, ...arrowStyle }} />
+        {arrowStyle && <div style={{ position: 'absolute', width: 0, height: 0, ...arrowStyle }} />}
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
           <div style={{ fontSize: '11px', fontWeight: 700 }}>{s.title}</div>
