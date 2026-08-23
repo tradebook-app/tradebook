@@ -301,7 +301,8 @@ export function PositionSize() {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'stretch' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={card}>
             <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: 700, marginBottom: '18px' }}>
               {dot('var(--ac)')}Trade Inputs
@@ -393,27 +394,28 @@ export function PositionSize() {
             </div>
           </div>
 
+          <div style={card}>
+            <div style={{ fontSize: '11px', color: 'var(--txt2)', marginBottom: '6px' }}>
+              Position size — {futSymbol} · {futContractInfo?.name ?? ''}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '14px' }}>
+              <span style={{ fontSize: '36px', fontWeight: 900, fontFamily: 'var(--mono)', color: 'var(--ac)' }}>{fc.contracts.toLocaleString()}</span>
+              <span style={{ fontSize: '15px', fontWeight: 700 }}>contracts</span>
+            </div>
+            <div style={{ borderTop: '1px solid var(--brd)', paddingTop: '12px', fontSize: '12px', color: 'var(--txt2)' }}>
+              Risking ${fc.riskDollars.toFixed(2)} ({fc.riskPct.toFixed(1)}% of account) with a {fc.stopPts.toFixed(2)}-point stop on {futSymbol}.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            {statCard('Target Risk', `$${fc.riskDollars.toFixed(2)}`, `${fc.riskPct.toFixed(1)}% of account`)}
+            {statCard('Actual Risk At This Size', `$${fc.actualRisk.toFixed(2)}`, 'Rounded down, never above target')}
+            {statCard('Risk Per Contract', `$${fc.riskPerContract.toFixed(2)}`, `${fc.stopPts.toFixed(2)} points stop`)}
+            {statCard('Risk : Reward', fc.rr ? `1 : ${fc.rr.toFixed(2)}` : '—', fc.rr ? `${fc.tpPts.toFixed(2)} pt target / ${fc.stopPts.toFixed(2)} pt stop` : 'Add a take profit to see it', fc.rr ? 'var(--ac)' : 'var(--txt3)')}
+          </div>
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={card}>
-              <div style={{ fontSize: '11px', color: 'var(--txt2)', marginBottom: '6px' }}>
-                Position size — {futSymbol} · {futContractInfo?.name ?? ''}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '14px' }}>
-                <span style={{ fontSize: '36px', fontWeight: 900, fontFamily: 'var(--mono)', color: 'var(--ac)' }}>{fc.contracts.toLocaleString()}</span>
-                <span style={{ fontSize: '15px', fontWeight: 700 }}>contracts</span>
-              </div>
-              <div style={{ borderTop: '1px solid var(--brd)', paddingTop: '12px', fontSize: '12px', color: 'var(--txt2)' }}>
-                Risking ${fc.riskDollars.toFixed(2)} ({fc.riskPct.toFixed(1)}% of account) with a {fc.stopPts.toFixed(2)}-point stop on {futSymbol}.
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              {statCard('Target Risk', `$${fc.riskDollars.toFixed(2)}`, `${fc.riskPct.toFixed(1)}% of account`)}
-              {statCard('Actual Risk At This Size', `$${fc.actualRisk.toFixed(2)}`, 'Rounded down, never above target')}
-              {statCard('Risk Per Contract', `$${fc.riskPerContract.toFixed(2)}`, `${fc.stopPts.toFixed(2)} points stop`)}
-              {statCard('Risk : Reward', fc.rr ? `1 : ${fc.rr.toFixed(2)}` : '—', fc.rr ? `${fc.tpPts.toFixed(2)} pt target / ${fc.stopPts.toFixed(2)} pt stop` : 'Add a take profit to see it', fc.rr ? 'var(--ac)' : 'var(--txt3)')}
-            </div>
-
             <div style={card}>
               <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>Size at Other Risk Levels</div>
               {fc.sizeLevels.map(s => {
