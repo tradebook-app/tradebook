@@ -5,6 +5,7 @@ import type { TradeRow } from '@/lib/types'
 import { assetUnitLabel } from '@/lib/types'
 import TradeChart, { Candle, TradeMarker } from '@/components/charts/TradeChart'
 import { underlyingFromOptionSymbol } from '@/lib/contractMultiplier'
+import { tradeTimeToChartTime } from '@/lib/tradeChartTime'
 
 type Props = {
   trades: TradeRow[]
@@ -244,13 +245,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
 
   const markers: TradeMarker[] = useMemo(() => {
     const isIntraday = chartInterval !== '1day'
-    const formatTime = (d: string): string | number => {
-      if (isIntraday) {
-        const iso = d.slice(0, 10) + 'T' + (d.slice(11) || '00:00:00') + 'Z'
-        return Math.floor(new Date(iso).getTime() / 1000)
-      }
-      return d.slice(0, 10)
-    }
+    const formatTime = (d: string) => tradeTimeToChartTime(d, isIntraday)
     const result: TradeMarker[] = []
     if (trade.date) {
       result.push({

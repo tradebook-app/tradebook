@@ -7,6 +7,7 @@ import { fmtPnl, fmtDate, holdTime } from '@/lib/analytics'
 import { getScreenshotUrl } from '@/lib/tradeService'
 import TradeChart, { Candle, TradeMarker } from '@/components/charts/TradeChart'
 import { underlyingFromOptionSymbol } from '@/lib/contractMultiplier'
+import { tradeTimeToChartTime } from '@/lib/tradeChartTime'
 
 type Props = {
   trade: TradeRow | null
@@ -119,13 +120,7 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
   const markers: TradeMarker[] = useMemo(() => {
     if (!trade) return []
     const isIntraday = chartInterval !== '1day'
-    const formatTime = (d: string): string | number => {
-      if (isIntraday) {
-        const iso = d.slice(0, 10) + 'T' + (d.slice(11) || '00:00:00') + 'Z'
-        return Math.floor(new Date(iso).getTime() / 1000)
-      }
-      return d.slice(0, 10)
-    }
+    const formatTime = (d: string) => tradeTimeToChartTime(d, isIntraday)
     const result: TradeMarker[] = []
     const isOption = trade.asset_type === 'option'
     if (trade.date) {
