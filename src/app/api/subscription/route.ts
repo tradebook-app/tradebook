@@ -9,7 +9,7 @@ export async function GET() {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('plan, subscription_status')
+      .select('plan, subscription_status, plan_override')
       .eq('id', user.id)
       .single()
 
@@ -22,6 +22,9 @@ export async function GET() {
       plan: profile?.plan || 'free',
       status: profile?.subscription_status || null,
       tradeCount: count || 0,
+      // Observability only -- not used for gating anywhere. Lets the UI/logs
+      // distinguish a manual founder/comp grant from a real subscription.
+      override: profile?.plan_override === true,
     })
   } catch (err) {
     // Do NOT silently return a free plan here — a transient DB/auth error would
