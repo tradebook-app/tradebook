@@ -11,9 +11,18 @@ export async function POST() {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, plan, plan_override')
       .eq('id', user.id)
       .single()
+
+    // Manual/founder-comp accounts (see supabase/migrations/006_add_plan_override.sql)
+    // are managed outside Stripe entirely -- never let a sync (even one
+    // triggered by this same account going through checkout) touch plan for
+    // it. Checked before the Stripe lookup so this never makes a Stripe call
+    // for an override account either.
+    if (profile?.plan_override) {
+      return NextResponse.json({ plan: profile.plan ?? 'free', synced: false, override: true })
+    }
 
     if (!profile?.stripe_customer_id) {
       return NextResponse.json({ plan: 'free', synced: false })

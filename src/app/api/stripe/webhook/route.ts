@@ -5,6 +5,17 @@ import { adminClient } from '@/lib/referrals'
 
 export const dynamic = 'force-dynamic'
 
+// Manual/founder-comp accounts (profiles.plan_override = true) are managed
+// outside Stripe entirely -- see supabase/migrations/006_add_plan_override.sql.
+// Every case below that would write plan/subscription_status must check this
+// first and skip, or a real Stripe event on that customer/subscription would
+// silently clobber the manual grant.
+async function hasPlanOverride(supabase: ReturnType<typeof adminClient>, userId: string | null | undefined): Promise<boolean> {
+  if (!userId) return false
+  const { data } = await supabase.from('profiles').select('plan_override').eq('id', userId).maybeSingle()
+  return data?.plan_override === true
+}
+
 export async function POST(req: Request) {
   const body = await req.text()
   const sig = req.headers.get('stripe-signature')!
@@ -52,6 +63,11 @@ export async function POST(req: Request) {
           break
         }
 
+        if (await hasPlanOverride(supabase, userId)) {
+          console.log('checkout.session.completed: skipping plan write, manual override active for user', userId)
+          break
+        }
+
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
         const priceId = subscription.items.data[0]?.price.id
         const plan = planForPriceId(priceId)
@@ -75,6 +91,11 @@ export async function POST(req: Request) {
         const userId = subscription.metadata?.supabase_user_id
         if (!userId) break
 
+        if (await hasPlanOverride(supabase, userId)) {
+          console.log('customer.subscription.updated: skipping plan write, manual override active for user', userId)
+          break
+        }
+
         const priceId = subscription.items.data[0]?.price.id
         const plan = planForPriceId(priceId)
         const status = subscription.status
@@ -96,6 +117,11 @@ export async function POST(req: Request) {
         const subscription = event.data.object as any
         const userId = subscription.metadata?.supabase_user_id
         if (!userId) break
+
+        if (await hasPlanOverride(supabase, userId)) {
+          console.log('customer.subscription.deleted: skipping plan write, manual override active for user', userId)
+          break
+        }
 
         const { error: upsertErr } = await supabase.from('profiles').upsert({
           id: userId,
@@ -130,6 +156,11 @@ export async function POST(req: Request) {
         }
 
         if (profile) {
+          if (await hasPlanOverride(supabase, profile.id)) {
+            console.log('invoice.payment_failed: skipping status write, manual override active for user', profile.id)
+            break
+          }
+
           const { error: upsertErr } = await supabase.from('profiles').upsert({
             id: profile.id,
             subscription_status: 'past_due',

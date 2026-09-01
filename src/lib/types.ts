@@ -360,6 +360,12 @@ export type ProfileRow = {
   commission_months: number
   commission_window_start: string | null
   commission_window_end: string | null
+  // Manual/founder-comp override -- see supabase/migrations/006_add_plan_override.sql.
+  // When plan_override is true, plan/subscription_status are set by hand and
+  // the Stripe webhook / /api/stripe/sync must not overwrite them.
+  plan_override: boolean
+  plan_override_note: string | null
+  plan_override_at: string | null
 }
 export type ProfileInsert = Partial<Omit<ProfileRow, 'id'>> & { id: string }
 export type ProfileUpdate = Partial<Omit<ProfileRow, 'id'>>
