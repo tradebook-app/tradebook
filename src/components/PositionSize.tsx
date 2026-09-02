@@ -204,12 +204,11 @@ export function PositionSize() {
   const affix: React.CSSProperties = { background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)', padding: '0 10px', height: '28px', fontSize: '11px', color: 'var(--txt)', fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center' }
   const card: React.CSSProperties = { background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px' }
   const dot = (color: string) => <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', marginRight: '7px' }} />
-  const clearBtn: React.CSSProperties = { fontSize: '10px', fontWeight: 600, fontFamily: 'var(--sans)', color: 'var(--txt3)', background: 'transparent', border: '1px solid var(--brd2, #2a2a35)', borderRadius: 'var(--r)', padding: '4px 10px', cursor: 'pointer', flexShrink: 0 }
 
   const cardHeader = (title: string, onClear: () => void) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
       <span style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: 700 }}>{dot('var(--ac)')}{title}</span>
-      <button onClick={onClear} style={clearBtn}>Clear All</button>
+      <button type="button" onClick={onClear} className="btn btn-o" style={{ flexShrink: 0 }}>Clear All</button>
     </div>
   )
 
