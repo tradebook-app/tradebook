@@ -2,6 +2,10 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { futuresPointValue, futuresTickSize, FUTURES_CONTRACTS } from '@/lib/contractMultiplier'
+import {
+  loadPositionSizePrefs, savePositionSizePrefs,
+  STOCK_DEFAULTS, FUTURES_DEFAULTS,
+} from '@/lib/positionSizePrefs'
 
 const R_TARGETS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50]
 const SIZE_LEVEL_PCTS = [0.25, 0.5, 1, 1.5, 2, 3]
@@ -86,6 +90,67 @@ export function PositionSize() {
   const [contractOpen, setContractOpen] = useState(false)
   const contractRef = useRef<HTMLDivElement>(null)
 
+  // ── Persisted settings ─────────────────────────────────────────────────────
+  // Restore on mount (an effect, not a lazy useState initializer: AppProvider
+  // server-renders this component, so reading localStorage during render would
+  // hydrate-mismatch). Only settings fields are stored -- entry, stop, and take
+  // profit are per-trade and always start blank.
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => {
+    const p = loadPositionSizePrefs()
+    setMode(p.mode)
+
+    setAccount(p.stocks.account)
+    setRiskPct(p.stocks.riskPct)
+    setMaxPct(p.stocks.maxPct)
+    setSide(p.stocks.side)
+    // Rebuild the $ mirrors from the restored account + %s.
+    const acc = parseFloat(p.stocks.account) || 0
+    setRiskDollarStr(acc > 0 && p.stocks.riskPct ? (acc * (parseFloat(p.stocks.riskPct) || 0) / 100).toFixed(2) : '')
+    setMaxDollarStr(acc > 0 && p.stocks.maxPct ? (acc * (parseFloat(p.stocks.maxPct) || 0) / 100).toFixed(0) : '')
+
+    setFutAccount(p.futures.futAccount)
+    setFutRiskMode(p.futures.futRiskMode)
+    setFutRiskInput(p.futures.futRiskInput)
+    setFutSymbol(p.futures.futSymbol)
+    setFutStopUnit(p.futures.futStopUnit)
+
+    setHydrated(true)
+  }, [])
+
+  // Persist on change -- but only once the restore effect above has run and its
+  // state updates have committed, so we never save the pre-restore defaults
+  // over a real saved blob.
+  useEffect(() => {
+    if (!hydrated) return
+    savePositionSizePrefs({
+      mode,
+      stocks: { account, riskPct, maxPct, side },
+      futures: { futAccount, futRiskMode, futRiskInput, futSymbol, futStopUnit },
+    })
+  }, [hydrated, mode, account, riskPct, maxPct, side, futAccount, futRiskMode, futRiskInput, futSymbol, futStopUnit])
+
+  function clearStocks() {
+    setAccount(STOCK_DEFAULTS.account)
+    setRiskPct(STOCK_DEFAULTS.riskPct)
+    setRiskDollarStr('')
+    setMaxPct(STOCK_DEFAULTS.maxPct)
+    setMaxDollarStr('')
+    setEntry('')
+    setStop('')
+    setSide(STOCK_DEFAULTS.side)
+  }
+
+  function clearFutures() {
+    setFutAccount(FUTURES_DEFAULTS.futAccount)
+    setFutRiskMode(FUTURES_DEFAULTS.futRiskMode)
+    setFutRiskInput(FUTURES_DEFAULTS.futRiskInput)
+    setFutSymbol(FUTURES_DEFAULTS.futSymbol)
+    setFutStopInput('')
+    setFutTakeProfitInput('')
+    setFutStopUnit(FUTURES_DEFAULTS.futStopUnit)
+  }
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (contractRef.current && !contractRef.current.contains(e.target as Node)) {
@@ -139,6 +204,14 @@ export function PositionSize() {
   const affix: React.CSSProperties = { background: 'var(--bg4, #16161e)', border: '1px solid var(--brd2, #2a2a35)', padding: '0 10px', height: '28px', fontSize: '11px', color: 'var(--txt)', fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center' }
   const card: React.CSSProperties = { background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px' }
   const dot = (color: string) => <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', marginRight: '7px' }} />
+  const clearBtn: React.CSSProperties = { fontSize: '10px', fontWeight: 600, fontFamily: 'var(--sans)', color: 'var(--txt3)', background: 'transparent', border: '1px solid var(--brd2, #2a2a35)', borderRadius: 'var(--r)', padding: '4px 10px', cursor: 'pointer', flexShrink: 0 }
+
+  const cardHeader = (title: string, onClear: () => void) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+      <span style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: 700 }}>{dot('var(--ac)')}{title}</span>
+      <button onClick={onClear} style={clearBtn}>Clear All</button>
+    </div>
+  )
 
   const resRow = (label: string, value: string, color?: string, bold?: boolean) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid var(--brd)' }}>
@@ -177,9 +250,7 @@ export function PositionSize() {
       {mode === 'stocks' ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'stretch' }}>
           <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: 700, marginBottom: '18px' }}>
-              {dot('var(--ac)')}Position Size Calculator
-            </div>
+            {cardHeader('Position Size Calculator', clearStocks)}
 
             <div style={{ marginBottom: '14px' }}>
               <span style={lbl}>Side</span>
@@ -304,9 +375,7 @@ export function PositionSize() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={card}>
-            <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: 700, marginBottom: '18px' }}>
-              {dot('var(--ac)')}Trade Inputs
-            </div>
+            {cardHeader('Trade Inputs', clearFutures)}
 
             <div style={{ marginBottom: '14px' }}>
               <span style={lbl}>Account Balance</span>
