@@ -61,6 +61,7 @@ export function PositionSize() {
     const dR   = acc * rp / 100
     const maxD = acc * mp / 100
     const sd   = Math.abs(en - st)
+    const sdPct = en > 0 ? sd / en * 100 : 0
     const riskShares = sd > 0 ? Math.floor(dR / sd) : 0
     let sh = riskShares
     let capped = false
@@ -77,7 +78,7 @@ export function PositionSize() {
       return { r, tgt, profit: actualRisk * r, pctAcc: acc > 0 ? actualRisk * r / acc * 100 : 0 }
     })
 
-    return { acc, dR, actualRisk, capped, maxD, sd, sh, pv, pa, targets }
+    return { acc, dR, actualRisk, capped, maxD, sd, sdPct, sh, pv, pa, targets }
   }, [account, riskPct, maxPct, entry, stop, side])
 
   const [futAccount, setFutAccount] = useState('')
@@ -212,8 +213,10 @@ export function PositionSize() {
     </div>
   )
 
+  // Result-row vertical padding: tightened from 11px to 8px so the added
+  // "Stop Distance %" row fits without growing the calculator card.
   const resRow = (label: string, value: string, color?: string, bold?: boolean) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid var(--brd)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--brd)' }}>
       <span style={{ fontSize: '12px', color: 'var(--txt2)' }}>{label}</span>
       <span style={{ fontSize: bold ? '16px' : '13px', fontWeight: bold ? 900 : 700, fontFamily: 'var(--mono)', color: color || 'var(--ac)' }}>{value}</span>
     </div>
@@ -332,15 +335,19 @@ export function PositionSize() {
             <div>
               {resRow('Dollar Risk', `$${c.dR.toFixed(2)}`, 'var(--ac)')}
               {c.capped && resRow('Actual Risk (capped)', `$${c.actualRisk.toFixed(2)}`, 'var(--amber, #f59e0b)')}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid var(--brd)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--brd)' }}>
                 <span style={{ fontSize: '12px', color: 'var(--txt2)' }}>Shares</span>
                 <span style={{ fontSize: '16px', fontWeight: 900, fontFamily: 'var(--mono)', color: 'var(--orange)' }}>{c.sh.toLocaleString()}</span>
               </div>
               {resRow('Position Value', `$${c.pv.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, 'var(--ac)')}
               {resRow('% of Account', `${c.pa.toFixed(2)}%`, c.pa > (parseFloat(maxPct) || 100) ? 'var(--red)' : 'var(--ac)')}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--brd)' }}>
                 <span style={{ fontSize: '12px', color: 'var(--txt2)' }}>Stop Distance</span>
                 <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ac)' }}>${c.sd.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
+                <span style={{ fontSize: '12px', color: 'var(--txt2)' }}>Stop Distance %</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ac)' }}>{c.sdPct.toFixed(2)}%</span>
               </div>
             </div>
           </div>
