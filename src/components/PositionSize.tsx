@@ -334,7 +334,7 @@ export function PositionSize() {
               {c.capped && resRow('Actual Risk (capped)', `$${c.actualRisk.toFixed(2)}`, 'var(--amber, #f59e0b)')}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid var(--brd)' }}>
                 <span style={{ fontSize: '12px', color: 'var(--txt2)' }}>Shares</span>
-                <span style={{ fontSize: '16px', fontWeight: 900, fontFamily: 'var(--mono)', color: 'var(--ac)', background: 'var(--ac-d, rgba(16,185,129,.15))', padding: '4px 12px', borderRadius: '6px' }}>{c.sh.toLocaleString()}</span>
+                <span style={{ fontSize: '16px', fontWeight: 900, fontFamily: 'var(--mono)', color: 'var(--orange)' }}>{c.sh.toLocaleString()}</span>
               </div>
               {resRow('Position Value', `$${c.pv.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, 'var(--ac)')}
               {resRow('% of Account', `${c.pa.toFixed(2)}%`, c.pa > (parseFloat(maxPct) || 100) ? 'var(--red)' : 'var(--ac)')}
@@ -467,7 +467,7 @@ export function PositionSize() {
               Position size — {futSymbol} · {futContractInfo?.name ?? ''}
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '14px' }}>
-              <span style={{ fontSize: '36px', fontWeight: 900, fontFamily: 'var(--mono)', color: 'var(--ac)' }}>{fc.contracts.toLocaleString()}</span>
+              <span style={{ fontSize: '36px', fontWeight: 900, fontFamily: 'var(--mono)', color: 'var(--orange)' }}>{fc.contracts.toLocaleString()}</span>
               <span style={{ fontSize: '15px', fontWeight: 700 }}>contracts</span>
             </div>
             <div style={{ borderTop: '1px solid var(--brd)', paddingTop: '12px', fontSize: '12px', color: 'var(--txt2)' }}>
