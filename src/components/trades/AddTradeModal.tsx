@@ -6,6 +6,7 @@ import type { TradeRow, StrategyRow } from '@/lib/types'
 import { ASSET_TYPES, assetUnitLabel } from '@/lib/types'
 import { OPTION_MULTIPLIER, futuresPointValue } from '@/lib/contractMultiplier'
 import { insertStrategy } from '@/lib/strategyService'
+import { shouldPopulateForm } from '@/lib/tradeFormInit'
 import { useAccounts } from '@/components/AccountProvider'
 
 type Props = {
@@ -73,8 +74,18 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
 
   const symRef = useRef<HTMLInputElement>(null)
 
+  // Populate the form ONCE per open (keyed to the trade being edited), not on
+  // every render. Without this guard the effect also re-ran whenever the
+  // `strategies` prop changed — and creating a strategy inline (+ New Strategy)
+  // changes that prop, so the newly-selected strategy was immediately wiped
+  // back to "— No Strategy —" and the trade saved with setup/strategy_id null.
+  const populatedKey = useRef<string | null>(null)
+
   // Populate form when editing
   useEffect(() => {
+    const { populate, nextKey } = shouldPopulateForm(populatedKey.current, open, editTrade?.id)
+    populatedKey.current = nextKey
+    if (!populate) return
     if (editTrade) {
       setSymbol(editTrade.symbol)
       setSide(editTrade.type as 'Long' | 'Short')
@@ -107,6 +118,17 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
       resetForm()
     }
   }, [editTrade, open, strategies])
+
+  // If the trade carried a legacy free-text setup and its matching strategy
+  // only finished loading after the form was populated, link them up. This
+  // only ever *sets* a strategy from an unlinked legacy label — it never
+  // clears a selection the user just made, so it's safe to run on every
+  // strategies change.
+  useEffect(() => {
+    if (!open || strategyId || !legacySetup) return
+    const match = strategies.find(s => s.name.trim().toLowerCase() === legacySetup.trim().toLowerCase())
+    if (match) { setStrategyId(match.id); setLegacySetup(null) }
+  }, [strategies, open, strategyId, legacySetup])
 
   // Focus symbol input when modal opens
   useEffect(() => {

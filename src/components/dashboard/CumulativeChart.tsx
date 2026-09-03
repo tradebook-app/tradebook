@@ -60,12 +60,12 @@ export function CumulativeChart({ labels, data, unit = '$', color = '#10B981', c
         scales: {
           x: {
             grid: { color: tc.grid },
-            ticks: { color: tc.tick, font: { size: 9 }, maxTicksLimit: 10 },
+            ticks: { color: tc.tick, font: { size: 11 }, maxTicksLimit: 10 },
           },
           y: {
             grid: { color: tc.grid },
             ticks: {
-              color: tc.tick, font: { size: 9 },
+              color: tc.tick, font: { size: 11 },
               callback: v => formatCumulativeAxisTick(Number(v), unit),
             },
           },

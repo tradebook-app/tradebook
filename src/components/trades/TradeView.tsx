@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import type { TradeRow, DateRangeFilter } from '@/lib/types'
 import { assetUnitLabel } from '@/lib/types'
 import { filterByDate, closedTrades, calcKPIs, fmtPnl, fmtDate } from '@/lib/analytics'
+import { filterByStatus, type TradeStatusFilter } from '@/lib/tradeTableFilters'
 import { MetricCard } from '@/components/ui/MetricCard'
 import { TradePanel } from '@/components/trades/TradePanel'
 import { DateRangePicker } from '@/components/layout/DateRangePicker'
@@ -139,11 +140,13 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
   }, [trades])
 
   const filtered = useMemo(() => {
-    let r = filterByDate(closedTrades(trades), filter)
+    // Trade View is the full trade log — closed AND open positions. Open
+    // trades (no exit yet) render with Exit / Net P&L / ROI / R blanked to
+    // "—". The KPI row below still uses closedTrades() so headline stats are
+    // unaffected, and Dashboard's "Open positions" logic is untouched.
+    let r = filterByDate(trades, filter)
     if (symFilter)            r = r.filter(t => t.symbol.includes(symFilter.toUpperCase()))
-    if (stFilter === 'win')   r = r.filter(t => t.pnl > 0)
-    if (stFilter === 'loss')  r = r.filter(t => t.pnl < 0)
-    if (stFilter === 'be')    r = r.filter(t => t.pnl === 0)
+    r = filterByStatus(r, stFilter as TradeStatusFilter)
     if (sideFilter !== 'all') r = r.filter(t => t.type === sideFilter)
     if (setupFilter !== 'all') r = r.filter(t => t.setup === setupFilter)
     // trades already arrives newest-first from fetchTrades(), and the table
@@ -181,6 +184,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
   const badgeWin:  React.CSSProperties = { ...badgeBase, background: 'rgba(16,185,129,.18)', color: '#10B981', border: '1px solid rgba(16,185,129,.35)', textShadow: '0 0 8px rgba(16,185,129,.4)' }
   const badgeLoss: React.CSSProperties = { ...badgeBase, background: 'rgba(239,68,68,.18)',  color: '#EF4444', border: '1px solid rgba(239,68,68,.35)',  textShadow: '0 0 8px rgba(239,68,68,.4)' }
   const badgeBe:   React.CSSProperties = { ...badgeBase, background: 'rgba(245,158,11,.15)', color: '#F59E0B', border: '1px solid rgba(245,158,11,.3)',  textShadow: '0 0 8px rgba(245,158,11,.3)' }
+  const badgeOpen: React.CSSProperties = { ...badgeBase, background: 'rgba(59,130,246,.15)', color: '#3B82F6', border: '1px solid rgba(59,130,246,.35)', textShadow: '0 0 8px rgba(59,130,246,.35)' }
 
   return (
     <>
@@ -197,7 +201,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
                 { label: `${kpi.breakeven}BE`, bg: 'rgba(255,255,255,.06)', color: 'var(--txt3)' },
                 { label: `${kpi.losses}L`, bg: 'var(--red-d)', color: 'var(--red)' },
               ].map((b, i) => (
-                <span key={i} style={{ fontSize: '9px', fontFamily: 'var(--mono)', padding: '2px 6px', borderRadius: '10px', background: b.bg, color: b.color }}>{b.label}</span>
+                <span key={i} style={{ fontSize: '10px', fontFamily: 'var(--mono)', padding: '2px 6px', borderRadius: '10px', background: b.bg, color: b.color }}>{b.label}</span>
               ))}
             </div>
           }
@@ -209,8 +213,8 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
           value={kpi.avgWinLossRatio.toFixed(2)}
           sub={
             <div style={{ display: 'flex', gap: '6px', marginTop: '3px' }}>
-              <span style={{ fontSize: '9px', fontFamily: 'var(--mono)', padding: '2px 6px', borderRadius: '10px', background: 'var(--ac-d)', color: 'var(--ac)' }}>{fmtPnl(kpi.avgWin)}</span>
-              <span style={{ fontSize: '9px', fontFamily: 'var(--mono)', padding: '2px 6px', borderRadius: '10px', background: 'var(--red-d)', color: 'var(--red)' }}>-${kpi.avgLoss.toFixed(0)}</span>
+              <span style={{ fontSize: '10px', fontFamily: 'var(--mono)', padding: '2px 6px', borderRadius: '10px', background: 'var(--ac-d)', color: 'var(--ac)' }}>{fmtPnl(kpi.avgWin)}</span>
+              <span style={{ fontSize: '10px', fontFamily: 'var(--mono)', padding: '2px 6px', borderRadius: '10px', background: 'var(--red-d)', color: 'var(--red)' }}>-${kpi.avgLoss.toFixed(0)}</span>
             </div>
           }
         />
@@ -243,6 +247,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
           onChange={setStFilter}
           options={[
             { value: 'all', label: 'All' },
+            { value: 'open', label: 'Open' },
             { value: 'win', label: 'Wins' },
             { value: 'loss', label: 'Losses' },
             { value: 'be', label: 'Breakeven' },
@@ -271,10 +276,10 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
         <table className="tbl">
           <thead>
             <tr>
-              <th>Date</th><th>Symbol</th><th>Status</th><th>Side</th><th>Setup</th>
+              <th>Date</th><th>Symbol</th><th>Status</th><th>Side</th>
               <th className="r">Entry</th><th className="r">Exit</th><th className="r">Size</th>
               <th className="r">Net P&L</th><th className="r">ROI</th><th className="r">R</th>
-              <th>Grade</th><th>Tags</th><th></th>
+              <th>Grade</th><th>Setup</th><th>Tags</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -283,7 +288,8 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
             ) : groupedFiltered.map(row => {
               const roi = row.avgEntry && row.totalShares ? (row.totalPnl / (row.avgEntry * row.totalShares)) * 100 : 0
               const rm  = row.totalRisk > 0 ? row.totalPnl / row.totalRisk : null
-              const isW = row.totalPnl > 0, isL = row.totalPnl < 0
+              const isOpen = !(row.lastExit && row.lastExit > 0)
+              const isW = !isOpen && row.totalPnl > 0, isL = !isOpen && row.totalPnl < 0
               const isExpanded = expandedGroups.has(row.key)
               const isActive = !row.isGroup && selected?.id === row.legs[0].id
 
@@ -307,16 +313,16 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
                       )}
                     </div>
                   </td>
-                  <td><span style={isW ? badgeWin : isL ? badgeLoss : badgeBe}>{isW ? 'WIN' : isL ? 'LOSS' : 'BE'}</span></td>
+                  <td><span style={isOpen ? badgeOpen : isW ? badgeWin : isL ? badgeLoss : badgeBe}>{isOpen ? 'OPEN' : isW ? 'WIN' : isL ? 'LOSS' : 'BE'}</span></td>
                   <td style={{ fontSize: '11px' }}>{row.type}</td>
-                  <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{row.setup || '—'}</td>
                   <td className="r" style={{ fontFamily: 'var(--mono)' }}>{row.avgEntry ? `$${row.avgEntry.toFixed(2)}` : ''}</td>
                   <td className="r" style={{ fontFamily: 'var(--mono)' }}>{row.lastExit ? `$${row.lastExit.toFixed(2)}` : '—'}</td>
                   <td className="r" style={{ fontFamily: 'var(--mono)' }}>{row.totalShares || ''}</td>
-                  <td className="r" style={{ fontFamily: 'var(--mono)', color: isW ? 'var(--ac)' : isL ? 'var(--red)' : '', fontWeight: 600 }}>{fmtPnl(row.totalPnl)}</td>
-                  <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px', color: roi >= 0 ? 'var(--ac)' : 'var(--red)' }}>{roi.toFixed(2)}%</td>
-                  <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px' }}>{rm !== null ? `${rm.toFixed(2)}R` : '—'}</td>
+                  <td className="r" style={{ fontFamily: 'var(--mono)', color: isW ? 'var(--ac)' : isL ? 'var(--red)' : '', fontWeight: 600 }}>{isOpen ? '—' : fmtPnl(row.totalPnl)}</td>
+                  <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px', color: roi >= 0 ? 'var(--ac)' : 'var(--red)' }}>{isOpen ? '—' : `${roi.toFixed(2)}%`}</td>
+                  <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px' }}>{isOpen || rm === null ? '—' : `${rm.toFixed(2)}R`}</td>
                   <td style={{ fontSize: '11px' }}>{row.grade || '—'}</td>
+                  <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{row.setup || '—'}</td>
                   <td>{row.tags.map((tag, i) => <span key={i} className="tag">{tag}</span>)}</td>
                   <td>
                     <button className="btn-d" onClick={e => { e.stopPropagation(); handleDeleteGroup(row) }} style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '4px', cursor: 'pointer' }}>✕</button>
@@ -336,11 +342,11 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
                     </td>
                     <td />
                     <td />
-                    <td />
                     <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px', color: 'var(--txt3)' }}>${t.entry.toFixed(2)}</td>
                     <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px' }}>{t.exit ? `$${t.exit.toFixed(2)}` : '—'}</td>
                     <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px' }}>{t.shares}</td>
                     <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px', fontWeight: 600, color: t.pnl > 0 ? 'var(--ac)' : t.pnl < 0 ? 'var(--red)' : '' }}>{fmtPnl(t.pnl)}</td>
+                    <td />
                     <td />
                     <td />
                     <td />
@@ -364,7 +370,8 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
         ) : groupedFiltered.map(row => {
           const roi = row.avgEntry && row.totalShares ? (row.totalPnl / (row.avgEntry * row.totalShares)) * 100 : 0
           const rm  = row.totalRisk > 0 ? row.totalPnl / row.totalRisk : null
-          const isW = row.totalPnl > 0, isL = row.totalPnl < 0
+          const isOpen = !(row.lastExit && row.lastExit > 0)
+          const isW = !isOpen && row.totalPnl > 0, isL = !isOpen && row.totalPnl < 0
           return (
             <div
               key={row.key}
@@ -378,7 +385,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
                     <span style={{ fontWeight: 700, fontFamily: 'var(--mono)', fontSize: '14px' }}>{row.symbol}</span>
-                    <span style={isW ? badgeWin : isL ? badgeLoss : badgeBe}>{isW ? 'WIN' : isL ? 'LOSS' : 'BE'}</span>
+                    <span style={isOpen ? badgeOpen : isW ? badgeWin : isL ? badgeLoss : badgeBe}>{isOpen ? 'OPEN' : isW ? 'WIN' : isL ? 'LOSS' : 'BE'}</span>
                     {row.isGroup && (
                       <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', background: 'var(--bg4)', border: '1px solid var(--brd)', borderRadius: '4px', padding: '1px 6px' }}>
                         {row.legs.length} exits
@@ -388,15 +395,15 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
                   <div style={{ fontSize: '10px', color: 'var(--txt2)' }}><span style={{ fontFamily: 'var(--mono)' }}>{fmtDate(row.date)}</span> · {row.type}{row.setup ? ` · ${row.setup}` : ''}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: '14px', color: isW ? 'var(--ac)' : isL ? 'var(--red)' : 'var(--txt)' }}>{fmtPnl(row.totalPnl)}</div>
-                  <div style={{ fontSize: '10px', color: roi >= 0 ? 'var(--ac)' : 'var(--red)' }}>{roi.toFixed(2)}%</div>
+                  <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: '14px', color: isW ? 'var(--ac)' : isL ? 'var(--red)' : 'var(--txt)' }}>{isOpen ? '—' : fmtPnl(row.totalPnl)}</div>
+                  <div style={{ fontSize: '10px', color: roi >= 0 ? 'var(--ac)' : 'var(--red)' }}>{isOpen ? '' : `${roi.toFixed(2)}%`}</div>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--txt2)', fontFamily: 'var(--mono)' }}>
                 <span>Entry {row.avgEntry ? `$${row.avgEntry.toFixed(2)}` : '—'}</span>
                 <span>Exit {row.lastExit ? `$${row.lastExit.toFixed(2)}` : '—'}</span>
                 <span>{row.totalShares || 0} {assetUnitLabel(row.legs[0]?.asset_type).toLowerCase()}</span>
-                <span>{rm !== null ? `${rm.toFixed(2)}R` : '—'}</span>
+                <span>{isOpen || rm === null ? '—' : `${rm.toFixed(2)}R`}</span>
               </div>
             </div>
           )

@@ -33,10 +33,10 @@ export function DashboardKPIs({ kpi, openCount, openPnl }: Props) {
           valueColor={kpi.netPnl >= 0 ? 'var(--ac)' : 'var(--red)'}
           sub={
             <div style={{ display: 'flex', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: 'var(--ac-d)', color: 'var(--ac)', fontFamily: 'var(--mono)' }}>
+              <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '10px', background: 'var(--ac-d)', color: 'var(--ac)', fontFamily: 'var(--mono)' }}>
                 +${(kpi.wins > 0 ? kpi.avgWin * kpi.wins : 0).toFixed(0)} gross
               </span>
-              <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: 'var(--red-d)', color: 'var(--red)', fontFamily: 'var(--mono)' }}>
+              <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '10px', background: 'var(--red-d)', color: 'var(--red)', fontFamily: 'var(--mono)' }}>
                 -${(kpi.losses > 0 ? kpi.avgLoss * kpi.losses : 0).toFixed(0)} loss
               </span>
             </div>
@@ -53,7 +53,7 @@ export function DashboardKPIs({ kpi, openCount, openPnl }: Props) {
                 { label: `${kpi.breakeven}BE`, bg: 'rgba(255,255,255,.06)', color: 'var(--txt3)' },
                 { label: `${kpi.losses}L`, bg: 'var(--red-d)', color: 'var(--red)' },
               ].map((b, i) => (
-                <span key={i} style={{ fontSize: '9px', fontFamily: 'var(--mono)', padding: '2px 6px', borderRadius: '10px', background: b.bg, color: b.color }}>{b.label}</span>
+                <span key={i} style={{ fontSize: '10px', fontFamily: 'var(--mono)', padding: '2px 6px', borderRadius: '10px', background: b.bg, color: b.color }}>{b.label}</span>
               ))}
             </div>
           }
@@ -65,10 +65,10 @@ export function DashboardKPIs({ kpi, openCount, openPnl }: Props) {
           value={kpi.profitFactor > 0 ? kpi.profitFactor.toFixed(2) : '—'}
           sub={
             <div style={{ display: 'flex', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: 'var(--ac-d)', color: 'var(--ac)', fontFamily: 'var(--mono)' }}>
+              <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '10px', background: 'var(--ac-d)', color: 'var(--ac)', fontFamily: 'var(--mono)' }}>
                 Avg W: +${kpi.avgWin.toFixed(0)}
               </span>
-              <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: 'var(--red-d)', color: 'var(--red)', fontFamily: 'var(--mono)' }}>
+              <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '10px', background: 'var(--red-d)', color: 'var(--red)', fontFamily: 'var(--mono)' }}>
                 Avg L: -${kpi.avgLoss.toFixed(0)}
               </span>
             </div>
@@ -81,7 +81,7 @@ export function DashboardKPIs({ kpi, openCount, openPnl }: Props) {
           value={kpi.avgWinLossRatio > 0 ? kpi.avgWinLossRatio.toFixed(2) : '—'}
           sub={
             openCount > 0
-              ? <div style={{ fontSize: '9px', color: 'var(--txt3)', marginTop: '3px' }}>
+              ? <div style={{ fontSize: '10px', color: 'var(--txt3)', marginTop: '3px' }}>
                   {openCount} open · {openPnl >= 0 ? '+' : ''}${openPnl.toFixed(0)} unrealized
                 </div>
               : undefined

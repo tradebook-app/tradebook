@@ -10,6 +10,7 @@ import { tradeTimeToChartTime } from '@/lib/tradeChartTime'
 type Props = {
   trades: TradeRow[]
   onEdit: (trade: TradeRow) => void
+  onDelete: (id: string) => void
 }
 
 function formatDate(d: Date) {
@@ -401,7 +402,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
   )
 }
 
-export function Journal({ trades, onEdit }: Props) {
+export function Journal({ trades, onEdit, onDelete }: Props) {
   const today = formatDate(new Date())
   const [mode, setMode] = useState<'day' | 'week'>('day')
   const [selectedDate, setSelectedDate] = useState(today)
@@ -470,6 +471,16 @@ export function Journal({ trades, onEdit }: Props) {
     })
   }
 
+  function handleDeleteRow(row: GroupedRow) {
+    const ids = row.legs.map(l => l.id)
+    const msg = ids.length === 1
+      ? 'Delete this trade? This cannot be undone.'
+      : `Delete this trade and all ${ids.length} exits? This cannot be undone.`
+    if (!confirm(msg)) return
+    ids.forEach(id => onDelete(id))
+    setSelectedTrade(null)
+  }
+
   const statStyle = { background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '12px 14px' }
 
   const tradeTable = (tradesToShow: TradeRow[], showDay = false) => {
@@ -490,6 +501,7 @@ export function Journal({ trades, onEdit }: Props) {
               <th className="r">P&L</th>
               <th>Grade</th>
               <th>Setup</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -537,6 +549,9 @@ export function Journal({ trades, onEdit }: Props) {
                   </td>
                   <td>{row.grade ? <span style={{ fontSize: '11px', fontWeight: 700, color: row.grade === 'A' || row.grade === 'A+' ? 'var(--ac)' : row.grade === 'B' ? 'var(--blue)' : row.grade === 'C' ? 'var(--orange)' : 'var(--red)' }}>{row.grade}</span> : '—'}</td>
                   <td style={{ color: 'var(--txt2)', fontSize: '11px' }}>{row.setup || '—'}</td>
+                  <td>
+                    <button className="btn-d" onClick={e => { e.stopPropagation(); handleDeleteRow(row) }} style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '4px', cursor: 'pointer' }}>✕</button>
+                  </td>
                 </tr>
               )
 
@@ -560,6 +575,7 @@ export function Journal({ trades, onEdit }: Props) {
                     <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: t.pnl > 0 ? 'var(--ac)' : t.pnl < 0 ? 'var(--red)' : 'var(--txt3)' }}>
                       {t.pnl >= 0 ? '+' : ''}{t.pnl.toFixed(2)}
                     </td>
+                    <td />
                     <td />
                     <td />
                   </tr>
