@@ -105,7 +105,10 @@ input.fi-pw {
 
 /* ─── Light Theme ────────────────────────────────────────────────────────── */
 [data-theme="light"] {
-  --bg:  #DEDEE6;
+  /* Page frame behind the white cards. Was #DEDEE6 — a heavy ~13% grey that
+     read darker than competitor light themes. Lightened to a soft, airy cool
+     grey that still sits ~11/channel below the #FFFFFF cards so they float. */
+  --bg:  #F4F4F8;
   /* --bg2 and --bg3 are both used app-wide as "the card surface" (~53 vs ~97
      component references, same visual level). They differ by only ~7/channel
      in the dark theme, but were #FFFFFF vs #F7F7FA here — a visible white-vs-
