@@ -1,7 +1,7 @@
 'use client'
 
 import type { TradeRow } from '@/lib/types'
-import { closedTrades, fmtPnl } from '@/lib/analytics'
+import { closedTrades, fmtPnl, normalizeSetupName } from '@/lib/analytics'
 import { VerticalBars } from './VerticalBars'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination } from '@/lib/usePagination'
@@ -14,10 +14,10 @@ export function SetupReport({ trades }: Props) {
   const bySetup: Record<string, { label: string; pnl: number; trades: number; wins: number; losses: number; grossWin: number; grossLoss: number }> = {}
   closed.forEach(t => {
     const raw = (t.setup || 'No Setup').trim()
-    // Group case-insensitively ("Bull Flag" and "Bull flag" are the same
-    // strategy) — otherwise inconsistent capitalization from manual entry
-    // or older trades silently fragments one strategy's stats into two rows.
-    const key = raw.toLowerCase()
+    // Group by a normalized name (case + whitespace folded) so "Bull Flag",
+    // "bull flag" and "Bull  Flag" from manual entry / imports / legacy trades
+    // don't fragment one setup's stats across several rows.
+    const key = normalizeSetupName(raw) || 'no setup'
     if (!bySetup[key]) bySetup[key] = { label: raw, pnl: 0, trades: 0, wins: 0, losses: 0, grossWin: 0, grossLoss: 0 }
     bySetup[key].pnl    += t.pnl
     bySetup[key].trades += 1

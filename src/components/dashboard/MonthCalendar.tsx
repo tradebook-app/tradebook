@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import type { DayStats, TradeRow } from '@/lib/types'
+import { pickBestWorstDay } from '@/lib/analytics'
 
 type Props = { days: DayStats[]; trades: TradeRow[] }
 
@@ -117,8 +118,8 @@ export function MonthCalendar({ days, trades }: Props) {
   const monthDays = days.filter(d => d.date.startsWith(prefix))
   const monthPnl  = monthDays.reduce((s, d) => s + d.pnl, 0)
   const tradedDays = monthDays.filter(d => d.trades > 0)
-  const bestDay  = tradedDays.length ? tradedDays.reduce((a, b) => b.pnl > a.pnl ? b : a) : null
-  const worstDay = tradedDays.length ? tradedDays.reduce((a, b) => b.pnl < a.pnl ? b : a) : null
+  // worst is null with a single traded day so it doesn't just echo best
+  const { best: bestDay, worst: worstDay } = pickBestWorstDay(tradedDays)
 
   const weeks = useMemo(() => {
     const w: Record<number, { pnl: number; days: Set<number> }> = {}

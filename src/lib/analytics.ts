@@ -210,6 +210,15 @@ export function holdTime(entryDate: string, exitDate?: string | null): string {
     : `${days.toFixed(1)} days`
 }
 
+// ─── Setup name normalization ────────────────────────────────────────────────
+// Setup names are free text (manual entry, CSV imports, legacy trades), so the
+// same setup shows up as "Bull Flag", "bull flag", "Bull  Flag", " Bull Flag ".
+// Collapse case and whitespace so those all group as one setup.
+
+export function normalizeSetupName(setup: string | null | undefined): string {
+  return (setup || '').trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
 // ─── Strategy stats ──────────────────────────────────────────────────────────
 // A trade belongs to a strategy if it's tagged with strategy_id, OR — for
 // trades logged before strategies had real linking — its free-text `setup`
@@ -217,12 +226,23 @@ export function holdTime(entryDate: string, exitDate?: string | null): string {
 // without requiring a backfill to run perfectly.
 
 export function tradesForStrategy(trades: TradeRow[], strategy: { id: string; name: string }): TradeRow[] {
-  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ')
-  const nameKey = norm(strategy.name)
+  const nameKey = normalizeSetupName(strategy.name)
   return trades.filter(t =>
     t.strategy_id === strategy.id ||
-    (!t.strategy_id && norm(t.setup || '') === nameKey)
+    (!t.strategy_id && normalizeSetupName(t.setup) === nameKey)
   )
+}
+
+// ─── Best / worst trading day ────────────────────────────────────────────────
+// `worst` is null when it would just repeat `best` — i.e. there is only one
+// traded day, so showing the same figure under both labels reads as a bug.
+
+export function pickBestWorstDay<T extends { pnl: number }>(days: T[]): { best: T | null; worst: T | null } {
+  if (days.length === 0) return { best: null, worst: null }
+  const best = days.reduce((a, b) => (b.pnl > a.pnl ? b : a))
+  if (days.length < 2) return { best, worst: null }
+  const worst = days.reduce((a, b) => (b.pnl < a.pnl ? b : a))
+  return { best, worst }
 }
 
 export function calcStrategyStats(trades: TradeRow[], strategy: { id: string; name: string }): StrategyStats {
