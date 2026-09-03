@@ -24,6 +24,16 @@ function tokensIn(selector: string): Record<string, string> {
   return out
 }
 
+// Follow `var(--x)` references within the same block down to a hex value.
+function resolveToken(block: Record<string, string>, name: string, seen = new Set<string>()): string {
+  if (seen.has(name)) throw new Error(`cyclic token: ${name}`)
+  seen.add(name)
+  const v = block[name]
+  if (v === undefined) throw new Error(`token not found in block: ${name}`)
+  const ref = v.match(/^var\((--[\w-]+)\)$/)
+  return ref ? resolveToken(block, ref[1], seen) : v
+}
+
 describe('globals.css surface tokens', () => {
   const dark = tokensIn(':root {')
   const light = tokensIn('[data-theme="light"] {')
@@ -46,5 +56,19 @@ describe('globals.css surface tokens', () => {
     expect(light['--bg']).not.toBe(light['--bg3'])
     expect(light['--bg4']).not.toBe(light['--bg3'])
     expect(light['--bg5']).not.toBe(light['--bg3'])
+  })
+
+  it('sidebar uses its own token, defined in both themes', () => {
+    expect(dark['--sidebar-bg']).toBeDefined()
+    expect(light['--sidebar-bg']).toBeDefined()
+  })
+
+  it('light: sidebar matches the page frame and is NOT the (white) card surface', () => {
+    expect(resolveToken(light, '--sidebar-bg')).toBe(resolveToken(light, '--bg'))
+    expect(resolveToken(light, '--sidebar-bg')).not.toBe(resolveToken(light, '--bg3'))
+  })
+
+  it('dark: sidebar background is unchanged (the old --bg2 chrome surface)', () => {
+    expect(resolveToken(dark, '--sidebar-bg')).toBe('#131318')
   })
 })

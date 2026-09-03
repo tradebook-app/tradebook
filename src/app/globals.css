@@ -58,6 +58,10 @@ input.fi-pw {
   --bg4: #21212E;
   --bg5: #282836;
 
+  /* Left sidebar / app chrome. Its own token so it can be tuned per theme
+     without moving card backgrounds. Dark: same surface as always (--bg2). */
+  --sidebar-bg: var(--bg2);
+
   --brd:  #252530;
   --brd2: #2E2E3A;
   --brd3: #383848;
@@ -118,6 +122,10 @@ input.fi-pw {
   --bg3: #FFFFFF;
   --bg4: #EEEEF2;
   --bg5: #E2E2EA;
+
+  /* Sidebar merges with the page frame in light mode -- one continuous
+     surface rather than a standout white panel. Cards stay #FFFFFF. */
+  --sidebar-bg: var(--bg);
 
   --brd:  #D2D2DC;
   --brd2: #BFBFCC;
