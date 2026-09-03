@@ -106,8 +106,13 @@ input.fi-pw {
 /* ─── Light Theme ────────────────────────────────────────────────────────── */
 [data-theme="light"] {
   --bg:  #DEDEE6;
+  /* --bg2 and --bg3 are both used app-wide as "the card surface" (~53 vs ~97
+     component references, same visual level). They differ by only ~7/channel
+     in the dark theme, but were #FFFFFF vs #F7F7FA here — a visible white-vs-
+     grey mismatch between cards on different pages. Pinned to one value so
+     every card renders identically in light mode. Dark theme unchanged. */
   --bg2: #FFFFFF;
-  --bg3: #F7F7FA;
+  --bg3: #FFFFFF;
   --bg4: #EEEEF2;
   --bg5: #E2E2EA;
 
