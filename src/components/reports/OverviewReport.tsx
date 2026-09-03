@@ -99,6 +99,10 @@ export function OverviewReport({ trades }: Props) {
     ['Month', bestMo[1] as number, worstMo[1] as number],
   ]
 
+  // Split the metrics into two balanced columns (left takes the extra when odd).
+  const half = Math.ceil(stats.length / 2)
+  const statCols = [stats.slice(0, half), stats.slice(half)]
+
   if (closed.length === 0) {
     return <div style={{ padding: '30px', textAlign: 'center', color: 'var(--txt3)', fontSize: '12px' }}>No closed trades yet.</div>
   }
@@ -123,11 +127,26 @@ export function OverviewReport({ trades }: Props) {
         </div>
       </div>
 
-      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-        {stats.map(([n, v], i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', borderBottom: i < stats.length - 1 ? '1px solid var(--brd)' : 'none', gap: '12px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{n}</span>
-            <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--txt)', whiteSpace: 'nowrap' }}>{v}</span>
+      <style>{`
+        .ov-stats-grid { display: grid; grid-template-columns: 1fr 1fr; }
+        .ov-stats-grid > div:first-child { border-right: 1px solid var(--brd); }
+        .ov-stats-grid > div > div { border-bottom: 1px solid var(--brd); }
+        .ov-stats-grid > div > div:last-child { border-bottom: none; }
+        @media (max-width: 720px) {
+          .ov-stats-grid { grid-template-columns: 1fr; }
+          .ov-stats-grid > div:first-child { border-right: none; }
+          .ov-stats-grid > div:first-child > div:last-child { border-bottom: 1px solid var(--brd); }
+        }
+      `}</style>
+      <div className="ov-stats-grid" style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+        {statCols.map((col, ci) => (
+          <div key={ci}>
+            {col.map(([n, v], i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', gap: '12px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{n}</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--txt)', whiteSpace: 'nowrap' }}>{v}</span>
+              </div>
+            ))}
           </div>
         ))}
       </div>
