@@ -188,6 +188,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
 
   return (
     <>
+      <div className="page-shell">
       {/* KPI Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '12px' }}>
         <MetricCard label="Net P&L" value={fmtPnl(kpi.netPnl, true)} valueColor={kpi.netPnl >= 0 ? 'var(--ac)' : 'var(--red)'} />
@@ -271,8 +272,11 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
         <button onClick={handleDeleteFiltered} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', padding: '0 14px', height: '32px', boxSizing: 'border-box', background: 'rgba(239,68,68,.12)', color: 'var(--red)', border: '1px solid rgba(239,68,68,.25)', borderRadius: '999px', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}>🗑 Delete All</button>
       </div>
 
+      {/* Data list — the only thing that scrolls; KPIs + filters stay pinned.
+          Sticky <thead> pins to the top of .page-scroll as rows scroll. */}
+      <div className="page-scroll">
       {/* Table — desktop/tablet only, see .mobile-trade-cards below for phone */}
-      <div className="desktop-table-wrap" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 320px)' }}>
+      <div className="desktop-table-wrap">
         <table className="tbl">
           <thead>
             <tr>
@@ -408,6 +412,8 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
             </div>
           )
         })}
+      </div>
+      </div>
       </div>
 
       <TradePanel

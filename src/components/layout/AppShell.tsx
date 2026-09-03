@@ -88,7 +88,10 @@ export function AppShell({
               flex: 1,
               overflowY: 'auto',
               overflowX: 'hidden',
-              padding: '18px 18px 80px',
+              // 18px all round on desktop so fixed-height page scrollers
+              // (.page-shell) fill the viewport; mobile restores bottom
+              // clearance for the fixed nav via globals.css.
+              padding: '18px',
             }}
           >
             {children}
