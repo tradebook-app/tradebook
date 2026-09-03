@@ -2,11 +2,17 @@
 
 import type { TradeRow } from '@/lib/types'
 import { closedTrades } from '@/lib/analytics'
+import { Pagination } from '@/components/ui/Pagination'
+import { usePagination } from '@/lib/usePagination'
 
 type Props = { trades: TradeRow[] }
 
 export function RiskReport({ trades }: Props) {
   const closed = closedTrades(trades).filter(t => t.risk > 0)
+
+  const sortedByR = [...closed].sort((a, b) => (b.pnl / b.risk) - (a.pnl / a.risk))
+  const pg = usePagination(sortedByR.length, 'sleek-rpt-risk')
+  const pageRisk = sortedByR.slice(pg.start, pg.end)
 
   if (!closed.length) {
     return (
@@ -142,7 +148,7 @@ export function RiskReport({ trades }: Props) {
               </tr>
             </thead>
             <tbody>
-              {closed.sort((a, b) => (b.pnl / b.risk) - (a.pnl / a.risk)).map((t, i) => {
+              {pageRisk.map((t, i) => {
                 const rm = t.pnl / t.risk
                 return (
                   <tr key={i}>
@@ -156,6 +162,7 @@ export function RiskReport({ trades }: Props) {
             </tbody>
           </table>
         </div>
+        <div style={{ padding: '0 18px 4px' }}><Pagination pg={pg} itemLabel="trades" /></div>
       </div>
     </div>
   )

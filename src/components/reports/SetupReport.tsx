@@ -3,6 +3,8 @@
 import type { TradeRow } from '@/lib/types'
 import { closedTrades, fmtPnl } from '@/lib/analytics'
 import { VerticalBars } from './VerticalBars'
+import { Pagination } from '@/components/ui/Pagination'
+import { usePagination } from '@/lib/usePagination'
 
 type Props = { trades: TradeRow[] }
 
@@ -26,6 +28,9 @@ export function SetupReport({ trades }: Props) {
   const rows = Object.entries(bySetup)
     .map(([, s]) => ({ setup: s.label, ...s, wr: s.trades ? (s.wins / s.trades) * 100 : 0, pf: s.grossLoss < 0 ? s.grossWin / Math.abs(s.grossLoss) : s.grossWin }))
     .sort((a, b) => b.pnl - a.pnl)
+
+  const pg = usePagination(rows.length, 'sleek-rpt-setups')
+  const pageRows = rows.slice(pg.start, pg.end)
 
   if (!rows.length) {
     return (
@@ -64,7 +69,7 @@ export function SetupReport({ trades }: Props) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r, i) => (
+              {pageRows.map((r, i) => (
                 <tr key={i}>
                   <td style={{ padding: '8px 12px', fontSize: '11px', fontWeight: 600, borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>{r.setup}</td>
                   <td style={{ padding: '8px 12px', fontSize: '11px', borderBottom: '1px solid var(--brd)' }}>{r.trades}</td>
@@ -80,6 +85,7 @@ export function SetupReport({ trades }: Props) {
             </tbody>
           </table>
         </div>
+        <div style={{ padding: '0 18px 4px' }}><Pagination pg={pg} itemLabel="setups" /></div>
       </div>
     </div>
   )
