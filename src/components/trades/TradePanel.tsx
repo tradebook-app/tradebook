@@ -16,14 +16,16 @@ type Props = {
   onEdit: (trade: TradeRow) => void
   onDelete: (id: string) => void
   onNavigate: (trade: TradeRow) => void
+  onRemoveScreenshot: (tradeId: string, path: string) => Promise<void>
 }
 
 type Tab = 'chart' | 'stats' | 'notes' | 'screenshot' | 'tags'
 type ChartTimeframe = '15min' | '1h' | '1day'
 
-export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigate }: Props) {
+export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigate, onRemoveScreenshot }: Props) {
   const [tab, setTab] = useState<Tab>('stats')
-  const [screenshotUrls, setScreenshotUrls] = useState<string[]>([])
+  const [screenshots, setScreenshots] = useState<{ path: string; url: string }[]>([])
+  const [removingShot, setRemovingShot] = useState<string | null>(null)
   const [candles, setCandles] = useState<Candle[]>([])
   const [chartLoading, setChartLoading] = useState(false)
   const [chartError, setChartError] = useState<string | null>(null)
@@ -36,10 +38,10 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
     const paths = trade?.screenshot_urls?.length
       ? trade.screenshot_urls
       : (trade?.screenshot_url ? [trade.screenshot_url] : [])
-    setScreenshotUrls([])
+    setScreenshots([])
     if (paths.length) {
-      Promise.all(paths.map(getScreenshotUrl))
-        .then(urls => setScreenshotUrls(urls.filter((u): u is string => !!u)))
+      Promise.all(paths.map(async p => ({ path: p, url: await getScreenshotUrl(p) })))
+        .then(rows => setScreenshots(rows.filter((r): r is { path: string; url: string } => !!r.url)))
     }
     setTab('stats')
     setCandles([])
@@ -147,6 +149,22 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
     }
     return result
   }, [trade, chartInterval])
+
+  async function handleRemoveShot(path: string) {
+    if (!trade) return
+    if (!confirm('Remove this screenshot? This cannot be undone.')) return
+    setRemovingShot(path)
+    const snapshot = screenshots
+    setScreenshots(prev => prev.filter(s => s.path !== path))   // optimistic
+    try {
+      await onRemoveScreenshot(trade.id, path)
+    } catch {
+      setScreenshots(snapshot)   // restore on failure
+      alert('Could not remove the screenshot — try again.')
+    } finally {
+      setRemovingShot(null)
+    }
+  }
 
   if (!trade) return null
 
@@ -324,10 +342,20 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
           </div>
         ))}
         {tab === 'notes' && (trade.notes ? <div style={{ fontSize: '12px', lineHeight: 1.7, whiteSpace: 'pre-line' }}>{trade.notes}</div> : <div style={{ color: 'var(--txt3)', fontSize: '11px' }}>No notes. Click Edit to add.</div>)}
-        {tab === 'screenshot' && (screenshotUrls.length
-          ? <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {screenshotUrls.map((url, i) => (
-                <img key={i} src={url} style={{ width: '100%', borderRadius: 'var(--r)', border: '1px solid var(--brd)', cursor: 'pointer' }} onClick={() => window.open(url, '_blank')} />
+        {tab === 'screenshot' && (screenshots.length
+          ? <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {screenshots.map(({ path, url }, i) => (
+                <div key={path} style={{ position: 'relative' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
+                    <span style={{ fontSize: '9px', color: 'var(--txt3)', fontFamily: 'var(--mono)' }}>{i + 1} / {screenshots.length}</span>
+                    <button
+                      onClick={() => handleRemoveShot(path)}
+                      disabled={removingShot === path}
+                      style={{ fontSize: '10px', fontWeight: 600, color: 'var(--red)', background: 'var(--red-d)', border: '1px solid rgba(239,68,68,.25)', borderRadius: '5px', padding: '3px 9px', cursor: removingShot === path ? 'wait' : 'pointer' }}
+                    >{removingShot === path ? 'Removing…' : '✕ Remove'}</button>
+                  </div>
+                  <img src={url} style={{ width: '100%', borderRadius: 'var(--r)', border: '1px solid var(--brd)', cursor: 'zoom-in' }} onClick={() => window.open(url, '_blank')} />
+                </div>
               ))}
             </div>
           : <div style={{ color: 'var(--txt3)', fontSize: '11px' }}>No screenshots attached.</div>)}
