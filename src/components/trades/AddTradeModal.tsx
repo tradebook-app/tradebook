@@ -6,6 +6,7 @@ import type { TradeRow, StrategyRow } from '@/lib/types'
 import { ASSET_TYPES, assetUnitLabel } from '@/lib/types'
 import { OPTION_MULTIPLIER, futuresPointValue } from '@/lib/contractMultiplier'
 import { insertStrategy } from '@/lib/strategyService'
+import { computeTradePnl } from '@/lib/analytics'
 import { shouldPopulateForm } from '@/lib/tradeFormInit'
 import { useAccounts } from '@/components/AccountProvider'
 
@@ -95,7 +96,17 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
       setExit(editTrade.exit ? String(editTrade.exit) : '')
       setShares(editTrade.shares ? String(editTrade.shares) : '')
       setAssetType(editTrade.asset_type || 'stock')
-      setPnlOver(String(editTrade.pnl))
+      // Only pre-fill the P&L *override* field when the stored value is a
+      // genuine manual override — i.e. it can't be derived from the fills, or
+      // it's a non-zero value that disagrees with them. A stored 0 that the
+      // fills contradict is a data error, not an override: leave the field
+      // blank so it recomputes from entry / exit / shares on save.
+      {
+        const computed = computeTradePnl(editTrade)
+        const keepOverride = computed == null
+          || (editTrade.pnl !== 0 && Math.abs(editTrade.pnl - computed) > 0.01)
+        setPnlOver(keepOverride ? String(editTrade.pnl) : '')
+      }
       setRisk(editTrade.risk ? String(editTrade.risk) : '')
       setCommission(editTrade.commission ? String(editTrade.commission) : '')
       if (editTrade.strategy_id) {
