@@ -22,7 +22,8 @@ export type TradeRow = {
   grade: string | null
   tags: string[]
   notes: string | null
-  screenshot_url: string | null
+  screenshot_url: string | null       // legacy mirror of screenshot_urls[0]
+  screenshot_urls: string[]           // all chart screenshots (storage paths)
   strategy_id: string | null
   account_id: string | null
   trade_group_id: string | null
@@ -123,9 +124,10 @@ export type StrategyRuleGroupWithRules = StrategyRuleGroupRow & {
 
 // ─── Insert Types (omit auto-generated fields) ───────────────────────────────
 
-export type TradeInsert = Omit<TradeRow, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'strategy_id' | 'account_id'> & {
+export type TradeInsert = Omit<TradeRow, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'strategy_id' | 'account_id' | 'screenshot_urls'> & {
   strategy_id?: string | null
   account_id?: string | null
+  screenshot_urls?: string[]   // DB defaults to '{}'
 }
 export type NoteInsert  = Omit<NoteRow,  'id' | 'user_id' | 'created_at' | 'updated_at'>
 export type StrategyInsert = Omit<StrategyRow, 'id' | 'user_id' | 'created_at' | 'updated_at'>

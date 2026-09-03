@@ -9,7 +9,7 @@ import { fetchStrategies } from '@/lib/strategyService'
 import type { TradeRow, DateRangeFilter, StrategyRow } from '@/lib/types'
 import {
   fetchTrades, insertTrade, updateTrade,
-  deleteTrade, deleteTrades, uploadScreenshot,
+  deleteTrade, deleteTrades, uploadScreenshots, deleteScreenshots,
 } from '@/lib/tradeService'
 import { usePathname } from 'next/navigation'
 import { BrokerImport } from '@/components/import/BrokerImport'
@@ -216,12 +216,22 @@ export function AppProvider({ userId, userEmail }: Props) {
   function openAdd() { setEditTrade(null); setModalOpen(true); fetchStrategies().then(setStrategyList) }
   function openEdit(trade: TradeRow) { setEditTrade(trade); setModalOpen(true); fetchStrategies().then(setStrategyList) }
 
-  async function handleSave(payload: TradeFormPayload, screenshotFile: File | null) {
-    let screenshotUrl: string | null = editTrade?.screenshot_url || null
-    if (screenshotFile) screenshotUrl = await uploadScreenshot(screenshotFile, userId)
+  async function handleSave(payload: TradeFormPayload, newScreenshots: File[]) {
+    // payload.screenshot_urls = the existing screenshots the user kept.
+    const kept = payload.screenshot_urls ?? []
+    const uploaded = newScreenshots.length ? await uploadScreenshots(newScreenshots, userId) : []
+    const screenshot_urls = [...kept, ...uploaded]
+
+    // Clean up screenshots the user removed from an existing trade.
+    if (editTrade?.screenshot_urls?.length) {
+      const removed = editTrade.screenshot_urls.filter(p => !kept.includes(p))
+      if (removed.length) deleteScreenshots(removed)  // fire and forget
+    }
+
     const tradeData = {
       ...payload,
-      screenshot_url: screenshotUrl,
+      screenshot_urls,
+      screenshot_url: screenshot_urls[0] ?? null,   // keep the legacy column in sync
       trade_group_id: editTrade ? editTrade.trade_group_id : null,
     }
     if (editTrade) {

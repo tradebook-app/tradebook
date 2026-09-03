@@ -19,6 +19,30 @@ export async function uploadScreenshot(
   return path
 }
 
+// Upload several screenshots at once; returns the paths that succeeded, in order.
+export async function uploadScreenshots(files: File[], userId: string): Promise<string[]> {
+  const results = await Promise.all(files.map(f => uploadScreenshot(f, userId)))
+  return results.filter((p): p is string => !!p)
+}
+
+// Remove screenshots from storage (best effort — a failure here shouldn't block
+// saving the trade).
+export async function deleteScreenshots(paths: string[]): Promise<void> {
+  if (!paths.length) return
+  const supabase = createClient()
+  const { error } = await supabase.storage.from('screenshots').remove(paths)
+  if (error) console.error('Delete screenshots error:', error)
+}
+
+// screenshot_urls is authoritative; fall back to the legacy single column, and
+// always keep screenshot_url mirroring the first entry.
+function normalizeShots<T extends { screenshot_url: string | null; screenshot_urls?: string[] | null }>(t: T): T {
+  const urls = (t.screenshot_urls && t.screenshot_urls.length)
+    ? t.screenshot_urls
+    : (t.screenshot_url ? [t.screenshot_url] : [])
+  return { ...t, screenshot_urls: urls, screenshot_url: urls[0] ?? null }
+}
+
 // Get signed URL for a screenshot path
 export async function getScreenshotUrl(path: string): Promise<string | null> {
   const supabase = createClient()
@@ -40,7 +64,7 @@ export async function fetchTrades(): Promise<TradeRow[]> {
   // Heal rows whose stored pnl is a wrong 0 (bad import / stale override) so
   // every consumer sees the correct figure. Non-destructive — the DB row is
   // only rewritten on the next real save.
-  return (data || []).map(t => ({ ...t, pnl: effectivePnl(t) }))
+  return (data || []).map(t => normalizeShots({ ...t, pnl: effectivePnl(t) }))
 }
 
 // Insert a new trade
@@ -56,7 +80,7 @@ export async function insertTrade(
     .single()
 
   if (error) { console.error('Insert trade error:', error); return null }
-  return data ? { ...data, pnl: effectivePnl(data) } : null
+  return data ? normalizeShots({ ...data, pnl: effectivePnl(data) }) : null
 }
 
 // Update an existing trade
@@ -73,7 +97,7 @@ export async function updateTrade(
     .single()
 
   if (error) { console.error('Update trade error:', error); return null }
-  return data ? { ...data, pnl: effectivePnl(data) } : null
+  return data ? normalizeShots({ ...data, pnl: effectivePnl(data) }) : null
 }
 
 // Delete a trade

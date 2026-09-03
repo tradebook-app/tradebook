@@ -6,6 +6,7 @@ import { assetUnitLabel } from '@/lib/types'
 import TradeChart, { Candle, TradeMarker } from '@/components/charts/TradeChart'
 import { underlyingFromOptionSymbol } from '@/lib/contractMultiplier'
 import { tradeTimeToChartTime } from '@/lib/tradeChartTime'
+import { getScreenshotUrl } from '@/lib/tradeService'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination } from '@/lib/usePagination'
 
@@ -180,6 +181,19 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
   const [chartError, setChartError] = useState<string | null>(null)
   const [chartInterval, setChartInterval] = useState<string>('15min')
   const [selectedTimeframe, setSelectedTimeframe] = useState<ChartTimeframe>('15min')
+  const [shotUrls, setShotUrls] = useState<string[]>([])
+
+  const shotPaths = trade.screenshot_urls?.length
+    ? trade.screenshot_urls
+    : (trade.screenshot_url ? [trade.screenshot_url] : [])
+
+  useEffect(() => {
+    setShotUrls([])
+    if (shotPaths.length) {
+      Promise.all(shotPaths.map(getScreenshotUrl))
+        .then(urls => setShotUrls(urls.filter((u): u is string => !!u)))
+    }
+  }, [trade.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -379,10 +393,12 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
                 <div style={{ fontSize: '11px', color: 'var(--txt2)', lineHeight: 1.6 }}>{trade.notes}</div>
               </div>
             )}
-            {trade.screenshot_url && (
-              <div style={{ padding: '12px 16px' }}>
-                <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '8px' }}>Screenshot</div>
-                <img src={trade.screenshot_url} alt="Trade screenshot" style={{ width: '100%', borderRadius: '6px', border: '1px solid var(--brd)' }} />
+            {shotUrls.length > 0 && (
+              <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Screenshot{shotUrls.length > 1 ? 's' : ''}</div>
+                {shotUrls.map((url, i) => (
+                  <img key={i} src={url} alt="Trade screenshot" style={{ width: '100%', borderRadius: '6px', border: '1px solid var(--brd)', cursor: 'zoom-in' }} onClick={() => window.open(url, '_blank')} />
+                ))}
               </div>
             )}
           </>
