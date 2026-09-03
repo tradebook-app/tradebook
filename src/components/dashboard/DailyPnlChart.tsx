@@ -59,12 +59,12 @@ export function DailyPnlChart({ days }: Props) {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: tc.tick, font: { size: 9 }, maxTicksLimit: 14 },
+            ticks: { color: tc.tick, font: { size: 11 }, maxTicksLimit: 14 },
           },
           y: {
             grid: { color: tc.grid },
             ticks: {
-              color: tc.tick, font: { size: 9 },
+              color: tc.tick, font: { size: 11 },
               callback: v => `$${Number(v).toFixed(0)}`,
             },
           },

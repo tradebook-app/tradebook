@@ -13,7 +13,7 @@ function Gauge({ pct, color }: GaugeProps) {
   const fill = arcLen * (p / 100)
 
   return (
-    <svg width="55" height="38" viewBox="0 0 56 38" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+    <svg width="56" height="38" viewBox="0 0 56 38" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
       <path d="M8,30 A20,20 0 0,1 48,30" fill="none" stroke="var(--brd3)" strokeWidth="5" strokeLinecap="round" />
       {p > 0 && (
         <path
@@ -54,7 +54,7 @@ function WinLossBar({ avgWin, avgLoss }: WinLossBarProps) {
         <div style={{ width: `${winPct}%`, background: 'var(--ac)' }} />
         <div style={{ width: `${lossPct}%`, background: 'var(--red)' }} />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontFamily: 'var(--mono)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontFamily: 'var(--mono)' }}>
         <span style={{ color: 'var(--ac)' }}>+${win.toFixed(0)}</span>
         <span style={{ color: 'var(--red)' }}>-${loss.toFixed(0)}</span>
       </div>
@@ -77,9 +77,9 @@ function InfoTooltip({ text }: InfoTooltipProps) {
     >
       <span style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: '13px', height: '13px', borderRadius: '50%',
+        width: '14px', height: '14px', borderRadius: '50%',
         border: '1.5px solid var(--txt3)', color: 'var(--txt3)',
-        fontSize: '8px', fontWeight: 700, cursor: 'default',
+        fontSize: '9px', fontWeight: 700, cursor: 'default',
       }}>i</span>
       {open && (
         <div style={{
@@ -90,10 +90,10 @@ function InfoTooltip({ text }: InfoTooltipProps) {
           background: 'var(--bg4)',
           border: '1px solid var(--brd)',
           borderRadius: '6px',
-          padding: '6px 10px',
-          fontSize: '10px',
+          padding: '7px 10px',
+          fontSize: '11px',
           fontWeight: 400,
-          lineHeight: 1.4,
+          lineHeight: 1.45,
           color: 'var(--txt)',
           whiteSpace: 'normal',
           boxShadow: '0 4px 12px rgba(0,0,0,.35)',
@@ -130,7 +130,7 @@ export function MetricCard({ label, value, valueColor, sub, gauge, winLossBar, t
       minHeight: '80px',
     }}>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: '10px', color: 'var(--txt2)', marginBottom: '2px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--txt2)', marginBottom: '3px' }}>
           {label}
           {tooltip && <InfoTooltip text={tooltip} />}
         </div>

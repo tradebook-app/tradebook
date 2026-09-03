@@ -141,7 +141,7 @@ function AppInner({
     if (pathname === '/scanner')      return <GatedScanner />
     if (pathname === '/trades')       return <TradeView trades={scopedTrades} filter={filter} onFilterChange={setFilter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} />
     if (pathname === '/dashboard')    return <DashboardWithBanner trades={scopedTrades} filter={filter} onEdit={openEdit} onDelete={handleDelete} userId={userId} onReload={reloadTrades} />
-    if (pathname === '/journal')      return <Journal trades={scopedTrades} onEdit={openEdit} />
+    if (pathname === '/journal')      return <Journal trades={scopedTrades} onEdit={openEdit} onDelete={handleDelete} />
     if (pathname === '/reports')      return <GatedReports trades={scopedTrades} filter={filter} />
     if (pathname === '/position-size')return <PositionSize />
     if (pathname === '/strategies')   return <GatedStrategies userId={userId} trades={trades} />
