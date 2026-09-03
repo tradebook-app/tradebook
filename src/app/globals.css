@@ -67,20 +67,24 @@ input.fi-pw {
   --ac-d:  rgba(16,185,129,.12);
   --ac-d2: rgba(16,185,129,.06);
 
-  --red:   #EF4444;
+  /* --red / --blue / --txt2..4 raised for WCAG AA contrast on the dark
+     surfaces (audit 2026-09-03). Old dark values, for reference:
+     --red #EF4444  --blue #3B82F6  --txt2 #9999AA  --txt3 #606070  --txt4 #44444F.
+     The light theme below keeps its own (already-compliant) values. */
+  --red:   #F56565;
   --red2:  #F87171;
   --red-d: rgba(239,68,68,.10);
 
-  --blue:   #3B82F6;
+  --blue:   #60A5FA;
   --blue-d: rgba(59,130,246,.10);
 
   --orange:   #F59E0B;
   --orange-d: rgba(245,158,11,.10);
 
   --txt:  #F1F1F3;
-  --txt2: #9999AA;
-  --txt3: #606070;
-  --txt4: #44444F;
+  --txt2: #ABABBD;
+  --txt3: #8A8A9C;
+  --txt4: #6C6C7C;
 
   /* Bar chart fills (Reports: Day&Time, Symbols, Setups, Risk). TradeZella's
      light-mode bars are solid/saturated, not pale — same idea here, values
@@ -273,11 +277,13 @@ input[type='number'] {
   .tbl tr:hover td { background: rgba(255,255,255,.02); }
 
   .badge { font-size: 9px; font-weight: 800; padding: 3px 10px; border-radius: 20px; display: inline-block; letter-spacing: .04em; }
-  .badge-win  { background: rgba(16,185,129,.18); color: #10B981; border: 1px solid rgba(16,185,129,.35); text-shadow: 0 0 8px rgba(16,185,129,.4); }
-  .badge-loss { background: rgba(239,68,68,.18);  color: #EF4444; border: 1px solid rgba(239,68,68,.35);  text-shadow: 0 0 8px rgba(239,68,68,.4); }
-  .badge-be   { background: rgba(245,158,11,.15); color: #F59E0B; border: 1px solid rgba(245,158,11,.3);  text-shadow: 0 0 8px rgba(245,158,11,.3); }
-  .badge-long  { background: rgba(16,185,129,.18); color: #10B981; border: 1px solid rgba(16,185,129,.35); }
-  .badge-short { background: rgba(239,68,68,.18);  color: #EF4444; border: 1px solid rgba(239,68,68,.35); }
+  /* colour tracks the status tokens (not a hardcoded hex) so it inherits the
+     contrast-raised --red and stays theme-correct in light mode */
+  .badge-win  { background: rgba(16,185,129,.18); color: var(--ac);     border: 1px solid rgba(16,185,129,.35); text-shadow: 0 0 8px rgba(16,185,129,.4); }
+  .badge-loss { background: rgba(239,68,68,.18);  color: var(--red);    border: 1px solid rgba(239,68,68,.35);  text-shadow: 0 0 8px rgba(239,68,68,.4); }
+  .badge-be   { background: rgba(245,158,11,.15); color: var(--orange); border: 1px solid rgba(245,158,11,.3);  text-shadow: 0 0 8px rgba(245,158,11,.3); }
+  .badge-long  { background: rgba(16,185,129,.18); color: var(--ac);  border: 1px solid rgba(16,185,129,.35); }
+  .badge-short { background: rgba(239,68,68,.18);  color: var(--red); border: 1px solid rgba(239,68,68,.35); }
 
   .tag {
     font-size: 9px; padding: 1px 6px; border-radius: 3px;
