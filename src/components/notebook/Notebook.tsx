@@ -105,8 +105,8 @@ export function Notebook({ userId, onEdit }: Props) {
   // actually put the card here in the first place (see tradeCards filter
   // below). The trade and its P&L stay intact.
   async function handleDeleteTradeNote(t: TradeRow) {
-    if (!confirm('Remove this note and screenshot from the trade? The trade itself will not be deleted.')) return
-    const updated = await updateTrade(t.id, { notes: null, screenshot_url: null })
+    if (!confirm('Remove this note and its screenshots from the trade? The trade itself will not be deleted.')) return
+    const updated = await updateTrade(t.id, { notes: null, screenshot_url: null, screenshot_urls: [] })
     if (updated) setTrades(prev => prev.map(tr => tr.id === t.id ? updated : tr))
   }
 

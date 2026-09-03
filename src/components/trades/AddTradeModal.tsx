@@ -6,6 +6,7 @@ import type { TradeRow, StrategyRow } from '@/lib/types'
 import { ASSET_TYPES, assetUnitLabel } from '@/lib/types'
 import { OPTION_MULTIPLIER, futuresPointValue } from '@/lib/contractMultiplier'
 import { insertStrategy } from '@/lib/strategyService'
+import { getScreenshotUrl } from '@/lib/tradeService'
 import { computeTradePnl } from '@/lib/analytics'
 import { shouldPopulateForm } from '@/lib/tradeFormInit'
 import { useAccounts } from '@/components/AccountProvider'
@@ -13,7 +14,7 @@ import { useAccounts } from '@/components/AccountProvider'
 type Props = {
   open: boolean
   onClose: () => void
-  onSave: (data: TradeFormPayload, screenshotFile: File | null) => Promise<void>
+  onSave: (data: TradeFormPayload, newScreenshots: File[]) => Promise<void>
   editTrade?: TradeRow | null
   strategies: StrategyRow[]
   userId: string
@@ -38,6 +39,7 @@ export type TradeFormPayload = {
   grade: string | null
   tags: string[]
   notes: string | null
+  screenshot_urls: string[]   // existing screenshots kept by the user
 }
 
 const GRADES = ['A+', 'A', 'A-', 'B', 'C']
@@ -69,8 +71,12 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
   const [tags,       setTags]       = useState<string[]>([])
   const [tagInput,   setTagInput]   = useState('')
   const [notes,      setNotes]      = useState('')
-  const [imgPreview, setImgPreview] = useState<string | null>(null)
-  const [imgFile,    setImgFile]    = useState<File | null>(null)
+  // Screenshots: `keptShots` are storage paths already on the trade; `newFiles`
+  // are freshly picked File objects with matching data-URL previews.
+  const [keptShots,  setKeptShots]  = useState<string[]>([])
+  const [shotUrls,   setShotUrls]   = useState<Record<string, string>>({})
+  const [newFiles,   setNewFiles]   = useState<File[]>([])
+  const [newPreviews, setNewPreviews] = useState<string[]>([])
   const [saving,     setSaving]     = useState(false)
 
   const symRef = useRef<HTMLInputElement>(null)
@@ -123,12 +129,24 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
       setGrade(editTrade.grade || '')
       setTags(editTrade.tags || [])
       setNotes(editTrade.notes || '')
-      setImgPreview(null)
-      setImgFile(null)
+      setKeptShots(editTrade.screenshot_urls?.length
+        ? editTrade.screenshot_urls
+        : (editTrade.screenshot_url ? [editTrade.screenshot_url] : []))
+      setNewFiles([])
+      setNewPreviews([])
     } else {
       resetForm()
     }
   }, [editTrade, open, strategies])
+
+  // Signed URLs for the screenshots already on the trade.
+  useEffect(() => {
+    keptShots.forEach(path => {
+      if (!shotUrls[path]) {
+        getScreenshotUrl(path).then(url => { if (url) setShotUrls(prev => ({ ...prev, [path]: url })) })
+      }
+    })
+  }, [keptShots]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // If the trade carried a legacy free-text setup and its matching strategy
   // only finished loading after the form was populated, link them up. This
@@ -171,7 +189,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
     setStrategyId(''); setLegacySetup(null); setGrade(''); setTags([]); setTagInput('')
     setAccountId(accounts.find(a => a.is_default)?.id || accounts[0]?.id || '')
     setCreatingStrategy(false); setNewStrategyName('')
-    setNotes(''); setImgPreview(null); setImgFile(null)
+    setNotes(''); setKeptShots([]); setNewFiles([]); setNewPreviews([])
   }
 
   function handleClose() {
@@ -217,12 +235,23 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
   }
 
   function handleImgChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    setImgFile(f)
-    const reader = new FileReader()
-    reader.onload = ev => setImgPreview(ev.target?.result as string)
-    reader.readAsDataURL(f)
+    const files = Array.from(e.target.files || [])
+    e.target.value = ''  // let the same file be re-picked later
+    if (!files.length) return
+    setNewFiles(prev => [...prev, ...files])
+    files.forEach(f => {
+      const reader = new FileReader()
+      reader.onload = ev => setNewPreviews(prev => [...prev, ev.target?.result as string])
+      reader.readAsDataURL(f)
+    })
+  }
+
+  function removeKeptShot(path: string) {
+    setKeptShots(prev => prev.filter(p => p !== path))
+  }
+  function removeNewFile(i: number) {
+    setNewFiles(prev => prev.filter((_, idx) => idx !== i))
+    setNewPreviews(prev => prev.filter((_, idx) => idx !== i))
   }
 
   // Calculate P&L from entry/exit/shares if not overridden
@@ -264,14 +293,22 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
       grade:      grade || null,
       tags,
       notes:      notes || null,
+      screenshot_urls: keptShots,
     }
 
-    await onSave(payload, imgFile)
+    await onSave(payload, newFiles)
     setSaving(false)
     handleClose()
   }
 
   const fg: React.CSSProperties = { marginBottom: '12px' }
+  const ssRemoveBtn: React.CSSProperties = {
+    position: 'absolute', top: '-6px', right: '-6px',
+    width: '18px', height: '18px', borderRadius: '50%',
+    background: 'var(--red)', color: '#fff', border: '2px solid var(--bg2)',
+    fontSize: '9px', lineHeight: 1, cursor: 'pointer', display: 'flex',
+    alignItems: 'center', justifyContent: 'center', padding: 0,
+  }
   const lbl: React.CSSProperties = {
     display: 'block', fontSize: '9px', fontWeight: 600,
     color: 'var(--txt3)', textTransform: 'uppercase',
@@ -597,21 +634,32 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
         />
       </div>
 
-      {/* Screenshot */}
+      {/* Screenshots */}
       <div style={fg}>
-        <label style={lbl}>Trade Screenshot</label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <label style={lbl}>Trade Screenshots</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+          {keptShots.map(path => (
+            <div key={path} style={{ position: 'relative' }}>
+              {shotUrls[path]
+                ? <img src={shotUrls[path]} alt="Trade screenshot" style={{ height: '52px', width: '78px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--brd)' }} />
+                : <div style={{ height: '52px', width: '78px', borderRadius: '4px', border: '1px solid var(--brd)', background: 'var(--bg4)' }} />}
+              <button type="button" onClick={() => removeKeptShot(path)} aria-label="Remove screenshot"
+                style={ssRemoveBtn}>✕</button>
+            </div>
+          ))}
+          {newPreviews.map((src, i) => (
+            <div key={`new-${i}`} style={{ position: 'relative' }}>
+              <img src={src} alt="New screenshot" style={{ height: '52px', width: '78px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--ac)' }} />
+              <button type="button" onClick={() => removeNewFile(i)} aria-label="Remove screenshot"
+                style={ssRemoveBtn}>✕</button>
+            </div>
+          ))}
           <label className="btn btn-o" style={{ cursor: 'pointer' }}>
-            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImgChange} />
-            📷 Upload Chart
+            <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleImgChange} />
+            📷 Add {keptShots.length + newPreviews.length > 0 ? 'another' : 'chart'}
           </label>
-          {imgPreview && (
-            <img src={imgPreview} style={{ height: '40px', borderRadius: '4px', border: '1px solid var(--brd)' }} />
-          )}
-          {!imgPreview && editTrade?.screenshot_url && (
-            <span style={{ fontSize: '10px', color: 'var(--ac)' }}>✓ Screenshot saved</span>
-          )}
         </div>
+        <div style={{ fontSize: '9px', color: 'var(--txt3)', marginTop: '4px' }}>Add as many as you like — e.g. entry chart + exit chart.</div>
       </div>
 
       {/* P&L Preview */}

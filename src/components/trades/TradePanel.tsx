@@ -23,7 +23,7 @@ type ChartTimeframe = '15min' | '1h' | '1day'
 
 export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigate }: Props) {
   const [tab, setTab] = useState<Tab>('stats')
-  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
+  const [screenshotUrls, setScreenshotUrls] = useState<string[]>([])
   const [candles, setCandles] = useState<Candle[]>([])
   const [chartLoading, setChartLoading] = useState(false)
   const [chartError, setChartError] = useState<string | null>(null)
@@ -33,10 +33,13 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
   const currentIndex = trade ? trades.findIndex(t => t.id === trade.id) : -1
 
   useEffect(() => {
-    if (trade?.screenshot_url) {
-      getScreenshotUrl(trade.screenshot_url).then(setScreenshotUrl)
-    } else {
-      setScreenshotUrl(null)
+    const paths = trade?.screenshot_urls?.length
+      ? trade.screenshot_urls
+      : (trade?.screenshot_url ? [trade.screenshot_url] : [])
+    setScreenshotUrls([])
+    if (paths.length) {
+      Promise.all(paths.map(getScreenshotUrl))
+        .then(urls => setScreenshotUrls(urls.filter((u): u is string => !!u)))
     }
     setTab('stats')
     setCandles([])
@@ -161,7 +164,7 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
     { key: 'chart',      label: 'Chart' },
     { key: 'stats',      label: 'Stats' },
     { key: 'notes',      label: 'Notes' },
-    { key: 'screenshot', label: 'Screenshot' },
+    { key: 'screenshot', label: 'Screenshots' },
     { key: 'tags',       label: 'Tags' },
   ]
 
@@ -321,7 +324,13 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
           </div>
         ))}
         {tab === 'notes' && (trade.notes ? <div style={{ fontSize: '12px', lineHeight: 1.7, whiteSpace: 'pre-line' }}>{trade.notes}</div> : <div style={{ color: 'var(--txt3)', fontSize: '11px' }}>No notes. Click Edit to add.</div>)}
-        {tab === 'screenshot' && (screenshotUrl ? <img src={screenshotUrl} style={{ width: '100%', borderRadius: 'var(--r)', border: '1px solid var(--brd)', cursor: 'pointer' }} onClick={() => window.open(screenshotUrl, '_blank')} /> : <div style={{ color: 'var(--txt3)', fontSize: '11px' }}>No screenshot attached.</div>)}
+        {tab === 'screenshot' && (screenshotUrls.length
+          ? <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {screenshotUrls.map((url, i) => (
+                <img key={i} src={url} style={{ width: '100%', borderRadius: 'var(--r)', border: '1px solid var(--brd)', cursor: 'pointer' }} onClick={() => window.open(url, '_blank')} />
+              ))}
+            </div>
+          : <div style={{ color: 'var(--txt3)', fontSize: '11px' }}>No screenshots attached.</div>)}
         {tab === 'tags' && ((trade.tags || []).length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>{trade.tags.map((t, i) => <span key={i} style={{ fontSize: '11px', padding: '4px 10px', margin: '3px', borderRadius: '3px', background: 'var(--bg)', border: '1px solid var(--brd2)', color: 'var(--txt2)' }}>{t}</span>)}</div> : <div style={{ color: 'var(--txt3)', fontSize: '11px' }}>No tags. Click Edit to add.</div>)}
       </div>
 
