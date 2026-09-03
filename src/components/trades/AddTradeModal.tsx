@@ -600,14 +600,6 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
           {!imgPreview && editTrade?.screenshot_url && (
             <span style={{ fontSize: '10px', color: 'var(--ac)' }}>✓ Screenshot saved</span>
           )}
-          <button
-            className="btn btn-o"
-            style={{ fontSize: '10px', marginLeft: '4px' }}
-            onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=${symbol || 'SPY'}`, '_blank')}
-            type="button"
-          >
-            📊 TradingView
-          </button>
         </div>
       </div>
 
