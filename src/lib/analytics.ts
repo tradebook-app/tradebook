@@ -1,5 +1,39 @@
 import { TradeRow, DateRangeFilter, KPIData, DayStats, SymbolStats, StrategyStats } from '@/lib/types'
 import { format, startOfWeek, startOfMonth, startOfYear, isToday } from 'date-fns'
+import { OPTION_MULTIPLIER, futuresPointValue } from '@/lib/contractMultiplier'
+
+// ─── Trade P&L ───────────────────────────────────────────────────────────────
+// `pnl` is a stored column, but some rows carry a wrong 0 — a bad broker
+// import, or an edit that re-saved a stale P&L "override" (see AddTradeModal).
+// These helpers recompute from the fill prices so the number, and everything
+// derived from it (Status, KPIs, charts), stays correct.
+
+type PnlFields = Pick<TradeRow, 'entry' | 'exit' | 'shares' | 'type' | 'asset_type' | 'symbol' | 'commission'>
+
+// P&L implied by the fills. null when the trade lacks entry / exit / shares, or
+// when it's a futures contract whose point value we don't know.
+export function computeTradePnl(t: PnlFields): number | null {
+  if (!t.entry || !t.exit || !t.shares) return null
+  let mult = 1
+  if (t.asset_type === 'option') mult = OPTION_MULTIPLIER
+  else if (t.asset_type === 'futures') {
+    const pv = futuresPointValue(t.symbol || '')
+    if (pv == null) return null
+    mult = pv
+  }
+  const gross = (t.exit - t.entry) * t.shares * mult * (t.type === 'Short' ? -1 : 1)
+  return Number((gross - (t.commission || 0)).toFixed(2))
+}
+
+// The P&L to actually use. Trusts a non-zero stored value and a genuine
+// entry===exit breakeven; only a stored 0 with a real price spread gets
+// recomputed (that combination is impossible for a real fill).
+export function effectivePnl(t: PnlFields & { pnl: number }): number {
+  if (t.pnl !== 0) return t.pnl
+  if (t.exit != null && t.entry != null && t.exit === t.entry) return t.pnl
+  const computed = computeTradePnl(t)
+  return computed == null ? t.pnl : computed
+}
 
 // ─── Date filtering ──────────────────────────────────────────────────────────
 

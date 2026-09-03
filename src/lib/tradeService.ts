@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import type { TradeRow, TradeInsert, TradeUpdate } from '@/lib/types'
+import { effectivePnl } from '@/lib/analytics'
 
 // Upload a screenshot to Supabase Storage, return public URL
 export async function uploadScreenshot(
@@ -36,7 +37,10 @@ export async function fetchTrades(): Promise<TradeRow[]> {
     .order('date', { ascending: false })
 
   if (error) { console.error('Fetch trades error:', error); return [] }
-  return data || []
+  // Heal rows whose stored pnl is a wrong 0 (bad import / stale override) so
+  // every consumer sees the correct figure. Non-destructive — the DB row is
+  // only rewritten on the next real save.
+  return (data || []).map(t => ({ ...t, pnl: effectivePnl(t) }))
 }
 
 // Insert a new trade
@@ -52,7 +56,7 @@ export async function insertTrade(
     .single()
 
   if (error) { console.error('Insert trade error:', error); return null }
-  return data
+  return data ? { ...data, pnl: effectivePnl(data) } : null
 }
 
 // Update an existing trade
@@ -69,7 +73,7 @@ export async function updateTrade(
     .single()
 
   if (error) { console.error('Update trade error:', error); return null }
-  return data
+  return data ? { ...data, pnl: effectivePnl(data) } : null
 }
 
 // Delete a trade
