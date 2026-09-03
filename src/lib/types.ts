@@ -282,6 +282,13 @@ export type SupportChatUsageRow = {
   updated_at: string
 }
 
+export type AiAnalysisUsageRow = {
+  user_id: string
+  day: string
+  count: number
+  updated_at: string
+}
+
 // ─── Supabase Database type (for typed client) ───────────────────────────────
 
 export type OpenLegRow = {
@@ -419,6 +426,12 @@ export type Database = {
         Row: SupportChatUsageRow
         Insert: SupportChatUsageRow
         Update: Partial<SupportChatUsageRow>
+        Relationships: []
+      }
+      ai_analysis_usage: {
+        Row: AiAnalysisUsageRow
+        Insert: AiAnalysisUsageRow
+        Update: Partial<AiAnalysisUsageRow>
         Relationships: []
       }
       open_legs: {
