@@ -53,7 +53,7 @@ export function Sidebar({ onAddTrade, userEmail }: Props) {
     <nav style={{
       width: '175px',
       minHeight: '100vh',
-      background: 'var(--bg2)',
+      background: 'var(--sidebar-bg)',
       borderRight: '1px solid var(--brd)',
       display: 'flex',
       flexDirection: 'column',
