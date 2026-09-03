@@ -5,6 +5,7 @@ import {
   Filler, Tooltip, Legend, type ChartConfiguration,
 } from 'chart.js'
 import { getChartColors, useThemeVersion } from '@/lib/chartTheme'
+import { formatCumulativeAxisTick } from '@/lib/chartFormat'
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip, Legend)
 type Props = {
   labels: string[]
@@ -65,7 +66,7 @@ export function CumulativeChart({ labels, data, unit = '$', color = '#10B981', c
             grid: { color: tc.grid },
             ticks: {
               color: tc.tick, font: { size: 9 },
-              callback: v => unit === '%' ? `${Number(v).toFixed(0)}%` : `$${Number(v).toFixed(0)}`,
+              callback: v => formatCumulativeAxisTick(Number(v), unit),
             },
           },
         },
