@@ -1,7 +1,7 @@
 'use client'
 
 import type { TradeRow } from '@/lib/types'
-import { closedTrades, fmtPnl } from '@/lib/analytics'
+import { closedTrades, fmtPnl, pickBestWorstDay } from '@/lib/analytics'
 
 type Props = { trades: TradeRow[] }
 
@@ -37,16 +37,18 @@ export function OverviewReport({ trades }: Props) {
   const winDays  = dayE.filter(d => d[1] > 0)
   const lossDays = dayE.filter(d => d[1] < 0)
 
+  // Largest single trade (not a day/week/month total)
   const best  = closed.length ? Math.max(...closed.map(t => t.pnl)) : 0
   const worst = closed.length ? Math.min(...closed.map(t => t.pnl)) : 0
-  const bestDay  = dayE.length ? Math.max(...dayE.map(d => d[1])) : 0
-  const worstDay = dayE.length ? Math.min(...dayE.map(d => d[1])) : 0
+
+  // Best / worst period. `worst` is null when there's only one of that period,
+  // so it doesn't just echo `best` under a different label.
+  const dayBW  = pickBestWorstDay(dayE.map(([, p]) => ({ pnl: p })))
+  const bestDay = dayBW.best?.pnl ?? 0
 
   const byMo: Record<string, number> = {}
   closed.forEach(t => { const m = (t.date || '').substring(0, 7); byMo[m] = (byMo[m] || 0) + t.pnl })
-  const moE = Object.entries(byMo).sort((a, b) => a[0].localeCompare(b[0]))
-  const bestMo  = moE.length ? moE.reduce((a, b) => (a[1] > b[1] ? a : b)) : ['-', 0] as [string, number]
-  const worstMo = moE.length ? moE.reduce((a, b) => (a[1] < b[1] ? a : b)) : ['-', 0] as [string, number]
+  const moBW = pickBestWorstDay(Object.values(byMo).map(p => ({ pnl: p })))
 
   const weekKey = (ds: string) => {
     const d = new Date(ds + 'T12:00:00')
@@ -57,9 +59,7 @@ export function OverviewReport({ trades }: Props) {
   }
   const byWeek: Record<string, number> = {}
   closed.forEach(t => { const w = weekKey((t.date || '').substring(0, 10)); byWeek[w] = (byWeek[w] || 0) + t.pnl })
-  const weekVals = Object.values(byWeek)
-  const bestWeek  = weekVals.length ? Math.max(...weekVals) : 0
-  const worstWeek = weekVals.length ? Math.min(...weekVals) : 0
+  const weekBW = pickBestWorstDay(Object.values(byWeek).map(p => ({ pnl: p })))
 
   const totalVol = closed.reduce((s, t) => s + (t.shares || 0), 0)
   const recovery = maxDD > 0 ? (pnl / maxDD).toFixed(2) : 'inf'
@@ -83,7 +83,7 @@ export function OverviewReport({ trades }: Props) {
     ['Losing days', String(lossDays.length)],
     ['Avg daily P&L', fmt(dayE.length ? pnl / dayE.length : 0)],
     ['Best day P&L', fmt(bestDay)],
-    ['Worst day P&L', fmt(worstDay)],
+    ['Worst day P&L', dayBW.worst ? fmt(dayBW.worst.pnl) : '—'],
     ['Max drawdown', '-$' + maxDD.toFixed(2)],
     ['Avg R-multiple', avgRR.toFixed(2) + 'R'],
     ['Avg win day P&L', fmt(winDays.length ? winDays.reduce((s, d) => s + d[1], 0) / winDays.length : 0)],
@@ -93,10 +93,10 @@ export function OverviewReport({ trades }: Props) {
     ['Recovery factor', recovery],
   ]
 
-  const periods: [string, number, number][] = [
-    ['Day', bestDay, worstDay],
-    ['Week', bestWeek, worstWeek],
-    ['Month', bestMo[1] as number, worstMo[1] as number],
+  const periods: [string, number, number | null][] = [
+    ['Day',   dayBW.best?.pnl ?? 0,  dayBW.worst?.pnl ?? null],
+    ['Week',  weekBW.best?.pnl ?? 0, weekBW.worst?.pnl ?? null],
+    ['Month', moBW.best?.pnl ?? 0,   moBW.worst?.pnl ?? null],
   ]
 
   // Split the metrics into two balanced columns (left takes the extra when odd).
@@ -120,7 +120,7 @@ export function OverviewReport({ trades }: Props) {
               </div>
               <div>
                 <div style={{ fontSize: '10px', color: 'var(--txt3)', marginBottom: '3px' }}>Worst {period}</div>
-                <div style={{ fontSize: '16px', fontWeight: 800, fontFamily: 'var(--mono)', color: w >= 0 ? 'var(--ac)' : 'var(--red)' }}>{fmtK(w)}</div>
+                <div style={{ fontSize: '16px', fontWeight: 800, fontFamily: 'var(--mono)', color: w === null ? 'var(--txt3)' : w >= 0 ? 'var(--ac)' : 'var(--red)' }}>{w === null ? '—' : fmtK(w)}</div>
               </div>
             </div>
           ))}
