@@ -19,6 +19,7 @@ type Props = {
   onEdit: (trade: TradeRow) => void
   onDelete: (id: string) => void
   onDeleteFiltered: (ids: string[]) => void
+  onRemoveScreenshot: (tradeId: string, path: string) => Promise<void>
 }
 
 type GroupedRow = {
@@ -110,7 +111,7 @@ function buildGroupedRows(trades: TradeRow[]): GroupedRow[] {
   return rows
 }
 
-export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, onDeleteFiltered }: Props) {
+export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, onDeleteFiltered, onRemoveScreenshot }: Props) {
   const [symFilter,   setSymFilter]   = useState('')
   const [stFilter,    setStFilter]    = useState('all')
   const [sideFilter,  setSideFilter]  = useState('all')
@@ -432,6 +433,14 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
         onEdit={t => { setSelected(null); onEdit(t) }}
         onDelete={id => { onDelete(id); setSelected(null) }}
         onNavigate={t => setSelected(t)}
+        onRemoveScreenshot={async (id, path) => {
+          await onRemoveScreenshot(id, path)
+          setSelected(prev => {
+            if (!prev || prev.id !== id) return prev
+            const urls = (prev.screenshot_urls || []).filter(p => p !== path)
+            return { ...prev, screenshot_urls: urls, screenshot_url: urls[0] ?? null }
+          })
+        }}
       />
     </>
   )

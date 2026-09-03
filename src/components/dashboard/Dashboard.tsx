@@ -21,13 +21,14 @@ type Props = {
   filter: DateRangeFilter
   onEdit: (t: TradeRow) => void
   onDelete: (id: string) => void
+  onRemoveScreenshot: (tradeId: string, path: string) => Promise<void>
   userId: string
   onReload: () => void
 }
 
 type BottomTab = 'recent' | 'open'
 
-export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }: Props) {
+export function Dashboard({ trades, filter, onEdit, onDelete, onRemoveScreenshot, userId, onReload }: Props) {
   const [bottomTab, setBottomTab] = useState<BottomTab>('recent')
   const [selected,  setSelected]  = useState<TradeRow | null>(null)
 
@@ -222,6 +223,14 @@ export function Dashboard({ trades, filter, onEdit, onDelete, userId, onReload }
         onClose={() => setSelected(null)}
         onEdit={t => { setSelected(null); onEdit(t) }}
         onDelete={id => { onDelete(id); setSelected(null) }}
+        onRemoveScreenshot={async (id, path) => {
+          await onRemoveScreenshot(id, path)
+          setSelected(prev => {
+            if (!prev || prev.id !== id) return prev
+            const urls = (prev.screenshot_urls || []).filter(p => p !== path)
+            return { ...prev, screenshot_urls: urls, screenshot_url: urls[0] ?? null }
+          })
+        }}
       />
     </>
   )

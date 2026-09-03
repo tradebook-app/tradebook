@@ -83,12 +83,12 @@ function GatedPropTracker({ userId }: { userId: string }) {
   return <PropTracker userId={userId} />
 }
 
-function DashboardWithBanner({ trades, filter, onEdit, onDelete, userId, onReload }: any) {
+function DashboardWithBanner({ trades, filter, onEdit, onDelete, onRemoveScreenshot, userId, onReload }: any) {
   const { tradeCount, isPro } = usePlan()
   return (
     <div>
       {!isPro && <UpgradeBanner tradeCount={tradeCount} limit={50} />}
-      <Dashboard trades={trades} filter={filter} onEdit={onEdit} onDelete={onDelete} userId={userId} onReload={onReload} />
+      <Dashboard trades={trades} filter={filter} onEdit={onEdit} onDelete={onDelete} onRemoveScreenshot={onRemoveScreenshot} userId={userId} onReload={onReload} />
     </div>
   )
 }
@@ -120,7 +120,7 @@ const ACCOUNT_SCOPED_PAGES = new Set(['/dashboard', '/trades', '/journal', '/rep
 // can't do this directly since it sits above PlanProvider/AccountProvider.
 function AppInner({
   pathname, title, trades, loading, filter, setFilter, userId, userEmail,
-  openAdd, openEdit, handleSave, handleDelete, handleDeleteMany, reloadTrades,
+  openAdd, openEdit, handleSave, handleDelete, handleDeleteMany, handleRemoveScreenshot, reloadTrades,
   modalOpen, setModalOpen, editTrade, setEditTrade, strategyList, setStrategyList,
 }: any) {
   const { selectedAccountId } = useAccounts()
@@ -139,8 +139,8 @@ function AppInner({
     }
 
     if (pathname === '/scanner')      return <GatedScanner />
-    if (pathname === '/trades')       return <TradeView trades={scopedTrades} filter={filter} onFilterChange={setFilter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} />
-    if (pathname === '/dashboard')    return <DashboardWithBanner trades={scopedTrades} filter={filter} onEdit={openEdit} onDelete={handleDelete} userId={userId} onReload={reloadTrades} />
+    if (pathname === '/trades')       return <TradeView trades={scopedTrades} filter={filter} onFilterChange={setFilter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} onRemoveScreenshot={handleRemoveScreenshot} />
+    if (pathname === '/dashboard')    return <DashboardWithBanner trades={scopedTrades} filter={filter} onEdit={openEdit} onDelete={handleDelete} onRemoveScreenshot={handleRemoveScreenshot} userId={userId} onReload={reloadTrades} />
     if (pathname === '/journal')      return <Journal trades={scopedTrades} onEdit={openEdit} onDelete={handleDelete} />
     if (pathname === '/reports')      return <GatedReports trades={scopedTrades} filter={filter} />
     if (pathname === '/position-size')return <PositionSize />
@@ -248,6 +248,16 @@ export function AppProvider({ userId, userEmail }: Props) {
     if (ok) setTrades(prev => prev.filter(t => t.id !== id))
   }
 
+  async function handleRemoveScreenshot(tradeId: string, path: string) {
+    const t = trades.find(x => x.id === tradeId)
+    if (!t) return
+    const remaining = (t.screenshot_urls || []).filter(p => p !== path)
+    const updated = await updateTrade(tradeId, { screenshot_urls: remaining, screenshot_url: remaining[0] ?? null })
+    if (!updated) throw new Error('Failed to remove screenshot')
+    setTrades(prev => prev.map(x => x.id === tradeId ? updated : x))
+    deleteScreenshots([path]) // best effort, once the row no longer references it
+  }
+
   async function handleDeleteMany(ids: string[]) {
     const ok = await deleteTrades(ids)
     if (ok) {
@@ -270,7 +280,8 @@ export function AppProvider({ userId, userEmail }: Props) {
           pathname={pathname} title={title} trades={trades} loading={loading}
           filter={filter} setFilter={setFilter} userId={userId} userEmail={userEmail}
           openAdd={openAdd} openEdit={openEdit} handleSave={handleSave}
-          handleDelete={handleDelete} handleDeleteMany={handleDeleteMany} reloadTrades={reloadTrades}
+          handleDelete={handleDelete} handleDeleteMany={handleDeleteMany}
+          handleRemoveScreenshot={handleRemoveScreenshot} reloadTrades={reloadTrades}
           modalOpen={modalOpen} setModalOpen={setModalOpen} editTrade={editTrade} setEditTrade={setEditTrade}
           strategyList={strategyList} setStrategyList={setStrategyList}
         />
