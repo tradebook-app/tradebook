@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 
-export const PAGE_SIZE_OPTIONS = [25, 50, 100] as const
-const DEFAULT_PAGE_SIZE = 50
+export const PAGE_SIZE_OPTIONS = [15, 25, 50, 100] as const
+const DEFAULT_PAGE_SIZE = 15
 
 export type Pagination = {
   page: number          // 0-indexed, always clamped to a valid page
