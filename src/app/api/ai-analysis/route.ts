@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+const DAILY_LIMIT = 40
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = createClient()
@@ -17,6 +19,27 @@ export async function POST(req: NextRequest) {
     if (profile?.plan !== 'pro' && profile?.plan !== 'elite') {
       return NextResponse.json({ error: 'Sleek AI requires a Pro or Elite plan.' }, { status: 403 })
     }
+
+    // ─── Rate limit: N messages per user per day ─────────────────────────
+    const today = new Date().toISOString().substring(0, 10)
+    const { data: usage } = await supabase
+      .from('ai_analysis_usage')
+      .select('count')
+      .eq('user_id', user.id)
+      .eq('day', today)
+      .maybeSingle()
+
+    const currentCount = usage?.count || 0
+    if (currentCount >= DAILY_LIMIT) {
+      return NextResponse.json({
+        error: 'rate_limited',
+        message: "You've reached today's Sleek AI limit. Try again tomorrow.",
+      }, { status: 429 })
+    }
+
+    await supabase
+      .from('ai_analysis_usage')
+      .upsert({ user_id: user.id, day: today, count: currentCount + 1, updated_at: new Date().toISOString() }, { onConflict: 'user_id,day' })
 
     const { messages, trades } = await req.json()
 
