@@ -3,6 +3,8 @@
 import type { TradeRow } from '@/lib/types'
 import { closedTrades, fmtPnl } from '@/lib/analytics'
 import { CumulativeChart } from '@/components/dashboard/CumulativeChart'
+import { Pagination } from '@/components/ui/Pagination'
+import { usePagination, type Pagination as Pg } from '@/lib/usePagination'
 
 type Props = { trades: TradeRow[] }
 
@@ -10,6 +12,9 @@ export function WinLossReport({ trades }: Props) {
   const closed = closedTrades(trades)
   const wins   = closed.filter(t => t.pnl > 0).sort((a, b) => b.pnl - a.pnl)
   const losses = closed.filter(t => t.pnl < 0).sort((a, b) => a.pnl - b.pnl)
+
+  const winsPg   = usePagination(wins.length, 'sleek-rpt-winloss-w')
+  const lossesPg = usePagination(losses.length, 'sleek-rpt-winloss-l')
 
   let curStreak = 0, maxWinStreak = 0, maxLossStreak = 0, curType = ''
   ;[...closed].reverse().forEach(t => {
@@ -38,7 +43,7 @@ export function WinLossReport({ trades }: Props) {
   const wLabels = winSeq.map((_, i) => `#${i + 1}`)
   const lLabels = lossSeq.map((_, i) => `#${i + 1}`)
 
-  const Card = ({ title, items }: { title: string; items: TradeRow[] }) => (
+  const renderCard = (title: string, items: TradeRow[], pg: Pg) => (
     <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden', flex: 1, minWidth: 0 }}>
       <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>
         {title} ({items.length})
@@ -46,6 +51,7 @@ export function WinLossReport({ trades }: Props) {
       {items.length === 0 ? (
         <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt3)', fontSize: '11px' }}>None yet</div>
       ) : (
+        <>
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '240px' }}>
             <thead>
@@ -56,7 +62,7 @@ export function WinLossReport({ trades }: Props) {
               </tr>
             </thead>
             <tbody>
-              {items.slice(0, 10).map((t, i) => {
+              {items.slice(pg.start, pg.end).map((t, i) => {
                 const rm = t.risk > 0 ? t.pnl / t.risk : null
                 return (
                   <tr key={i}>
@@ -70,6 +76,8 @@ export function WinLossReport({ trades }: Props) {
             </tbody>
           </table>
         </div>
+        <div style={{ padding: '0 12px 2px' }}><Pagination pg={pg} itemLabel="trades" /></div>
+        </>
       )}
     </div>
   )
@@ -114,8 +122,8 @@ export function WinLossReport({ trades }: Props) {
 
       {/* Best wins / Worst losses — stack on mobile */}
       <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-        <Card title="Best Wins" items={wins} />
-        <Card title="Worst Losses" items={losses} />
+        {renderCard('Best Wins', wins, winsPg)}
+        {renderCard('Worst Losses', losses, lossesPg)}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>

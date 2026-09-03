@@ -9,6 +9,8 @@ import { MetricCard } from '@/components/ui/MetricCard'
 import { TradePanel } from '@/components/trades/TradePanel'
 import { DateRangePicker } from '@/components/layout/DateRangePicker'
 import { FilterDropdown } from '@/components/ui/FilterDropdown'
+import { Pagination } from '@/components/ui/Pagination'
+import { usePagination } from '@/lib/usePagination'
 
 type Props = {
   trades: TradeRow[]
@@ -160,6 +162,12 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
 
   const groupedFiltered = useMemo(() => buildGroupedRows(filtered), [filtered])
 
+  const pg = usePagination(groupedFiltered.length, 'sleek-tradeview-pagesize')
+  const pageRows = useMemo(() => groupedFiltered.slice(pg.start, pg.end), [groupedFiltered, pg.start, pg.end])
+  // flat trade list for just the visible page — keeps the preview panel's
+  // up/down keyboard nav within what's on screen.
+  const pageTrades = useMemo(() => pageRows.flatMap(r => r.legs), [pageRows])
+
   function handleDeleteFiltered() {
     const closed = trades.filter(t => t.exit && t.exit > 0)
     const opens  = trades.filter(t => !(t.exit && t.exit > 0))
@@ -289,7 +297,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
           <tbody>
             {filtered.length === 0 ? (
               <tr><td colSpan={14} className="empty">No trades found. Add your first trade using the "+ Add Trade" button.</td></tr>
-            ) : groupedFiltered.map(row => {
+            ) : pageRows.map(row => {
               const roi = row.avgEntry && row.totalShares ? (row.totalPnl / (row.avgEntry * row.totalShares)) * 100 : 0
               const rm  = row.totalRisk > 0 ? row.totalPnl / row.totalRisk : null
               const isOpen = !(row.lastExit && row.lastExit > 0)
@@ -371,7 +379,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
       <div className="mobile-trade-cards">
         {filtered.length === 0 ? (
           <div className="empty">No trades found. Add your first trade using the "+ Add Trade" button.</div>
-        ) : groupedFiltered.map(row => {
+        ) : pageRows.map(row => {
           const roi = row.avgEntry && row.totalShares ? (row.totalPnl / (row.avgEntry * row.totalShares)) * 100 : 0
           const rm  = row.totalRisk > 0 ? row.totalPnl / row.totalRisk : null
           const isOpen = !(row.lastExit && row.lastExit > 0)
@@ -414,11 +422,12 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
         })}
       </div>
       </div>
+      {groupedFiltered.length > 0 && <Pagination pg={pg} itemLabel="trades" />}
       </div>
 
       <TradePanel
         trade={selected}
-        trades={filtered}
+        trades={pageTrades}
         onClose={() => setSelected(null)}
         onEdit={t => { setSelected(null); onEdit(t) }}
         onDelete={id => { onDelete(id); setSelected(null) }}

@@ -6,6 +6,8 @@ import { assetUnitLabel } from '@/lib/types'
 import TradeChart, { Candle, TradeMarker } from '@/components/charts/TradeChart'
 import { underlyingFromOptionSymbol } from '@/lib/contractMultiplier'
 import { tradeTimeToChartTime } from '@/lib/tradeChartTime'
+import { Pagination } from '@/components/ui/Pagination'
+import { usePagination } from '@/lib/usePagination'
 
 type Props = {
   trades: TradeRow[]
@@ -441,6 +443,11 @@ export function Journal({ trades, onEdit, onDelete }: Props) {
   const weekTrades = useMemo(() => weekDays.flatMap(d => byDate[d] || []), [weekDays, byDate])
   const weekStats = useMemo(() => calcStats(weekTrades), [weekTrades])
 
+  // Pagination for the trade table (day view or week view — whichever is shown)
+  const activeTrades = mode === 'day' ? dayTrades : weekTrades
+  const groupedRowCount = useMemo(() => buildGroupedRows(activeTrades).length, [activeTrades])
+  const pg = usePagination(groupedRowCount, 'sleek-journal-pagesize', `${mode}:${selectedDate}`)
+
   const daysInMonth = getDaysInMonth(calYear, calMonth)
   const firstDay = getFirstDayOfMonth(calYear, calMonth)
 
@@ -484,9 +491,11 @@ export function Journal({ trades, onEdit, onDelete }: Props) {
   const statStyle = { background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '12px 14px' }
 
   const tradeTable = (tradesToShow: TradeRow[], showDay = false) => {
-    const rows = buildGroupedRows(tradesToShow).sort((a, b) => a.date.localeCompare(b.date))
+    const allRows = buildGroupedRows(tradesToShow).sort((a, b) => a.date.localeCompare(b.date))
+    const rows = allRows.slice(pg.start, pg.end)
 
     return (
+      <>
       <div className="page-scroll" style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)' }}>
         <table className="tbl" style={{ width: '100%' }}>
           <thead>
@@ -589,6 +598,8 @@ export function Journal({ trades, onEdit, onDelete }: Props) {
           </tbody>
         </table>
       </div>
+      {allRows.length > 0 && <Pagination pg={pg} itemLabel="trades" />}
+      </>
     )
   }
 

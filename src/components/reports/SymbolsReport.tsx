@@ -2,10 +2,14 @@
 import type { TradeRow } from '@/lib/types'
 import { closedTrades, calcSymbolStats, fmtPnl } from '@/lib/analytics'
 import { VerticalBars } from './VerticalBars'
+import { Pagination } from '@/components/ui/Pagination'
+import { usePagination } from '@/lib/usePagination'
 type Props = { trades: TradeRow[] }
 export function SymbolsReport({ trades }: Props) {
   const stats = calcSymbolStats(closedTrades(trades))
   const maxPnl = Math.max(...stats.map(s => Math.abs(s.pnl)), 1)
+  const pg = usePagination(stats.length, 'sleek-rpt-symbols')
+  const pageStats = stats.slice(pg.start, pg.end)
   if (!stats.length) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: 'var(--txt3)', fontSize: '11px' }}>
@@ -44,7 +48,7 @@ export function SymbolsReport({ trades }: Props) {
               </tr>
             </thead>
             <tbody>
-              {stats.map((s, i) => {
+              {pageStats.map((s, i) => {
                 const wr = (s.wins / s.trades) * 100
                 return (
                   <tr key={i}>
@@ -62,6 +66,7 @@ export function SymbolsReport({ trades }: Props) {
             </tbody>
           </table>
         </div>
+        <div style={{ padding: '0 18px 4px' }}><Pagination pg={pg} itemLabel="symbols" /></div>
       </div>
     </div>
   )

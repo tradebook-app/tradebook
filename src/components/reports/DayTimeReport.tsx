@@ -3,6 +3,8 @@
 import type { TradeRow } from '@/lib/types'
 import { closedTrades, fmtPnl } from '@/lib/analytics'
 import { VerticalBars } from './VerticalBars'
+import { Pagination } from '@/components/ui/Pagination'
+import { usePagination } from '@/lib/usePagination'
 
 type Props = { trades: TradeRow[] }
 
@@ -34,6 +36,9 @@ export function DayTimeReport({ trades }: Props) {
 
   const maxDowPnl  = Math.max(...byDow.map(d => Math.abs(d.pnl)), 1)
   const activeHours = byHour.filter(h => h.trades > 0)
+  const activeHourRows = byHour.map((h, i) => ({ h, i })).filter(x => x.h.trades > 0)
+  const pg = usePagination(activeHourRows.length, 'sleek-rpt-daytime')
+  const pageHourRows = activeHourRows.slice(pg.start, pg.end)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -76,8 +81,7 @@ export function DayTimeReport({ trades }: Props) {
               </tr>
             </thead>
             <tbody>
-              {byHour.map((h, i) => {
-                if (!h.trades) return null
+              {pageHourRows.map(({ h, i }) => {
                 const wr  = (h.wins / h.trades) * 100
                 const avg = h.pnl / h.trades
                 const fmt12 = (hr: number) => {
@@ -98,6 +102,7 @@ export function DayTimeReport({ trades }: Props) {
             </tbody>
           </table>
         )}
+        {activeHours.length > 0 && <div style={{ padding: '0 18px 4px' }}><Pagination pg={pg} itemLabel="hours" /></div>}
       </div>
     </div>
   )

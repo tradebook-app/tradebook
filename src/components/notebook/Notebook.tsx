@@ -9,6 +9,8 @@ import {
 import { fetchTrades, getScreenshotUrl, updateTrade } from '@/lib/tradeService'
 import { Modal } from '@/components/ui/Modal'
 import { CardMenu } from '@/components/ui/CardMenu'
+import { Pagination } from '@/components/ui/Pagination'
+import { usePagination } from '@/lib/usePagination'
 
 type Props = { userId: string, onEdit: (trade: TradeRow) => void }
 type Cat   = 'all' | 'trade' | 'my'
@@ -126,6 +128,11 @@ export function Notebook({ userId, onEdit }: Props) {
   const isEmpty = noteCards.length === 0 && tradeCards.length === 0
   const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
+  // Paginate the combined list (trade-derived cards first, then manual notes).
+  const pg = usePagination(tradeCards.length + noteCards.length, 'sleek-notebook-pagesize', cat + '|' + search)
+  const tradeCardsPage = tradeCards.slice(Math.min(pg.start, tradeCards.length), Math.min(pg.end, tradeCards.length))
+  const noteCardsPage = noteCards.slice(Math.max(0, pg.start - tradeCards.length), Math.max(0, pg.end - tradeCards.length))
+
   return (
     <div className="page-shell">
       {/* Toolbar stays pinned; only the note grid below scrolls */}
@@ -157,7 +164,7 @@ export function Notebook({ userId, onEdit }: Props) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
 
           {/* Trade-derived cards */}
-          {tradeCards.map(t => {
+          {tradeCardsPage.map(t => {
             const shot = t.screenshot_url ? shotUrls[t.screenshot_url] : null
             const pnl = t.pnl || 0
             return (
@@ -194,7 +201,7 @@ export function Notebook({ userId, onEdit }: Props) {
           })}
 
           {/* Manual note cards */}
-          {noteCards.map(n => {
+          {noteCardsPage.map(n => {
             const imgUrl = n.img_url ? imgUrls[n.img_url] : null
             return (
               <div key={n.id} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -228,6 +235,7 @@ export function Notebook({ userId, onEdit }: Props) {
         </div>
       )}
       </div>
+      {!loading && !isEmpty && <Pagination pg={pg} itemLabel="cards" />}
 
       {/* Note Modal */}
       <Modal
