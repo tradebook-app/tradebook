@@ -487,7 +487,7 @@ export function Journal({ trades, onEdit, onDelete }: Props) {
     const rows = buildGroupedRows(tradesToShow).sort((a, b) => a.date.localeCompare(b.date))
 
     return (
-      <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+      <div className="page-scroll" style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)' }}>
         <table className="tbl" style={{ width: '100%' }}>
           <thead>
             <tr>
@@ -595,8 +595,8 @@ export function Journal({ trades, onEdit, onDelete }: Props) {
   return (
     <div style={{ display: 'flex', gap: '16px', padding: '20px', height: '100%' }}>
 
-      {/* Main content */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Main content — header + stats panel stay put; only the trade table scrolls */}
+      <div className="page-shell" style={{ flex: 1, minWidth: 0, gap: '14px' }}>
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

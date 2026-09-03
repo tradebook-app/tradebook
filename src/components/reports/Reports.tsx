@@ -32,8 +32,8 @@ export function Reports({ trades, filter }: Props) {
   const filtered = filterByDate(trades, filter)
 
   return (
-    <div>
-      {/* Tab nav — sticky via CSS class */}
+    <div className="page-shell">
+      {/* Tab nav stays pinned; the report body below scrolls */}
       <div className="reports-tab-bar">
         <div style={{
           display: 'flex',
@@ -60,13 +60,15 @@ export function Reports({ trades, filter }: Props) {
       </div>
 
       {/* Tab content */}
-      {tab === 'performance' && <PerformanceReport trades={filtered} />}
-      {tab === 'overview'    && <OverviewReport    trades={filtered} />}
-      {tab === 'daytime'     && <DayTimeReport     trades={filtered} />}
-      {tab === 'symbols'     && <SymbolsReport     trades={filtered} />}
-      {tab === 'risk'        && <RiskReport        trades={filtered} />}
-      {tab === 'winloss'     && <WinLossReport     trades={filtered} />}
-      {tab === 'setup'       && <SetupReport       trades={filtered} />}
+      <div className="page-scroll" style={{ paddingTop: '2px' }}>
+        {tab === 'performance' && <PerformanceReport trades={filtered} />}
+        {tab === 'overview'    && <OverviewReport    trades={filtered} />}
+        {tab === 'daytime'     && <DayTimeReport     trades={filtered} />}
+        {tab === 'symbols'     && <SymbolsReport     trades={filtered} />}
+        {tab === 'risk'        && <RiskReport        trades={filtered} />}
+        {tab === 'winloss'     && <WinLossReport     trades={filtered} />}
+        {tab === 'setup'       && <SetupReport       trades={filtered} />}
+      </div>
     </div>
   )
 }

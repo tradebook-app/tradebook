@@ -127,8 +127,8 @@ export function Notebook({ userId, onEdit }: Props) {
   const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
   return (
-    <div>
-      {/* Toolbar */}
+    <div className="page-shell">
+      {/* Toolbar stays pinned; only the note grid below scrolls */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
         {(['all', 'trade', 'my'] as Cat[]).map(c => (
           <button key={c} onClick={() => setCat(c)} style={{
@@ -144,6 +144,7 @@ export function Notebook({ userId, onEdit }: Props) {
         <button className="btn btn-p" onClick={openNew} style={{ marginLeft: 'auto' }}>+ New Note</button>
       </div>
 
+      <div className="page-scroll">
       {loading ? (
         <div style={{ textAlign: 'center', color: 'var(--txt3)', padding: '40px' }}>Loading...</div>
       ) : isEmpty ? (
@@ -226,6 +227,7 @@ export function Notebook({ userId, onEdit }: Props) {
           })}
         </div>
       )}
+      </div>
 
       {/* Note Modal */}
       <Modal
