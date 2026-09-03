@@ -497,13 +497,14 @@ export function PositionSize() {
                 const active = Math.abs(s.lvl - fc.riskPct) < 0.05
                 return (
                   <div key={s.lvl} style={{
-                    display: 'flex', justifyContent: 'space-between', padding: '7px 8px', fontSize: '12px',
-                    fontFamily: 'var(--mono)', borderRadius: '6px',
+                    display: 'grid', gridTemplateColumns: '44px 1fr auto', columnGap: '14px', alignItems: 'center',
+                    padding: '7px 8px', fontSize: '12px', fontFamily: 'var(--mono)', borderRadius: '6px',
                     background: active ? 'var(--ac-d, rgba(16,185,129,.12))' : 'transparent',
                     color: active ? 'var(--ac)' : 'var(--txt2)', fontWeight: active ? 700 : 400,
                   }}>
-                    <span>{s.lvl}% · ${s.dollars.toFixed(0)}</span>
-                    <span>{s.contracts.toLocaleString()} contracts</span>
+                    <span style={{ textAlign: 'left' }}>{s.lvl}%</span>
+                    <span style={{ textAlign: 'right', color: active ? 'var(--ac)' : 'var(--txt3)' }}>${Number(s.dollars.toFixed(0)).toLocaleString()}</span>
+                    <span style={{ textAlign: 'right' }}>{s.contracts.toLocaleString()} contracts</span>
                   </div>
                 )
               })}
