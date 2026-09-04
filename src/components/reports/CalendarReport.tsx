@@ -204,7 +204,7 @@ export function CalendarReport({ trades }: Props) {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '2px' }}>
                 {DOW.map((d, di) => (
                   <div key={di} style={{
-                    textAlign: 'center', fontSize: '7px', fontWeight: 700, color: 'var(--txt2)',
+                    textAlign: 'center', fontSize: '9px', fontWeight: 700, color: 'var(--txt2)', letterSpacing: '.01em',
                     background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '4px', padding: '3px 0',
                   }}>{d}</div>
                 ))}

@@ -7,7 +7,7 @@ import { pickBestWorstDay } from '@/lib/analytics'
 type Props = { days: DayStats[]; trades: TradeRow[] }
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
-const DOW    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+const DOW    = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']  // week starts Monday
 
 function fmtK(n: number): string {
   const abs = Math.abs(n)
@@ -108,7 +108,8 @@ export function MonthCalendar({ days, trades }: Props) {
     return map
   }, [days])
 
-  const firstDay  = new Date(year, month, 1).getDay()
+  // Monday-first column offset for the 1st of the month (0=Sun..6=Sat -> 0=Mon..6=Sun)
+  const firstDay  = (new Date(year, month, 1).getDay() + 6) % 7
   const daysCount = new Date(year, month + 1, 0).getDate()
 
   function prev() { if (month === 0) { setYear(y => y - 1); setMonth(11) } else setMonth(m => m - 1) }
