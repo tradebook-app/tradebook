@@ -34,8 +34,8 @@ export function VerticalBars({ items, zone = 95 }: { items: Item[]; zone?: numbe
                 </>
               )}
             </div>
-            {/* label */}
-            <div style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--txt)', marginTop: '6px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{it.label}</div>
+            {/* label — underline style (2px var(--ac) bottom border) */}
+            <div style={{ fontSize: '11px', fontWeight: 500, fontFamily: 'var(--mono)', color: 'var(--txt)', marginTop: '6px', paddingBottom: '3px', borderBottom: '2px solid var(--ac)', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{it.label}</div>
             {it.sub && <div style={{ fontSize: '9px', color: 'var(--txt2, #9aa)', marginTop: '2px', textAlign: 'center', whiteSpace: 'nowrap' }}>{it.sub}</div>}
           </div>
         )

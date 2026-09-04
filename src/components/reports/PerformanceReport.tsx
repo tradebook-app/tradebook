@@ -28,31 +28,34 @@ export function PerformanceReport({ trades }: Props) {
   const avgWinH  = avgHold(withExit.filter(t => t.pnl > 0))
   const avgLossH = avgHold(withExit.filter(t => t.pnl < 0))
 
+  // Colour only genuine win/loss figures green/red; everything else stays neutral.
+  const signColor = (n: number) => n > 0 ? 'var(--ac)' : n < 0 ? 'var(--red)' : 'var(--txt)'
+
   const ROWS = [
-    ['Net P&L',          fmtPnl(kpi.netPnl),                     kpi.netPnl >= 0 ? 'var(--ac)' : 'var(--red)'],
+    ['Net P&L',          fmtPnl(kpi.netPnl),                     signColor(kpi.netPnl)],
     ['Gross Win',        `+$${grossWin.toFixed(2)}`,              'var(--ac)'],
     ['Gross Loss',       `-$${grossLoss.toFixed(2)}`,             'var(--red)'],
-    ['Total Commission', `-$${totalComm.toFixed(2)}`,             'var(--orange)'],
-    ['Profit Factor',    kpi.profitFactor.toFixed(2),             kpi.profitFactor >= 1.5 ? 'var(--ac)' : 'var(--red)'],
+    ['Total Commission', `-$${totalComm.toFixed(2)}`,             'var(--txt)'],
+    ['Profit Factor',    kpi.profitFactor.toFixed(2),             kpi.profitFactor === 0 ? 'var(--txt)' : kpi.profitFactor >= 1.5 ? 'var(--ac)' : 'var(--red)'],
     ['Win Rate',         `${kpi.winRate.toFixed(1)}%`,            kpi.winRate >= 50 ? 'var(--ac)' : 'var(--red)'],
     ['Total Trades',     String(kpi.totalTrades),                 'var(--txt)'],
     ['Wins',             String(kpi.wins),                        'var(--ac)'],
     ['Losses',           String(kpi.losses),                      'var(--red)'],
-    ['Breakeven',        String(kpi.breakeven),                   'var(--txt3)'],
+    ['Breakeven',        String(kpi.breakeven),                   'var(--txt)'],
     ['Avg Win',          `+$${kpi.avgWin.toFixed(2)}`,            'var(--ac)'],
     ['Avg Loss',         `-$${kpi.avgLoss.toFixed(2)}`,           'var(--red)'],
-    ['Avg W/L Ratio',    kpi.avgWinLossRatio.toFixed(2),          kpi.avgWinLossRatio >= 1 ? 'var(--ac)' : 'var(--red)'],
-    ['Best Trade',       bestTrade  ? fmtPnl(bestTrade.pnl)  + ` (${bestTrade.symbol})`  : '—', 'var(--ac)'],
-    ['Worst Trade',      worstTrade ? fmtPnl(worstTrade.pnl) + ` (${worstTrade.symbol})` : '—', 'var(--red)'],
+    ['Avg W/L Ratio',    kpi.avgWinLossRatio.toFixed(2),          kpi.avgWinLossRatio === 0 ? 'var(--txt)' : kpi.avgWinLossRatio >= 1 ? 'var(--ac)' : 'var(--red)'],
+    ['Best Trade',       bestTrade  ? fmtPnl(bestTrade.pnl)  + ` (${bestTrade.symbol})`  : '—', bestTrade  ? signColor(bestTrade.pnl)  : 'var(--txt)'],
+    ['Worst Trade',      worstTrade ? fmtPnl(worstTrade.pnl) + ` (${worstTrade.symbol})` : '—', worstTrade ? signColor(worstTrade.pnl) : 'var(--txt)'],
   ] as [string, string, string][]
 
   const SIDE_ROWS = [
     ['Long Trades',    String(longTrades.length),  'var(--txt)'],
-    ['Long P&L',       fmtPnl(longPnl),            longPnl >= 0 ? 'var(--ac)' : 'var(--red)'],
-    ['Long Win Rate',  `${longWR.toFixed(1)}%`,    longWR >= 50 ? 'var(--ac)' : 'var(--red)'],
+    ['Long P&L',       fmtPnl(longPnl),            signColor(longPnl)],
+    ['Long Win Rate',  `${longWR.toFixed(1)}%`,    longTrades.length === 0 ? 'var(--txt)' : longWR >= 50 ? 'var(--ac)' : 'var(--red)'],
     ['Short Trades',   String(shortTrades.length), 'var(--txt)'],
-    ['Short P&L',      fmtPnl(shortPnl),           shortPnl >= 0 ? 'var(--ac)' : 'var(--red)'],
-    ['Short Win Rate', `${shortWR.toFixed(1)}%`,   shortWR >= 50 ? 'var(--ac)' : 'var(--red)'],
+    ['Short P&L',      fmtPnl(shortPnl),           signColor(shortPnl)],
+    ['Short Win Rate', `${shortWR.toFixed(1)}%`,   shortTrades.length === 0 ? 'var(--txt)' : shortWR >= 50 ? 'var(--ac)' : 'var(--red)'],
   ] as [string, string, string][]
 
   return (

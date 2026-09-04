@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import type { TradeRow } from '@/lib/types'
+import type { TradeRow, DayStats } from '@/lib/types'
 import { calcDailyPnl } from '@/lib/analytics'
 
 type Props = { trades: TradeRow[] }
@@ -63,16 +63,87 @@ function monthMatrix(year: number, month: number): { date: Date; inMonth: boolea
 const dstr = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
+function fmtUSD(n: number): string {
+  return `${n >= 0 ? '+' : '-'}$${Math.abs(n).toFixed(2)}`
+}
+
+// Multi-exit trades collapsed into one row — same pattern as the Dashboard
+// calendar's day popup (src/components/dashboard/MonthCalendar.tsx).
+type GroupedRow = {
+  key: string
+  legs: TradeRow[]
+  isGroup: boolean
+  symbol: string
+  type: 'Long' | 'Short'
+  avgEntry: number
+  lastExit: number | null
+  totalShares: number
+  totalPnl: number
+  grade: string | null
+  setup: string | null
+}
+
+function buildGroupedRows(rows: TradeRow[]): GroupedRow[] {
+  const groups: Record<string, TradeRow[]> = {}
+  const singles: TradeRow[] = []
+  for (const t of rows) {
+    if (t.trade_group_id) {
+      if (!groups[t.trade_group_id]) groups[t.trade_group_id] = []
+      groups[t.trade_group_id].push(t)
+    } else {
+      singles.push(t)
+    }
+  }
+  const out: GroupedRow[] = []
+  for (const legs of Object.values(groups)) {
+    const sortedByExit = [...legs].sort((a, b) => (a.exit_date || a.date).localeCompare(b.exit_date || b.date))
+    const totalShares = legs.reduce((s, l) => s + l.shares, 0)
+    const totalCost = legs.reduce((s, l) => s + l.entry * l.shares, 0)
+    const lastLeg = sortedByExit[sortedByExit.length - 1]
+    out.push({
+      key: legs[0].trade_group_id as string,
+      legs: sortedByExit,
+      isGroup: legs.length > 1,
+      symbol: legs[0].symbol,
+      type: legs[0].type,
+      avgEntry: totalShares > 0 ? totalCost / totalShares : 0,
+      lastExit: lastLeg?.exit ?? null,
+      totalShares,
+      totalPnl: legs.reduce((s, l) => s + l.pnl, 0),
+      grade: lastLeg?.grade ?? null,
+      setup: lastLeg?.setup ?? null,
+    })
+  }
+  for (const t of singles) {
+    out.push({
+      key: t.id, legs: [t], isGroup: false, symbol: t.symbol, type: t.type,
+      avgEntry: t.entry, lastExit: t.exit, totalShares: t.shares, totalPnl: t.pnl,
+      grade: t.grade, setup: t.setup,
+    })
+  }
+  return out
+}
+
 export function CalendarReport({ trades }: Props) {
   const today = new Date()
   const [view,  setView]  = useState<View>('month')
   const [year,  setYear]  = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
+  const [popupDate, setPopupDate] = useState<string | null>(null)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
 
-  // Daily P&L (reuse the existing helper — no new P&L math here).
+  function toggleGroup(k: string) {
+    setExpandedGroups(prev => {
+      const next = new Set(prev)
+      next.has(k) ? next.delete(k) : next.add(k)
+      return next
+    })
+  }
+
+  // Daily stats (reuse the existing helper — no new P&L math here).
   const byDay = useMemo(() => {
-    const map: Record<string, number> = {}
-    calcDailyPnl(trades).forEach(d => { map[d.date] = d.pnl })
+    const map: Record<string, DayStats> = {}
+    calcDailyPnl(trades).forEach(d => { map[d.date] = d })
     return map
   }, [trades])
 
@@ -88,7 +159,7 @@ export function CalendarReport({ trades }: Props) {
   const cells = useMemo(() => monthCells(year, month), [year, month])
   const monthPnl = useMemo(() => {
     const prefix = `${year}-${String(month + 1).padStart(2, '0')}`
-    return Object.entries(byDay).reduce((s, [d, p]) => d.startsWith(prefix) ? s + p : s, 0)
+    return Object.entries(byDay).reduce((s, [d, st]) => d.startsWith(prefix) ? s + st.pnl : s, 0)
   }, [byDay, year, month])
 
   const weeks = useMemo(() => {
@@ -98,8 +169,8 @@ export function CalendarReport({ trades }: Props) {
       let pnl = 0, days = 0
       weekCells.forEach(d => {
         if (d == null) return
-        const p = byDay[key(year, month, d)]
-        if (p !== undefined) { pnl += p; days += 1 }
+        const st = byDay[key(year, month, d)]
+        if (st !== undefined) { pnl += st.pnl; days += 1 }
       })
       out.push({ label: `Week ${w + 1}`, pnl, days })
     }
@@ -129,18 +200,22 @@ export function CalendarReport({ trades }: Props) {
             {cells.map((day, i) => {
               if (!day) return <div key={i} />
               const ds = key(year, month, day)
-              const pnl = byDay[ds]
-              const c = dayColors(pnl)
+              const st = byDay[ds]
+              const c = dayColors(st?.pnl)
               const isToday = ds === todayStr
+              const clickable = !!st && st.trades > 0
               return (
-                <div key={i} style={{
-                  background: c.bg, borderRadius: '6px', padding: '5px 4px', minHeight: '52px',
-                  border: isToday ? '1px solid var(--ac)' : '1px solid transparent',
-                }}>
+                <div key={i}
+                  onClick={() => { if (clickable) setPopupDate(ds) }}
+                  style={{
+                    background: c.bg, borderRadius: '6px', padding: '5px 4px', minHeight: '52px',
+                    border: isToday ? '1px solid var(--ac)' : '1px solid transparent',
+                    cursor: clickable ? 'pointer' : 'default',
+                  }}>
                   <div style={{ fontSize: '10px', fontWeight: 600, color: isToday ? 'var(--ac2)' : 'var(--txt2)' }}>{day}</div>
-                  {pnl !== undefined && (
+                  {st !== undefined && (
                     <div style={{ fontSize: '10px', fontFamily: 'var(--mono)', color: c.fg, fontWeight: 700, marginTop: '2px' }}>
-                      {fmtK(pnl)}
+                      {fmtK(st.pnl)}
                     </div>
                   )}
                 </div>
@@ -215,7 +290,7 @@ export function CalendarReport({ trades }: Props) {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
                 {matrix.map((cell, i) => {
                   const ds = dstr(cell.date)
-                  const pnl = cell.inMonth ? byDay[ds] : undefined
+                  const pnl = cell.inMonth ? byDay[ds]?.pnl : undefined
                   const isToday = cell.inMonth && ds === todayStr
                   let bg = 'var(--bg3)', fg = 'var(--txt2)'
                   if (!cell.inMonth) { fg = 'var(--txt3)' }
@@ -245,6 +320,18 @@ export function CalendarReport({ trades }: Props) {
       </div>
     </>
   )
+
+  // ─── Day popup (same modal as the Dashboard calendar) ────────────────────
+  const popupTrades = popupDate ? trades.filter(t => (t.date || '').substring(0, 10) === popupDate) : []
+  const pPnl = popupTrades.reduce((s, t) => s + (t.pnl || 0), 0)
+  const pWins = popupTrades.filter(t => (t.pnl || 0) > 0)
+  const pWr = popupTrades.length ? (pWins.length / popupTrades.length) * 100 : 0
+  const gW = pWins.reduce((s, t) => s + t.pnl, 0)
+  const gL = popupTrades.filter(t => (t.pnl || 0) < 0).reduce((s, t) => s + Math.abs(t.pnl), 0)
+  const pPf = gL > 0 ? gW / gL : gW > 0 ? gW : 0
+  const popupTitle = popupDate
+    ? new Date(`${popupDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    : ''
 
   return (
     <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', padding: '16px 18px' }}>
@@ -282,6 +369,98 @@ export function CalendarReport({ trades }: Props) {
         </div>
       )}
       {monthView}
+
+      {/* Day detail popup — mirrors src/components/dashboard/MonthCalendar.tsx */}
+      {popupDate && (
+        <div
+          onClick={() => setPopupDate(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', width: '100%', maxWidth: '720px', maxHeight: '80vh', overflowY: 'auto' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--brd)' }}>
+              <span style={{ fontSize: '14px', fontWeight: 800 }}>{popupTitle}</span>
+              <button onClick={() => setPopupDate(null)} style={{ background: 'none', border: 'none', color: 'var(--txt3)', fontSize: '18px', cursor: 'pointer' }}>×</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', padding: '14px 18px' }}>
+              {[
+                { l: 'Net P&L', v: fmtUSD(pPnl), c: pPnl >= 0 ? 'var(--ac)' : 'var(--red)' },
+                { l: 'Win Rate', v: `${pWr.toFixed(0)}%`, c: 'var(--txt)' },
+                { l: 'Trades', v: String(popupTrades.length), c: 'var(--txt)' },
+                { l: 'Profit Factor', v: pPf.toFixed(2), c: pPf >= 1.5 ? 'var(--ac)' : 'var(--red)' },
+              ].map((s, i) => (
+                <div key={i} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '10px 12px' }}>
+                  <div style={{ fontSize: '9px', color: 'var(--txt3)' }}>{s.l}</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, fontFamily: 'var(--mono)', color: s.c }}>{s.v}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ padding: '0 18px 18px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                <thead>
+                  <tr style={{ color: 'var(--txt3)', textAlign: 'left' }}>
+                    {['Symbol','Side','Setup','Entry','Exit','Size','P&L','Grade'].map(h => (
+                      <th key={h} style={{ padding: '7px 8px', fontSize: '9px', textTransform: 'uppercase', borderBottom: '1px solid var(--brd)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {buildGroupedRows(popupTrades).map(row => {
+                    const isExpanded = expandedGroups.has(row.key)
+                    const mainRow = (
+                      <tr
+                        key={row.key}
+                        onClick={() => row.isGroup && toggleGroup(row.key)}
+                        style={{ borderBottom: '1px solid var(--brd)', cursor: row.isGroup ? 'pointer' : 'default' }}
+                      >
+                        <td style={{ padding: '7px 8px', fontWeight: 700, fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {row.isGroup && (
+                            <span style={{ fontSize: '9px', color: 'var(--txt3)', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: '.1s', display: 'inline-block' }}>▶</span>
+                          )}
+                          {row.symbol}
+                          {row.isGroup && (
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--txt3)', background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '4px', padding: '1px 6px' }}>
+                              {row.legs.length} exits
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '7px 8px', color: row.type === 'Short' ? 'var(--red)' : 'var(--ac)' }}>{row.type}</td>
+                        <td style={{ padding: '7px 8px', color: 'var(--txt3)' }}>{row.setup || '—'}</td>
+                        <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)' }}>{row.avgEntry ? `$${row.avgEntry.toFixed(2)}` : '—'}</td>
+                        <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)' }}>{row.lastExit ? `$${row.lastExit.toFixed(2)}` : '—'}</td>
+                        <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)' }}>{row.totalShares || '—'}</td>
+                        <td style={{ padding: '7px 8px', fontFamily: 'var(--mono)', fontWeight: 700, color: row.totalPnl >= 0 ? 'var(--ac)' : 'var(--red)' }}>{fmtUSD(row.totalPnl)}</td>
+                        <td style={{ padding: '7px 8px', color: 'var(--txt3)' }}>{row.grade || '—'}</td>
+                      </tr>
+                    )
+
+                    if (!row.isGroup || !isExpanded) return mainRow
+
+                    const legRows = row.legs.map((t, i) => (
+                      <tr key={t.id} style={{ borderBottom: '1px solid var(--brd)', background: 'var(--bg3)' }}>
+                        <td style={{ padding: '6px 8px', fontSize: '10px', color: 'var(--txt3)', paddingLeft: '22px' }}>exit {i + 1}</td>
+                        <td />
+                        <td />
+                        <td style={{ padding: '6px 8px', fontFamily: 'var(--mono)', fontSize: '10px', color: 'var(--txt3)' }}>${t.entry.toFixed(2)}</td>
+                        <td style={{ padding: '6px 8px', fontFamily: 'var(--mono)', fontSize: '10px' }}>{t.exit ? `$${t.exit.toFixed(2)}` : '—'}</td>
+                        <td style={{ padding: '6px 8px', fontFamily: 'var(--mono)', fontSize: '10px' }}>{t.shares}</td>
+                        <td style={{ padding: '6px 8px', fontFamily: 'var(--mono)', fontSize: '10px', fontWeight: 700, color: (t.pnl || 0) >= 0 ? 'var(--ac)' : 'var(--red)' }}>{fmtUSD(t.pnl || 0)}</td>
+                        <td />
+                      </tr>
+                    ))
+
+                    return [mainRow, ...legRows]
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
