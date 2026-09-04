@@ -330,8 +330,12 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
         </div>
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '8px' }}>
           <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: trade.type === 'Long' ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.15)', color: trade.type === 'Long' ? 'var(--ac)' : 'var(--red)', fontWeight: 600 }}>{trade.type}</span>
-          {trade.pnl > 0 && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'rgba(16,185,129,.1)', color: 'var(--ac)', fontWeight: 600 }}>Win</span>}
-          {trade.pnl < 0 && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'rgba(239,68,68,.1)', color: 'var(--red)', fontWeight: 600 }}>Loss</span>}
+          {!trade.exit
+            ? <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'rgba(59,130,246,.1)', color: '#3B82F6', fontWeight: 600 }}>Open</span>
+            : <>
+                {trade.pnl > 0 && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'rgba(16,185,129,.1)', color: 'var(--ac)', fontWeight: 600 }}>Win</span>}
+                {trade.pnl < 0 && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'rgba(239,68,68,.1)', color: 'var(--red)', fontWeight: 600 }}>Loss</span>}
+              </>}
           {trade.grade && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'var(--bg3)', color: 'var(--txt2)', fontWeight: 600 }}>{trade.grade}</span>}
         </div>
       </div>
@@ -557,16 +561,25 @@ export function Journal({ trades, onEdit, onDelete }: Props) {
                     </div>
                   </td>
                   <td>
-                    <span style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      background: row.totalPnl > 0 ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.15)',
-                      color: row.totalPnl > 0 ? 'var(--ac)' : 'var(--red)',
-                    }}>
-                      {row.totalPnl > 0 ? 'Win' : 'Loss'}
-                    </span>
+                    {row.lastExit == null ? (
+                      <span style={{
+                        fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px',
+                        background: 'rgba(59,130,246,.15)', color: '#3B82F6', border: '1px solid rgba(59,130,246,.35)',
+                      }}>
+                        Open
+                      </span>
+                    ) : (
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        background: row.totalPnl > 0 ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.15)',
+                        color: row.totalPnl > 0 ? 'var(--ac)' : 'var(--red)',
+                      }}>
+                        {row.totalPnl > 0 ? 'Win' : 'Loss'}
+                      </span>
+                    )}
                   </td>
                   <td style={{ fontFamily: 'var(--mono)' }}>${row.avgEntry.toFixed(2)}</td>
                   <td style={{ fontFamily: 'var(--mono)' }}>{row.lastExit ? '$' + row.lastExit.toFixed(2) : '—'}</td>
