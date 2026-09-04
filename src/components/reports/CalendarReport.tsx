@@ -197,8 +197,13 @@ export function CalendarReport({ trades }: Props) {
                 style={{ background: 'none', border: 'none', color: isCurrentYear && m === today.getMonth() ? 'var(--ac2)' : 'var(--txt)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', padding: 0, marginBottom: '8px', display: 'block' }}
               >{mLabel}</button>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '3px' }}>
-                {DOW.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '7px', fontWeight: 600, color: 'var(--txt4)' }}>{d}</div>)}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '2px' }}>
+                {DOW.map((d, di) => (
+                  <div key={di} style={{
+                    textAlign: 'center', fontSize: '7px', fontWeight: 700, color: 'var(--txt2)',
+                    background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: '4px', padding: '3px 0',
+                  }}>{d}</div>
+                ))}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
@@ -207,7 +212,7 @@ export function CalendarReport({ trades }: Props) {
                   const pnl = cell.inMonth ? byDay[ds] : undefined
                   const isToday = cell.inMonth && ds === todayStr
                   let bg = 'var(--bg3)', fg = 'var(--txt2)'
-                  if (!cell.inMonth) { bg = 'transparent'; fg = 'var(--txt4)' }
+                  if (!cell.inMonth) { fg = 'var(--txt3)' }
                   else if (isToday) { bg = 'var(--ac)'; fg = '#000' }
                   else if (pnl !== undefined) {
                     bg = pnl > 0 ? 'rgba(16,185,129,.18)' : pnl < 0 ? 'rgba(239,68,68,.16)' : 'rgba(255,255,255,.05)'
@@ -222,7 +227,7 @@ export function CalendarReport({ trades }: Props) {
                       style={{
                         background: bg, color: fg,
                         fontWeight: isToday || pnl !== undefined ? 700 : 500,
-                        border: `1px solid ${isToday ? 'var(--ac)' : cell.inMonth ? 'var(--brd)' : 'transparent'}`,
+                        border: `1px solid ${isToday ? 'var(--ac)' : 'var(--brd)'}`,
                       }}
                     >{cell.date.getDate()}</button>
                   )
