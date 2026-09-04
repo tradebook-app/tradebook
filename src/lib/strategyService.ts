@@ -87,39 +87,25 @@ export async function fetchRuleGroups(strategyId: string): Promise<StrategyRuleG
 }
 
 // Replaces ALL rule groups/rules for a strategy with the given draft state.
-// Simplest correct approach for this scale: wipe the strategy's existing
-// groups (cascades to rules) and reinsert fresh, preserving order.
+// Delegates the actual delete-then-reinsert to a single Postgres function
+// (save_strategy_rule_groups, migration 010) so the whole replace happens in
+// one transaction. This used to be three separate client-side calls — DELETE
+// the old groups, INSERT the new groups, INSERT the new rules — with nothing
+// tying them together: a network hiccup or insert error after the delete had
+// already gone through silently left the strategy with its rules gone and
+// nothing reinserted. A single RPC call can't partially apply.
 export async function saveRuleGroups(strategyId: string, groups: StrategyRuleGroupDraft[]): Promise<boolean> {
   const supabase = createClient()
 
-  const { error: delErr } = await supabase
-    .from('strategy_rule_groups')
-    .delete()
-    .eq('strategy_id', strategyId)
-  if (delErr) { console.error(delErr); return false }
-
   const cleanGroups = groups
-    .map(g => ({ ...g, name: g.name.trim(), rules: g.rules.filter(r => r.text.trim()) }))
+    .map(g => ({ name: g.name.trim(), rules: g.rules.filter(r => r.text.trim()).map(r => ({ text: r.text.trim() })) }))
     .filter(g => g.name)
-  if (cleanGroups.length === 0) return true
 
-  const { data: insertedGroups, error: gErr } = await supabase
-    .from('strategy_rule_groups')
-    .insert(cleanGroups.map((g, i) => ({ strategy_id: strategyId, name: g.name, position: i })))
-    .select()
-  if (gErr || !insertedGroups) { console.error(gErr); return false }
-
-  const ruleRows = cleanGroups.flatMap((g, gi) =>
-    g.rules.map((r, ri) => ({
-      group_id: insertedGroups[gi].id,
-      text: r.text.trim(),
-      position: ri,
-    }))
-  )
-  if (ruleRows.length === 0) return true
-
-  const { error: rErr } = await supabase.from('strategy_rules').insert(ruleRows)
-  if (rErr) { console.error(rErr); return false }
+  const { error } = await supabase.rpc('save_strategy_rule_groups', {
+    p_strategy_id: strategyId,
+    p_groups: cleanGroups,
+  })
+  if (error) { console.error(error); return false }
 
   return true
 }

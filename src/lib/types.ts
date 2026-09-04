@@ -482,7 +482,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      save_strategy_rule_groups: {
+        Args: { p_strategy_id: string; p_groups: { name: string; rules: { text: string }[] }[] }
+        Returns: void
+      }
     }
   }
 }
