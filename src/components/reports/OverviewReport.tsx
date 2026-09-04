@@ -1,7 +1,7 @@
 'use client'
 
 import type { TradeRow } from '@/lib/types'
-import { closedTrades, fmtPnl, pickBestWorstDay } from '@/lib/analytics'
+import { closedTrades, fmtPnl, pickBestWorstDay, calcMaxDrawdown } from '@/lib/analytics'
 
 type Props = { trades: TradeRow[] }
 
@@ -21,8 +21,9 @@ export function OverviewReport({ trades }: Props) {
   const avgRR = rT.length ? rT.reduce((s, t) => s + t.pnl / t.risk, 0) / rT.length : 0
   const exp  = closed.length ? pnl / closed.length : 0
 
-  let peak = 0, maxDD = 0, run = 0
-  closed.forEach(t => { run += t.pnl; if (run > peak) peak = run; if (peak - run > maxDD) maxDD = peak - run })
+  // Shared with the Dashboard drawdown chart (analytics.ts) so the two pages
+  // can't disagree on "Max drawdown" for the same trades.
+  const maxDD = calcMaxDrawdown(trades)
 
   let bStr = 0, wStr = 0, cW = 0, cL = 0
   closed.forEach(t => {
