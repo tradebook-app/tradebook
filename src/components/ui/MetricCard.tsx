@@ -66,7 +66,7 @@ type InfoTooltipProps = {
   text: string
 }
 
-function InfoTooltip({ text }: InfoTooltipProps) {
+export function InfoTooltip({ text }: InfoTooltipProps) {
   const [open, setOpen] = useState(false)
 
   return (

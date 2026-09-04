@@ -6,6 +6,7 @@ import { closedTrades, fmtPnl, filterByDate } from '@/lib/analytics'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination, type Pagination as Pg } from '@/lib/usePagination'
 import { DateRangePicker } from '@/components/layout/DateRangePicker'
+import { InfoTooltip } from '@/components/ui/MetricCard'
 
 type Props = {
   trades: TradeRow[]      // page-filtered by the global date picker
@@ -73,23 +74,6 @@ export function WinLossReport({ trades, allTrades }: Props) {
     losses: sizeLosses.filter(t => -t.pnl >= b.min && -t.pnl < b.max).length,
   }))
   const maxBucket = Math.max(1, ...sizeDist.flatMap(d => [d.wins, d.losses]))
-
-  // Caption read from the bucket data: is the bulk of losses in bigger $ buckets
-  // than the bulk of wins (bad), the reverse (good), or neither (neutral)?
-  const avgBucketIndex = (side: 'wins' | 'losses') => {
-    let sum = 0, n = 0
-    sizeDist.forEach((d, i) => { sum += d[side] * i; n += d[side] })
-    return n ? sum / n : 0
-  }
-  const sizeSkew = (() => {
-    if (sizeWins.length === 0)   return 'No winning trades in this range.'
-    if (sizeLosses.length === 0) return 'No losing trades in this range.'
-    if (sizeWins.length < 3 || sizeLosses.length < 3) return 'Not enough trades yet to read a clear size pattern.'
-    const diff = avgBucketIndex('wins') - avgBucketIndex('losses')
-    if (diff <= -0.5) return 'Losses skew into larger buckets than wins — watch for cutting winners short / letting losers run.'
-    if (diff >=  0.5) return 'Wins skew into larger buckets than losses — good risk discipline.'
-    return 'Wins and losses sit in similar size ranges — no strong skew either way.'
-  })()
 
   const gradeRow = (g: { grade: string; pnl: number; trades: number; wins: number }, i: number) => {
     const wr = (g.wins / g.trades) * 100
@@ -185,7 +169,10 @@ export function WinLossReport({ trades, allTrades }: Props) {
       {/* overflow visible so the date picker's menu (opening upward) isn't clipped */}
       <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)' }}>
         <div style={{ padding: '9px 12px 9px 18px', borderBottom: '1px solid var(--brd)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Win/Loss Size Distribution</div>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>
+            Win/Loss Size Distribution
+            <InfoTooltip text="Shows how many of your trades fall into each P&L size range, split by wins and losses, so you can see whether your wins or losses tend to be bigger." />
+          </div>
           <DateRangePicker filter={sizeFilter} onFilterChange={setSizeFilter} align="up" />
         </div>
         {sizeClosed.length === 0 ? (
@@ -212,9 +199,6 @@ export function WinLossReport({ trades, allTrades }: Props) {
             ))}
           </div>
         )}
-        <div style={{ fontSize: '9px', color: 'var(--txt3)', padding: '0 18px 14px' }}>
-          Trades bucketed by P&amp;L size. {sizeSkew}
-        </div>
       </div>
     </div>
   )
