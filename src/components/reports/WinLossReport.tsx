@@ -26,13 +26,14 @@ export function WinLossReport({ trades }: Props) {
 
   const byGrade: Record<string, { pnl: number; trades: number; wins: number }> = {}
   closed.forEach(t => {
-    const g = t.grade || 'Ungraded'
+    const g = t.grade
+    if (!g) return  // trades with no grade set don't appear in this box
     if (!byGrade[g]) byGrade[g] = { pnl: 0, trades: 0, wins: 0 }
     byGrade[g].pnl += t.pnl; byGrade[g].trades += 1
     if (t.pnl > 0) byGrade[g].wins += 1
   })
 
-  const gradeOrder = ['A+', 'A', 'A-', 'B', 'C', 'Ungraded']
+  const gradeOrder = ['A+', 'A', 'A-', 'B', 'C']
   const gradeRows  = gradeOrder.filter(g => byGrade[g]).map(g => ({ grade: g, ...byGrade[g] }))
 
   const byDate  = closed.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''))
@@ -85,20 +86,18 @@ export function WinLossReport({ trades }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', alignItems: 'start' }}>
         <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
           <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Streak Analysis</div>
-          <div>
-            {[
-              ['Max Win Streak',  `${maxWinStreak} in a row`,  'var(--ac)'],
-              ['Max Loss Streak', `${maxLossStreak} in a row`, 'var(--red)'],
-            ].map(([l, v, c], i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 18px', borderBottom: '1px solid var(--brd)', gap: '8px' }}>
-                <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{l}</span>
-                <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--mono)', color: c as string, whiteSpace: 'nowrap' }}>{v}</span>
-              </div>
-            ))}
-          </div>
+          {[
+            ['Max Win Streak',  `${maxWinStreak} in a row`,  'var(--ac)'],
+            ['Max Loss Streak', `${maxLossStreak} in a row`, 'var(--red)'],
+          ].map(([l, v, c], i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid var(--brd)', gap: '6px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{l}</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--mono)', color: c as string, whiteSpace: 'nowrap' }}>{v}</span>
+            </div>
+          ))}
         </div>
 
         <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
