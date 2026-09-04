@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import type { TradeRow, DateRangeFilter } from '@/lib/types'
 import { assetUnitLabel } from '@/lib/types'
-import { filterByDate, closedTrades, calcKPIs, fmtPnl, fmtDate } from '@/lib/analytics'
+import { filterByDate, closedTrades, calcKPIs, fmtPnl, fmtDate, tradeRoi } from '@/lib/analytics'
 import { filterByStatus, type TradeStatusFilter } from '@/lib/tradeTableFilters'
 import { MetricCard } from '@/components/ui/MetricCard'
 import { TradePanel } from '@/components/trades/TradePanel'
@@ -28,6 +28,7 @@ type GroupedRow = {
   isGroup: boolean
   symbol: string
   type: 'Long' | 'Short'
+  asset_type: TradeRow['asset_type']
   date: string
   totalShares: number
   avgEntry: number
@@ -76,6 +77,7 @@ function buildGroupedRows(trades: TradeRow[]): GroupedRow[] {
       isGroup: legs.length > 1,
       symbol: legs[0].symbol,
       type: legs[0].type,
+      asset_type: legs[0].asset_type,
       date: sortedByDate[0].date,
       totalShares,
       avgEntry: totalShares > 0 ? totalCost / totalShares : 0,
@@ -95,6 +97,7 @@ function buildGroupedRows(trades: TradeRow[]): GroupedRow[] {
       isGroup: false,
       symbol: t.symbol,
       type: t.type,
+      asset_type: t.asset_type,
       date: t.date,
       totalShares: t.shares,
       avgEntry: t.entry,
@@ -299,7 +302,11 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
             {filtered.length === 0 ? (
               <tr><td colSpan={14} className="empty">No trades found. Add your first trade using the "+ Add Trade" button.</td></tr>
             ) : pageRows.map(row => {
-              const roi = row.avgEntry && row.totalShares ? (row.totalPnl / (row.avgEntry * row.totalShares)) * 100 : 0
+              // Same cost-basis math as P&L (options ×100, futures ×point value,
+              // forex ×lot size) — previously divided by raw entry×shares,
+              // inflating options ROI by ~100x. null when the multiplier can't
+              // be determined.
+              const roi = tradeRoi({ entry: row.avgEntry, shares: row.totalShares, pnl: row.totalPnl, asset_type: row.asset_type, symbol: row.symbol })
               const rm  = row.totalRisk > 0 ? row.totalPnl / row.totalRisk : null
               const isOpen = !(row.lastExit && row.lastExit > 0)
               const isW = !isOpen && row.totalPnl > 0, isL = !isOpen && row.totalPnl < 0
@@ -332,7 +339,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
                   <td className="r" style={{ fontFamily: 'var(--mono)' }}>{row.lastExit ? `$${row.lastExit.toFixed(2)}` : '—'}</td>
                   <td className="r" style={{ fontFamily: 'var(--mono)' }}>{row.totalShares || ''}</td>
                   <td className="r" style={{ fontFamily: 'var(--mono)', color: isW ? 'var(--ac)' : isL ? 'var(--red)' : '', fontWeight: 600 }}>{isOpen ? '—' : fmtPnl(row.totalPnl)}</td>
-                  <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px', color: roi >= 0 ? 'var(--ac)' : 'var(--red)' }}>{isOpen ? '—' : `${roi.toFixed(2)}%`}</td>
+                  <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px', color: roi == null ? 'var(--txt3)' : roi >= 0 ? 'var(--ac)' : 'var(--red)' }}>{isOpen || roi == null ? '—' : `${roi.toFixed(2)}%`}</td>
                   <td className="r" style={{ fontFamily: 'var(--mono)', fontSize: '10px' }}>{isOpen || rm === null ? '—' : `${rm.toFixed(2)}R`}</td>
                   <td style={{ fontSize: '11px' }}>{row.grade || '—'}</td>
                   <td style={{ fontSize: '10px', color: 'var(--txt2)' }}>{row.setup || '—'}</td>
@@ -381,7 +388,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
         {filtered.length === 0 ? (
           <div className="empty">No trades found. Add your first trade using the "+ Add Trade" button.</div>
         ) : pageRows.map(row => {
-          const roi = row.avgEntry && row.totalShares ? (row.totalPnl / (row.avgEntry * row.totalShares)) * 100 : 0
+          const roi = tradeRoi({ entry: row.avgEntry, shares: row.totalShares, pnl: row.totalPnl, asset_type: row.asset_type, symbol: row.symbol })
           const rm  = row.totalRisk > 0 ? row.totalPnl / row.totalRisk : null
           const isOpen = !(row.lastExit && row.lastExit > 0)
           const isW = !isOpen && row.totalPnl > 0, isL = !isOpen && row.totalPnl < 0
@@ -409,7 +416,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: '14px', color: isW ? 'var(--ac)' : isL ? 'var(--red)' : 'var(--txt)' }}>{isOpen ? '—' : fmtPnl(row.totalPnl)}</div>
-                  <div style={{ fontSize: '10px', color: roi >= 0 ? 'var(--ac)' : 'var(--red)' }}>{isOpen ? '' : `${roi.toFixed(2)}%`}</div>
+                  <div style={{ fontSize: '10px', color: roi == null ? 'var(--txt3)' : roi >= 0 ? 'var(--ac)' : 'var(--red)' }}>{isOpen ? '' : roi == null ? '—' : `${roi.toFixed(2)}%`}</div>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--txt2)', fontFamily: 'var(--mono)' }}>

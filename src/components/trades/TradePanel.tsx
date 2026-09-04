@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import type { TradeRow } from '@/lib/types'
 import { assetUnitLabel, ASSET_TYPES } from '@/lib/types'
-import { fmtPnl, fmtDate, holdTime } from '@/lib/analytics'
+import { fmtPnl, fmtDate, holdTime, tradeRoi } from '@/lib/analytics'
 import { getScreenshotUrl } from '@/lib/tradeService'
 import TradeChart, { Candle, TradeMarker } from '@/components/charts/TradeChart'
 import { underlyingFromOptionSymbol } from '@/lib/contractMultiplier'
@@ -170,7 +170,10 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
 
   const isWin  = trade.pnl > 0
   const isLoss = trade.pnl < 0
-  const roi    = trade.entry && trade.shares ? (trade.pnl / (trade.entry * trade.shares)) * 100 : 0
+  // Same cost-basis math as P&L (options ×100, futures ×point value, forex
+  // ×lot size) — previously divided by raw entry×shares, inflating options
+  // ROI by ~100x. null when the multiplier can't be determined.
+  const roi    = tradeRoi(trade)
   const rm     = trade.risk > 0 ? trade.pnl / trade.risk : null
   const hold   = holdTime(trade.date, trade.exit_date)
 
@@ -202,7 +205,7 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
     ['Grade',       trade.grade || '—'],
     ['Risk (1R)',   `$${trade.risk || 0}`],
     ['Commissions', `$${trade.commission || 0}`],
-    ['Net ROI',     <span style={{ color: roi >= 0 ? 'var(--ac)' : 'var(--red)' }}>{roi >= 0 ? '+' : ''}{roi.toFixed(2)}%</span>],
+    ['Net ROI',     roi == null ? '—' : <span style={{ color: roi >= 0 ? 'var(--ac)' : 'var(--red)' }}>{roi >= 0 ? '+' : ''}{roi.toFixed(2)}%</span>],
     ['R-Multiple',  rm !== null ? <span style={{ color: rm >= 0 ? 'var(--ac)' : 'var(--red)' }}>{rm >= 0 ? '+' : ''}{rm.toFixed(2)}R</span> : '—'],
     ['Hold Time',   hold],
     ['Gross P&L',   fmtPnl(trade.pnl + (trade.commission || 0))],
@@ -270,7 +273,7 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
         </div>
         <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
           {[
-            `ROI ${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%`,
+            roi == null ? null : `ROI ${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%`,
             `Gross ${fmtPnl(trade.pnl + (trade.commission || 0))}`,
             rm !== null ? `${rm >= 0 ? '+' : ''}${rm.toFixed(2)}R` : null,
           ].filter(Boolean).map((t, i) => (

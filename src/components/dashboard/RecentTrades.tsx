@@ -1,7 +1,7 @@
 'use client'
 
 import type { TradeRow } from '@/lib/types'
-import { fmtPnl, fmtDate } from '@/lib/analytics'
+import { fmtPnl, fmtDate, tradeRoi } from '@/lib/analytics'
 
 type Props = {
   trades: TradeRow[]
@@ -14,6 +14,7 @@ type GroupedRow = {
   isGroup: boolean
   symbol: string
   type: 'Long' | 'Short'
+  asset_type: TradeRow['asset_type']
   sortDate: string
   avgEntry: number
   totalShares: number
@@ -48,6 +49,7 @@ function buildGroupedRows(trades: TradeRow[]): GroupedRow[] {
       isGroup: legs.length > 1,
       symbol: legs[0].symbol,
       type: legs[0].type,
+      asset_type: legs[0].asset_type,
       sortDate: (lastLeg.exit_date || lastLeg.date),
       avgEntry: totalShares > 0 ? totalCost / totalShares : 0,
       totalShares,
@@ -63,6 +65,7 @@ function buildGroupedRows(trades: TradeRow[]): GroupedRow[] {
       isGroup: false,
       symbol: t.symbol,
       type: t.type,
+      asset_type: t.asset_type,
       sortDate: (t.exit_date || t.date),
       avgEntry: t.entry,
       totalShares: t.shares,
@@ -99,7 +102,11 @@ export function RecentTrades({ trades, onSelect }: Props) {
       </thead>
       <tbody>
         {recent.map(row => {
-          const roi  = row.avgEntry && row.totalShares ? (row.totalPnl / (row.avgEntry * row.totalShares)) * 100 : 0
+          // Uses the same cost-basis math as P&L (options ×100, futures ×point
+          // value, forex ×lot size) — previously divided by raw entry×shares,
+          // inflating options ROI by ~100x. null when the multiplier can't be
+          // determined; rendered as '—' rather than a wrong number.
+          const roi  = tradeRoi({ entry: row.avgEntry, shares: row.totalShares, pnl: row.totalPnl, asset_type: row.asset_type, symbol: row.symbol })
           const isW  = row.totalPnl > 0
           const isL  = row.totalPnl < 0
           return (
@@ -127,8 +134,8 @@ export function RecentTrades({ trades, onSelect }: Props) {
               <td style={{ padding: '7px 10px', fontSize: '12px', fontWeight: 700, fontFamily: 'var(--mono)', color: isW ? 'var(--ac)' : isL ? 'var(--red)' : 'var(--txt3)', borderBottom: '1px solid var(--brd)' }}>
                 {fmtPnl(row.totalPnl)}
               </td>
-              <td style={{ padding: '7px 10px', fontSize: '10px', fontFamily: 'var(--mono)', color: roi >= 0 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)' }}>
-                {roi.toFixed(2)}%
+              <td style={{ padding: '7px 10px', fontSize: '10px', fontFamily: 'var(--mono)', color: roi == null ? 'var(--txt3)' : roi >= 0 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)' }}>
+                {roi == null ? '—' : `${roi.toFixed(2)}%`}
               </td>
               <td style={{ padding: '7px 10px', fontSize: '11px', color: 'var(--txt2)', borderBottom: '1px solid var(--brd)' }}>
                 {row.grade || '—'}
