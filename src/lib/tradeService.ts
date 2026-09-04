@@ -97,7 +97,26 @@ export async function updateTrade(
     .single()
 
   if (error) { console.error('Update trade error:', error); return null }
-  return data ? normalizeShots({ ...data, pnl: effectivePnl(data) }) : null
+  if (!data) return null
+
+  // Defense in depth for a bug where setup/strategy_id weren't persisting on
+  // some saves with no client-visible error: PostgREST can return 200 with a
+  // row whose fields don't match what was actually sent (a policy or trigger
+  // silently ignoring a column, a stale read-back, etc). Compare what we sent
+  // against what came back for those two fields specifically, and treat a
+  // mismatch as a failed save instead of reporting success with wrong data.
+  const checkedFields = ['setup', 'strategy_id'] as const
+  const mismatches = checkedFields.filter(k => k in updates && updates[k] !== data[k])
+  if (mismatches.length) {
+    console.error('Update trade mismatch — sent vs. stored differ:', {
+      id,
+      sent:   Object.fromEntries(mismatches.map(k => [k, updates[k]])),
+      stored: Object.fromEntries(mismatches.map(k => [k, data[k]])),
+    })
+    return null
+  }
+
+  return normalizeShots({ ...data, pnl: effectivePnl(data) })
 }
 
 // Delete a trade
