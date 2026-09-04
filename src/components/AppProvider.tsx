@@ -216,7 +216,10 @@ export function AppProvider({ userId, userEmail }: Props) {
   function openAdd() { setEditTrade(null); setModalOpen(true); fetchStrategies().then(setStrategyList) }
   function openEdit(trade: TradeRow) { setEditTrade(trade); setModalOpen(true); fetchStrategies().then(setStrategyList) }
 
-  async function handleSave(payload: TradeFormPayload, newScreenshots: File[]) {
+  // Returns whether the save actually persisted, so the modal can tell the user
+  // when it silently failed (bad RLS, network hiccup, etc.) instead of closing
+  // as if it worked. Previously the caller never checked this.
+  async function handleSave(payload: TradeFormPayload, newScreenshots: File[]): Promise<boolean> {
     // payload.screenshot_urls = the existing screenshots the user kept.
     const kept = payload.screenshot_urls ?? []
     const uploaded = newScreenshots.length ? await uploadScreenshots(newScreenshots, userId) : []
@@ -236,10 +239,14 @@ export function AppProvider({ userId, userEmail }: Props) {
     }
     if (editTrade) {
       const updated = await updateTrade(editTrade.id, tradeData)
-      if (updated) setTrades(prev => prev.map(t => t.id === editTrade.id ? updated : t))
+      if (!updated) return false
+      setTrades(prev => prev.map(t => t.id === editTrade.id ? updated : t))
+      return true
     } else {
       const inserted = await insertTrade(tradeData, userId)
-      if (inserted) setTrades(prev => [inserted, ...prev])
+      if (!inserted) return false
+      setTrades(prev => [inserted, ...prev])
+      return true
     }
   }
 

@@ -14,7 +14,10 @@ import { useAccounts } from '@/components/AccountProvider'
 type Props = {
   open: boolean
   onClose: () => void
-  onSave: (data: TradeFormPayload, newScreenshots: File[]) => Promise<void>
+  // Resolves to whether the save actually persisted — a modal-closing save
+  // that silently failed (RLS, network, etc.) looked identical to a
+  // successful one, so failures went completely unnoticed.
+  onSave: (data: TradeFormPayload, newScreenshots: File[]) => Promise<boolean>
   editTrade?: TradeRow | null
   strategies: StrategyRow[]
   userId: string
@@ -137,7 +140,16 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
     } else {
       resetForm()
     }
-  }, [editTrade, open, strategies])
+    // `strategies` is deliberately NOT a dependency — this must only run when
+    // the modal opens or which trade is being edited changes (populatedKey
+    // guards that), never when the strategies list itself changes mid-edit.
+    // It used to also list `strategies`, so creating a strategy inline (which
+    // changes that list) re-ran this whole block and reset the Strategy field
+    // the user had just picked back to "— No Strategy —", saving the trade
+    // with setup/strategy_id null. If `strategies` hasn't loaded yet when this
+    // runs, the legacy-setup match below picks it up once it arrives — it's
+    // guarded to never fire once a strategy is selected.
+  }, [editTrade, open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Signed URLs for the screenshots already on the trade.
   useEffect(() => {
@@ -296,9 +308,16 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
       screenshot_urls: keptShots,
     }
 
-    await onSave(payload, newFiles)
+    const ok = await onSave(payload, newFiles)
     setSaving(false)
-    handleClose()
+    if (ok) {
+      handleClose()
+    } else {
+      // Keep the modal open with everything the user entered intact — a
+      // failed save used to close the modal exactly like a successful one,
+      // so the failure (and the user's edits) just silently vanished.
+      alert('Could not save this trade — please try again.')
+    }
   }
 
   const fg: React.CSSProperties = { marginBottom: '12px' }
