@@ -204,9 +204,9 @@ export function MonthCalendar({ days, trades }: Props) {
       {/* Grid + weekly sidebar */}
       <div className="cal-grid">
         <div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px', marginBottom: '3px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px', marginBottom: '6px' }}>
             {DOW.map(d => (
-              <div key={d} style={{ textAlign: 'center', fontSize: '9px', fontWeight: 600, color: 'var(--txt3, #888)', padding: '2px 0' }}>{d}</div>
+              <div key={d} style={{ textAlign: 'center', fontSize: '9px', fontWeight: 500, color: 'var(--txt)', padding: '0 0 4px', borderBottom: '2px solid var(--ac)' }}>{d}</div>
             ))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px' }}>
