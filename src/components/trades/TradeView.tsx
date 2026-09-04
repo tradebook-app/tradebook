@@ -173,15 +173,24 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
   const pageTrades = useMemo(() => pageRows.flatMap(r => r.legs), [pageRows])
 
   function handleDeleteFiltered() {
-    const closed = trades.filter(t => t.exit && t.exit > 0)
-    const opens  = trades.filter(t => !(t.exit && t.exit > 0))
-    const isAll  = filtered.length === closed.length
-    if (!filtered.length && opens.length === 0) return alert('No trades match current filters.')
-    const ids = isAll ? trades.map(t => t.id) : filtered.map(t => t.id)
-    const openNote = isAll && opens.length ? ` (including ${opens.length} open position${opens.length > 1 ? 's' : ''})` : ''
+    // Always delete exactly the trades currently on screen under the applied
+    // filters — never anything outside that set. The old "isAll" check
+    // compared filtered.length to the ACCOUNT-WIDE closed-trade count (not
+    // filtered.length to trades.length), so a coincidental count match — e.g.
+    // filtering to one symbol that happens to have as many trades as the
+    // account has closed trades overall, or filtering to something with zero
+    // matches while the account happens to have zero closed trades — would
+    // silently switch `ids` to trades.map(...), deleting every trade in the
+    // account instead of the filtered subset, with a confirmation message
+    // that still described it as "filtered".
+    if (!filtered.length) return alert('No trades match current filters.')
+    const ids = filtered.map(t => t.id)
+    const isAll = filtered.length === trades.length  // every trade in the account matches the current filter
+    const openCount = filtered.filter(t => !(t.exit && t.exit > 0)).length
+    const openNote = openCount ? ` (including ${openCount} open position${openCount > 1 ? 's' : ''})` : ''
     const msg = isAll
       ? `⚠️ Delete ALL ${ids.length} trades${openNote}? This cannot be undone.`
-      : `Delete ${ids.length} filtered trade${ids.length > 1 ? 's' : ''}? This cannot be undone.`
+      : `Delete ${ids.length} filtered trade${ids.length > 1 ? 's' : ''}${openNote}? This cannot be undone.`
     if (!confirm(msg)) return
     onDeleteFiltered(ids)
   }
