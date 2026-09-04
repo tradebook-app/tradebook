@@ -7,7 +7,10 @@ import { Pagination } from '@/components/ui/Pagination'
 import { usePagination, type Pagination as Pg } from '@/lib/usePagination'
 import { DateRangePicker } from '@/components/layout/DateRangePicker'
 
-type Props = { trades: TradeRow[] }
+type Props = {
+  trades: TradeRow[]      // page-filtered by the global date picker
+  allTrades: TradeRow[]   // raw, unfiltered — for the chart's own local date picker
+}
 
 // P&L-size buckets for the Win/Loss Size Distribution histogram (mirrored for
 // wins and losses — a trade is placed by the absolute size of its P&L).
@@ -20,7 +23,7 @@ const SIZE_BUCKETS: { label: string; min: number; max: number }[] = [
   { label: '$1k+',     min: 1000, max: Infinity },
 ]
 
-export function WinLossReport({ trades }: Props) {
+export function WinLossReport({ trades, allTrades }: Props) {
   // Date range for the Win/Loss Size Distribution chart only — a local filter so
   // it doesn't touch the rest of the page (which stays on the `trades` prop).
   const [sizeFilter, setSizeFilter] = useState<DateRangeFilter>({ range: 'all' })
@@ -59,9 +62,9 @@ export function WinLossReport({ trades }: Props) {
   // full-width column so an empty B/C column doesn't leave a dead gap.
   const splitGrades = gradeColA.length > 0 && gradeColB.length > 0
 
-  // Win/Loss size distribution — its own date-scoped trade set, then count wins
-  // & losses that fall in each P&L bucket.
-  const sizeClosed = closedTrades(filterByDate(trades, sizeFilter))
+  // Win/Loss size distribution — filters the RAW trades by its own local picker,
+  // so it's fully independent of the page-level global date filter.
+  const sizeClosed = closedTrades(filterByDate(allTrades, sizeFilter))
   const sizeWins   = sizeClosed.filter(t => t.pnl > 0)
   const sizeLosses = sizeClosed.filter(t => t.pnl < 0)
   const sizeDist = SIZE_BUCKETS.map(b => ({
