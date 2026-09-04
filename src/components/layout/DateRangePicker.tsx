@@ -6,6 +6,9 @@ import { DateRange, DateRangeFilter } from '@/lib/types'
 type Props = {
   filter: DateRangeFilter
   onFilterChange: (f: DateRangeFilter) => void
+  // Which way the menu opens. Use 'up' when the picker sits low in a scroll
+  // container (e.g. on a chart card) so the menu isn't clipped below.
+  align?: 'up' | 'down'
 }
 
 const PRESETS: { value: DateRange; label: string }[] = [
@@ -30,7 +33,7 @@ function CalendarIcon() {
   )
 }
 
-export function DateRangePicker({ filter, onFilterChange }: Props) {
+export function DateRangePicker({ filter, onFilterChange, align = 'down' }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   // Draft state so typing/picking a date doesn't touch the real filter (and
@@ -93,7 +96,8 @@ export function DateRangePicker({ filter, onFilterChange }: Props) {
 
       {open && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: '190px',
+          position: 'absolute', right: 0, minWidth: '190px',
+          ...(align === 'up' ? { bottom: 'calc(100% + 8px)' } : { top: 'calc(100% + 8px)' }),
           background: 'var(--bg3)', border: '1px solid var(--brd2)', borderRadius: '16px',
           boxShadow: '0 16px 40px rgba(0,0,0,.35)', overflow: 'hidden', zIndex: 300, padding: '6px',
         }}>

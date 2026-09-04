@@ -1,11 +1,16 @@
 'use client'
 
 import type { TradeRow, DateRangeFilter } from '@/lib/types'
-import { closedTrades, fmtPnl, dateRangeLabel } from '@/lib/analytics'
+import { closedTrades, fmtPnl } from '@/lib/analytics'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination, type Pagination as Pg } from '@/lib/usePagination'
+import { DateRangePicker } from '@/components/layout/DateRangePicker'
 
-type Props = { trades: TradeRow[]; filter: DateRangeFilter }
+type Props = {
+  trades: TradeRow[]
+  filter: DateRangeFilter
+  setFilter: (f: DateRangeFilter) => void
+}
 
 // P&L-size buckets for the Win/Loss Size Distribution histogram (mirrored for
 // wins and losses — a trade is placed by the absolute size of its P&L).
@@ -18,7 +23,7 @@ const SIZE_BUCKETS: { label: string; min: number; max: number }[] = [
   { label: '$1k+',     min: 1000, max: Infinity },
 ]
 
-export function WinLossReport({ trades, filter }: Props) {
+export function WinLossReport({ trades, filter, setFilter }: Props) {
   const closed = closedTrades(trades)
   const wins   = closed.filter(t => t.pnl > 0).sort((a, b) => b.pnl - a.pnl)
   const losses = closed.filter(t => t.pnl < 0).sort((a, b) => a.pnl - b.pnl)
@@ -169,10 +174,11 @@ export function WinLossReport({ trades, filter }: Props) {
         {renderCard('Worst Losses', losses, lossesPg)}
       </div>
 
-      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-        <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)' }}>
+      {/* overflow visible so the date picker's menu (opening upward) isn't clipped */}
+      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)' }}>
+        <div style={{ padding: '9px 12px 9px 18px', borderBottom: '1px solid var(--brd)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Win/Loss Size Distribution</div>
-          <div style={{ fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.04em', marginTop: '3px' }}>{dateRangeLabel(filter)}</div>
+          <DateRangePicker filter={filter} onFilterChange={setFilter} align="up" />
         </div>
         {closed.length === 0 ? (
           <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt3)', fontSize: '11px' }}>No closed trades yet</div>
