@@ -13,11 +13,13 @@ export function SetupReport({ trades }: Props) {
 
   const bySetup: Record<string, { label: string; pnl: number; trades: number; wins: number; losses: number; grossWin: number; grossLoss: number }> = {}
   closed.forEach(t => {
-    const raw = (t.setup || 'No Setup').trim()
+    const raw = (t.setup || '').trim()
+    if (!raw) return  // trades with no setup assigned don't appear here
     // Group by a normalized name (case + whitespace folded) so "Bull Flag",
     // "bull flag" and "Bull  Flag" from manual entry / imports / legacy trades
     // don't fragment one setup's stats across several rows.
-    const key = normalizeSetupName(raw) || 'no setup'
+    const key = normalizeSetupName(raw)
+    if (!key) return
     if (!bySetup[key]) bySetup[key] = { label: raw, pnl: 0, trades: 0, wins: 0, losses: 0, grossWin: 0, grossLoss: 0 }
     bySetup[key].pnl    += t.pnl
     bySetup[key].trades += 1
