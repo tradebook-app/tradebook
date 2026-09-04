@@ -16,12 +16,13 @@ export function WinLossReport({ trades }: Props) {
   const winsPg   = usePagination(wins.length, 'sleek-rpt-winloss-w')
   const lossesPg = usePagination(losses.length, 'sleek-rpt-winloss-l')
 
-  let curStreak = 0, maxWinStreak = 0, maxLossStreak = 0, curType = ''
+  let curStreak = 0, maxWinStreak = 0, maxLossStreak = 0, maxBeStreak = 0, curType = ''
   ;[...closed].reverse().forEach(t => {
     const type = t.pnl > 0 ? 'win' : t.pnl < 0 ? 'loss' : 'be'
     if (type === curType) { curStreak++ } else { curStreak = 1; curType = type }
     if (type === 'win'  && curStreak > maxWinStreak)  maxWinStreak  = curStreak
     if (type === 'loss' && curStreak > maxLossStreak) maxLossStreak = curStreak
+    if (type === 'be'   && curStreak > maxBeStreak)   maxBeStreak   = curStreak
   })
 
   const byGrade: Record<string, { pnl: number; trades: number; wins: number }> = {}
@@ -33,8 +34,11 @@ export function WinLossReport({ trades }: Props) {
     if (t.pnl > 0) byGrade[g].wins += 1
   })
 
-  const gradeOrder = ['A+', 'A', 'A-', 'B', 'C']
-  const gradeRows  = gradeOrder.filter(g => byGrade[g]).map(g => ({ grade: g, ...byGrade[g] }))
+  // Two fixed columns so the box stays 3 rows tall however many grades are used.
+  const gradeCols = [['A+', 'A', 'A-'], ['B', 'C']].map(col =>
+    col.filter(g => byGrade[g]).map(g => ({ grade: g, ...byGrade[g] }))
+  )
+  const hasGrades = gradeCols.some(col => col.length > 0)
 
   const byDate  = closed.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''))
   const winSeq  = byDate.filter(t => t.pnl > 0)
@@ -90,8 +94,9 @@ export function WinLossReport({ trades }: Props) {
         <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
           <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Streak Analysis</div>
           {[
-            ['Max Win Streak',  `${maxWinStreak} in a row`,  'var(--ac)'],
-            ['Max Loss Streak', `${maxLossStreak} in a row`, 'var(--red)'],
+            ['Max Win Streak',       `${maxWinStreak} in a row`,  'var(--ac)'],
+            ['Max Loss Streak',      `${maxLossStreak} in a row`, 'var(--red)'],
+            ['Max Breakeven Streak', `${maxBeStreak} in a row`,   'var(--txt)'],
           ].map(([l, v, c], i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid var(--brd)', gap: '6px' }}>
               <span style={{ fontSize: '11px', color: 'var(--txt2)' }}>{l}</span>
@@ -102,20 +107,28 @@ export function WinLossReport({ trades }: Props) {
 
         <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
           <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Performance by Grade</div>
-          {gradeRows.length === 0 ? (
+          {!hasGrades ? (
             <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt3)', fontSize: '11px' }}>No graded trades yet</div>
-          ) : gradeRows.map((g, i) => {
-            const wr = (g.wins / g.trades) * 100
-            return (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid var(--brd)', gap: '6px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac2)', background: 'var(--ac-d)', padding: '1px 6px', borderRadius: '4px' }}>{g.grade}</span>
-                  <span style={{ fontSize: '9px', color: 'var(--txt3)' }}>{g.trades}t · {wr.toFixed(0)}%</span>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+              {gradeCols.map((col, ci) => (
+                <div key={ci} style={{ borderLeft: ci > 0 && col.length > 0 ? '1px solid var(--brd)' : undefined }}>
+                  {col.map((g, i) => {
+                    const wr = (g.wins / g.trades) * 100
+                    return (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid var(--brd)', gap: '6px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac2)', background: 'var(--ac-d)', padding: '1px 6px', borderRadius: '4px' }}>{g.grade}</span>
+                          <span style={{ fontSize: '9px', color: 'var(--txt3)', whiteSpace: 'nowrap' }}>{g.trades}t · {wr.toFixed(0)}%</span>
+                        </div>
+                        <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--mono)', color: g.pnl >= 0 ? 'var(--ac)' : 'var(--red)', whiteSpace: 'nowrap' }}>{fmtPnl(g.pnl)}</span>
+                      </div>
+                    )
+                  })}
                 </div>
-                <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--mono)', color: g.pnl >= 0 ? 'var(--ac)' : 'var(--red)', whiteSpace: 'nowrap' }}>{fmtPnl(g.pnl)}</span>
-              </div>
-            )
-          })}
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
