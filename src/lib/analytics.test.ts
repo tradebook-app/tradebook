@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { computeTradePnl, effectivePnl, normalizeSetupName, pickBestWorstDay } from './analytics'
+import { computeTradePnl, effectivePnl, normalizeSetupName, pickBestWorstDay, tradeMultiplier, tradeCostBasis, tradeRoi, calcDrawdown, calcMaxDrawdown } from './analytics'
+import { forexLotValue } from './contractMultiplier'
+import type { TradeRow } from './types'
 
 const stock = (o: Partial<Parameters<typeof effectivePnl>[0]>) => ({
   entry: 0, exit: null as number | null, shares: 0, type: 'Long' as const,
-  asset_type: 'stock' as const, symbol: 'X', commission: 0, pnl: 0, ...o,
+  asset_type: 'stock' as const, symbol: 'X', commission: 0, pnl: 0,
+  pnl_is_override: false, ...o,
 })
 
 describe('computeTradePnl', () => {
@@ -32,7 +35,15 @@ describe('effectivePnl', () => {
   })
   it('leaves a correct non-zero stored value alone', () => {
     expect(effectivePnl(stock({ entry: 94.44, exit: 93.19, shares: 69, pnl: -86.25 }))).toBe(-86.25)
-    expect(effectivePnl(stock({ entry: 10, exit: 12, shares: 100, pnl: 250 }))).toBe(250) // manual override kept
+  })
+  it('recomputes a stale non-zero stored value that the fills contradict (pre-launch audit: 63/163 real trades were in this state — a bad import, or pnl left behind after commission was corrected)', () => {
+    // Old, buggy heuristic ("trust any non-zero stored value") would have
+    // kept 250 here. This is the exact PR#32 pattern: a stored value that
+    // does NOT carry pnl_is_override must be recomputed from the fills.
+    expect(effectivePnl(stock({ entry: 10, exit: 12, shares: 100, pnl: 250 }))).toBe(200)
+  })
+  it('keeps a genuine manual override (pnl_is_override: true) even though it disagrees with the fills', () => {
+    expect(effectivePnl(stock({ entry: 10, exit: 12, shares: 100, pnl: 250, pnl_is_override: true }))).toBe(250)
   })
   it('keeps a true breakeven (exit === entry) at 0', () => {
     expect(effectivePnl(stock({ entry: 50, exit: 50, shares: 100, pnl: 0 }))).toBe(0)
@@ -68,6 +79,109 @@ describe('normalizeSetupName', () => {
     ]
     const keys = new Set(trades.map(t => normalizeSetupName(t.setup)))
     expect(keys).toEqual(new Set(['bull flag', 'orb']))
+  })
+})
+
+describe('tradeMultiplier', () => {
+  it('stock is 1x', () => {
+    expect(tradeMultiplier({ asset_type: 'stock', symbol: 'AAPL' })).toBe(1)
+  })
+  it('option is 100x', () => {
+    expect(tradeMultiplier({ asset_type: 'option', symbol: 'AAPL260117C00150000' })).toBe(100)
+  })
+  it('recognized futures contract uses its point value', () => {
+    expect(tradeMultiplier({ asset_type: 'futures', symbol: 'ESH26' })).toBe(50)
+  })
+  it('unrecognized futures contract is null, not a silent 1x', () => {
+    expect(tradeMultiplier({ asset_type: 'futures', symbol: 'ZZZH26' })).toBeNull()
+  })
+  it('USD-quote forex pair uses the standard-lot value', () => {
+    expect(tradeMultiplier({ asset_type: 'forex', symbol: 'EURUSD' })).toBe(100000)
+  })
+  it('USD-base forex pair (needs live FX conversion) is null, not a silent 1x', () => {
+    expect(tradeMultiplier({ asset_type: 'forex', symbol: 'USDJPY' })).toBeNull()
+  })
+})
+
+describe('tradeCostBasis / tradeRoi (the ~100x options ROI bug)', () => {
+  it('stock: cost basis is entry × shares, unscaled', () => {
+    expect(tradeCostBasis({ entry: 10, shares: 100, asset_type: 'stock', symbol: 'AAPL' })).toBe(1000)
+  })
+  it('option: cost basis is scaled by the 100x contract multiplier, same as pnl', () => {
+    // 1 contract, $1.00 entry premium -> $100 cost basis, not $1
+    expect(tradeCostBasis({ entry: 1, shares: 1, asset_type: 'option', symbol: 'AAPL260117C00150000' })).toBe(100)
+  })
+  it('option ROI: pnl and cost basis use the same multiplier, so it cancels — no more ~100x inflation', () => {
+    // entry 1 -> exit 1.5, 2 contracts: pnl = (1.5-1)*2*100 = 100; cost basis = 1*2*100 = 200; ROI = 50%
+    const roi = tradeRoi({ entry: 1, shares: 2, pnl: 100, asset_type: 'option', symbol: 'AAPL260117C00150000' })
+    expect(roi).toBeCloseTo(50, 5)
+    // Old buggy formula (pnl / (entry*shares)) would have given (100/(1*2))*100 = 5000% — ~100x too high.
+    expect(roi).not.toBeCloseTo(5000, 0)
+  })
+  it('returns null (not 0 or a wrong number) when the multiplier cannot be determined', () => {
+    expect(tradeCostBasis({ entry: 1, shares: 1, asset_type: 'futures', symbol: 'ZZZH26' })).toBeNull()
+    expect(tradeRoi({ entry: 1, shares: 1, pnl: 5, asset_type: 'futures', symbol: 'ZZZH26' })).toBeNull()
+  })
+})
+
+describe('forexLotValue', () => {
+  it('recognizes USD-quote pairs regardless of separator/case', () => {
+    expect(forexLotValue('EURUSD')).toBe(100000)
+    expect(forexLotValue('EUR/USD')).toBe(100000)
+    expect(forexLotValue('eur-usd')).toBe(100000)
+  })
+  it('returns null for a USD-base pair (would need live FX conversion)', () => {
+    expect(forexLotValue('USDJPY')).toBeNull()
+  })
+})
+
+describe('calcDrawdown / calcMaxDrawdown (trade-level, not day-level)', () => {
+  const t = (o: Partial<TradeRow>): TradeRow => ({
+    id: 'x', user_id: 'u', symbol: 'X', type: 'Long', asset_type: 'stock',
+    entry: 0, exit: 1, shares: 1, commission: 0, pnl: 0, risk: 0,
+    date: '2024-01-01', exit_date: null, setup: null, grade: null, notes: null,
+    tags: [], screenshot_urls: [], screenshot_url: null, strategy_id: null,
+    account_id: null, trade_group_id: null, created_at: '', updated_at: '',
+    pnl_is_override: false,
+    ...o,
+  } as TradeRow)
+
+  it('a single intraday dip inside a net-positive day is NOT hidden (the day-level aggregation bug)', () => {
+    // +1000, -1800, +900 all on the same day nets +100 for the day, but the
+    // real running equity dipped to -800 from its peak of +1000 at one point.
+    const trades = [
+      t({ date: '2024-01-01T09:00:00Z', pnl: 1000 }),
+      t({ date: '2024-01-01T10:00:00Z', pnl: -1800 }),
+      t({ date: '2024-01-01T11:00:00Z', pnl: 900 }),
+    ]
+    expect(calcMaxDrawdown(trades)).toBeCloseTo(1800, 2)
+  })
+  it('drawdown is 0 when equity only ever climbs', () => {
+    const trades = [
+      t({ date: '2024-01-01', pnl: 100 }),
+      t({ date: '2024-01-02', pnl: 50 }),
+    ]
+    expect(calcMaxDrawdown(trades)).toBe(0)
+  })
+  it('open trades (no exit) are excluded from the walk', () => {
+    // If the open trade's -9999 were wrongly included, this would show a huge
+    // drawdown. Excluded correctly, equity only climbs (500, then 600) -> 0.
+    const trades = [
+      t({ date: '2024-01-01', pnl: 500 }),
+      t({ date: '2024-01-02', pnl: -9999, exit: null }), // open — excluded
+      t({ date: '2024-01-03', pnl: 100 }),
+    ]
+    expect(calcMaxDrawdown(trades)).toBe(0)
+  })
+  it('calcDrawdown labels/data stay in chronological order regardless of input order', () => {
+    const trades = [
+      t({ date: '2024-01-03', pnl: 100 }),
+      t({ date: '2024-01-01', pnl: 500 }),
+      t({ date: '2024-01-02', pnl: -200 }),
+    ]
+    const { data } = calcDrawdown(trades)
+    expect(data).toHaveLength(3)
+    expect(data[1]).toBeCloseTo(-200, 2) // after the -200 leg, running=300, peak=500
   })
 })
 

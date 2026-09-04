@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import type { TradeRow, StrategyRow } from '@/lib/types'
 import { ASSET_TYPES, assetUnitLabel } from '@/lib/types'
-import { OPTION_MULTIPLIER, futuresPointValue } from '@/lib/contractMultiplier'
+import { futuresPointValue } from '@/lib/contractMultiplier'
 import { insertStrategy } from '@/lib/strategyService'
 import { getScreenshotUrl } from '@/lib/tradeService'
 import { computeTradePnl } from '@/lib/analytics'
@@ -43,6 +43,10 @@ export type TradeFormPayload = {
   tags: string[]
   notes: string | null
   screenshot_urls: string[]   // existing screenshots kept by the user
+  // True only when the user actually typed a value into the P&L Override
+  // field. Lets effectivePnl() (analytics.ts) tell a deliberate manual
+  // override apart from stale/computed data everywhere else.
+  pnl_is_override: boolean
 }
 
 const GRADES = ['A+', 'A', 'A-', 'B', 'C']
@@ -266,17 +270,26 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
     setNewPreviews(prev => prev.filter((_, idx) => idx !== i))
   }
 
-  // Calculate P&L from entry/exit/shares if not overridden
+  // Calculate P&L from entry/exit/shares if not overridden. Delegates to the
+  // same computeTradePnl() used everywhere else (analytics.ts) rather than
+  // reimplementing the multiplier logic here — that reimplementation is what
+  // let this live-preview silently skip the forex lot-size multiplier while
+  // computeTradePnl had it. Returns 0 for an incomplete/undeterminable trade
+  // (open position, or an unrecognized futures/forex symbol) — the same as
+  // the old behavior — since this is just a live preview, not the value that
+  // gets saved (handleSave always calls computeTradePnl itself).
   function calcPnl(): number {
     if (pnlOver !== '') return parseFloat(pnlOver) || 0
-    const en = parseFloat(entry) || 0
-    const ex = parseFloat(exit) || 0
-    const sh = parseFloat(shares) || 0
-    if (!en || !ex || !sh) return 0
-    const mult  = assetType === 'option' ? OPTION_MULTIPLIER : assetType === 'futures' ? (futuresPointValue(symbol) ?? 1) : 1
-    const gross = (ex - en) * sh * mult * (side === 'Short' ? -1 : 1)
-    const comm  = parseFloat(commission) || 0
-    return parseFloat((gross - comm).toFixed(2))
+    const computed = computeTradePnl({
+      entry: parseFloat(entry) || 0,
+      exit: parseFloat(exit) || null,
+      shares: parseFloat(shares) || 0,
+      type: side,
+      asset_type: assetType,
+      symbol,
+      commission: parseFloat(commission) || 0,
+    })
+    return computed ?? 0
   }
 
   const futuresPointUnknown = assetType === 'futures' && symbol.trim() !== '' && futuresPointValue(symbol) === null
@@ -306,6 +319,11 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
       tags,
       notes:      notes || null,
       screenshot_urls: keptShots,
+      // Only true when the user actually typed something into the P&L
+      // Override field — not merely because it was pre-filled on open (see
+      // the edit-populate effect above, which only pre-fills it for a
+      // genuine override to begin with).
+      pnl_is_override: pnlOver !== '',
     }
 
     const ok = await onSave(payload, newFiles)

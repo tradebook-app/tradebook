@@ -27,6 +27,12 @@ export type TradeRow = {
   strategy_id: string | null
   account_id: string | null
   trade_group_id: string | null
+  // True only when the user deliberately typed a value into the P&L Override
+  // field that differs from what entry/exit/shares/commission compute. Lets
+  // effectivePnl() recompute stale/wrong pnl (bad imports, a stored value left
+  // behind after commission was corrected) everywhere else without touching a
+  // genuine manual override. Defaults false — safe for every existing row.
+  pnl_is_override: boolean
   created_at: string
   updated_at: string
 }
@@ -124,10 +130,11 @@ export type StrategyRuleGroupWithRules = StrategyRuleGroupRow & {
 
 // ─── Insert Types (omit auto-generated fields) ───────────────────────────────
 
-export type TradeInsert = Omit<TradeRow, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'strategy_id' | 'account_id' | 'screenshot_urls'> & {
+export type TradeInsert = Omit<TradeRow, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'strategy_id' | 'account_id' | 'screenshot_urls' | 'pnl_is_override'> & {
   strategy_id?: string | null
   account_id?: string | null
   screenshot_urls?: string[]   // DB defaults to '{}'
+  pnl_is_override?: boolean    // DB defaults to false
 }
 export type NoteInsert  = Omit<NoteRow,  'id' | 'user_id' | 'created_at' | 'updated_at'>
 export type StrategyInsert = Omit<StrategyRow, 'id' | 'user_id' | 'created_at' | 'updated_at'>

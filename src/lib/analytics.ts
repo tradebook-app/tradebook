@@ -1,6 +1,6 @@
 import { TradeRow, DateRangeFilter, KPIData, DayStats, SymbolStats, StrategyStats } from '@/lib/types'
 import { format, startOfWeek, startOfMonth, startOfYear, isToday } from 'date-fns'
-import { OPTION_MULTIPLIER, futuresPointValue } from '@/lib/contractMultiplier'
+import { OPTION_MULTIPLIER, futuresPointValue, forexLotValue } from '@/lib/contractMultiplier'
 
 // ─── Trade P&L ───────────────────────────────────────────────────────────────
 // `pnl` is a stored column, but some rows carry a wrong 0 — a bad broker
@@ -9,28 +9,60 @@ import { OPTION_MULTIPLIER, futuresPointValue } from '@/lib/contractMultiplier'
 // derived from it (Status, KPIs, charts), stays correct.
 
 type PnlFields = Pick<TradeRow, 'entry' | 'exit' | 'shares' | 'type' | 'asset_type' | 'symbol' | 'commission'>
+type MultFields = Pick<TradeRow, 'asset_type' | 'symbol'>
+
+// $ per point/share for one unit of `shares` — the single place that decides
+// this, so P&L and anything derived FROM P&L (cost basis, ROI %) always agree
+// on it. null when it can't be determined (an unrecognized futures contract
+// or forex pair) rather than silently assuming 1.
+export function tradeMultiplier(t: MultFields): number | null {
+  if (t.asset_type === 'option') return OPTION_MULTIPLIER
+  if (t.asset_type === 'futures') return futuresPointValue(t.symbol || '')
+  if (t.asset_type === 'forex') return forexLotValue(t.symbol || '')
+  return 1
+}
 
 // P&L implied by the fills. null when the trade lacks entry / exit / shares, or
-// when it's a futures contract whose point value we don't know.
+// when the multiplier can't be determined (see tradeMultiplier).
 export function computeTradePnl(t: PnlFields): number | null {
   if (!t.entry || !t.exit || !t.shares) return null
-  let mult = 1
-  if (t.asset_type === 'option') mult = OPTION_MULTIPLIER
-  else if (t.asset_type === 'futures') {
-    const pv = futuresPointValue(t.symbol || '')
-    if (pv == null) return null
-    mult = pv
-  }
+  const mult = tradeMultiplier(t)
+  if (mult == null) return null
   const gross = (t.exit - t.entry) * t.shares * mult * (t.type === 'Short' ? -1 : 1)
   return Number((gross - (t.commission || 0)).toFixed(2))
 }
 
-// The P&L to actually use. Trusts a non-zero stored value and a genuine
-// entry===exit breakeven; only a stored 0 with a real price spread gets
-// recomputed (that combination is impossible for a real fill).
-export function effectivePnl(t: PnlFields & { pnl: number }): number {
-  if (t.pnl !== 0) return t.pnl
-  if (t.exit != null && t.entry != null && t.exit === t.entry) return t.pnl
+// Dollar cost basis of the position (entry price × size × the SAME multiplier
+// P&L uses) — the correct ROI % denominator. Before this, every ROI% display
+// divided a multiplier-scaled P&L by an un-multiplied entry×shares, inflating
+// options ROI by ~100× (and futures ROI by whatever the contract's point
+// value is). null when the multiplier can't be determined.
+export function tradeCostBasis(t: Pick<TradeRow, 'entry' | 'shares'> & MultFields): number | null {
+  if (!t.entry || !t.shares) return null
+  const mult = tradeMultiplier(t)
+  return mult == null ? null : t.entry * t.shares * mult
+}
+
+// ROI % for a single trade — pnl ÷ cost basis, both scaled by the same
+// multiplier. null when the cost basis can't be determined (show '—', not a
+// wrong number).
+export function tradeRoi(t: Pick<TradeRow, 'entry' | 'shares' | 'pnl'> & MultFields): number | null {
+  const basis = tradeCostBasis(t)
+  return basis && basis > 0 ? (t.pnl / basis) * 100 : null
+}
+
+// The P&L to actually use. A live-database audit found 63/163 real trades
+// where the stored pnl simply didn't match entry/exit/shares/commission (a
+// bad import, or a stored value left behind after commission was corrected
+// without recomputing pnl) — the old rule here ("trust any non-zero stored
+// value") never caught those, only a stored exact 0. Now: trust the stored
+// value ONLY when the user deliberately overrode it (pnl_is_override, set by
+// AddTradeModal's P&L Override field) or when there's nothing to recompute
+// from (missing fills, or an unrecognized futures contract). Everything else
+// — including a genuine entry===exit breakeven, which still owes commission —
+// is recomputed from the fills, which is what actually happened.
+export function effectivePnl(t: PnlFields & { pnl: number; pnl_is_override?: boolean }): number {
+  if (t.pnl_is_override) return t.pnl
   const computed = computeTradePnl(t)
   return computed == null ? t.pnl : computed
 }
@@ -162,27 +194,36 @@ export function calcCumulative(trades: TradeRow[]): { labels: string[]; data: nu
 }
 
 // ─── Drawdown ────────────────────────────────────────────────────────────────
+// Trade-level, not day-level: aggregating P&L by day first (the old approach)
+// hides real intraday equity dips whenever a day nets positive overall — e.g.
+// +$1000, -$1800, +$900 in one day nets +$100 and would show $0 drawdown, even
+// though the account was really down $1800 at one point. Walking the running
+// peak trade-by-trade is the single shared source both the Dashboard chart and
+// Reports > Overview's "Max drawdown" stat use, so they can't disagree again.
 
 export function calcDrawdown(trades: TradeRow[]): { labels: string[]; data: number[] } {
-  const closed = closedTrades(trades)
-  const byDay: Record<string, number> = {}
-  closed.forEach(t => {
-    const d = (t.date || '').substring(0, 10)
-    byDay[d] = (byDay[d] || 0) + t.pnl
-  })
-  const days = Object.keys(byDay).sort()
+  const closed = closedTrades(trades).slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''))
   let running = 0, peak = 0
   const labels: string[] = []
   const data: number[]   = []
 
-  days.forEach(d => {
-    running += byDay[d]
+  closed.forEach(t => {
+    running += t.pnl
     if (running > peak) peak = running
-    labels.push(format(new Date(`${d}T12:00:00`), 'MMM d'))
+    labels.push(fmtLabel(t.date))
     data.push(parseFloat((-(peak - running)).toFixed(2)))
   })
 
   return { labels, data }
+}
+
+// Max drawdown as a single positive dollar figure (0 when there's none yet).
+// Math.abs (not unary -) so an all-climbing equity curve returns +0 rather
+// than -0 — both are numerically "no drawdown", but -0 fails strict-equality
+// checks and is worth avoiding as a returned value.
+export function calcMaxDrawdown(trades: TradeRow[]): number {
+  const { data } = calcDrawdown(trades)
+  return data.length ? Math.abs(Math.min(...data)) : 0
 }
 
 // ─── Symbol stats ────────────────────────────────────────────────────────────

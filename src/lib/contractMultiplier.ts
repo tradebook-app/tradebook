@@ -96,6 +96,25 @@ export function futuresPointValue(symbol: string): number | null {
   return FUTURES_POINT_VALUES[root] ?? null
 }
 
+// Forex "shares" in this app means lots (see ASSET_TYPES in types.ts: unit
+// label "Lots"). A standard lot is 100,000 units of the base currency. For a
+// pair quoted AS "...USD" (USD is the quote currency — EUR/USD, GBP/USD,
+// AUD/USD, NZD/USD), (exit - entry) * lots * 100,000 is already a USD P&L, so
+// one constant multiplier is correct. A USD-BASE pair (USD/JPY, USD/CHF,
+// USD/CAD, ...) would need a live FX conversion to express the P&L in USD,
+// which this app doesn't do — those fall through to null (unrecognized), the
+// same "don't silently guess" contract futuresPointValue already follows.
+const FOREX_STANDARD_LOT = 100000
+const FOREX_USD_QUOTE_PAIRS = new Set(['EURUSD', 'GBPUSD', 'AUDUSD', 'NZDUSD'])
+
+export function forexRootSymbol(symbol: string): string {
+  return symbol.replace(/[\s/_-]/g, '').toUpperCase().trim()
+}
+
+export function forexLotValue(symbol: string): number | null {
+  return FOREX_USD_QUOTE_PAIRS.has(forexRootSymbol(symbol)) ? FOREX_STANDARD_LOT : null
+}
+
 // Heuristic: does this symbol look like a futures contract at all (root + month
 // code + year, optionally prefixed with / or @)? This is checked separately from
 // futuresPointValue so callers can tell "this is a futures symbol we don't
