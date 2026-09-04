@@ -7,9 +7,8 @@ import { calcDailyPnl } from '@/lib/analytics'
 type Props = { trades: TradeRow[] }
 type View = 'month' | 'year'
 
-const MONTHS      = ['January','February','March','April','May','June','July','August','September','October','November','December']
-const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-const DOW         = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const DOW    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
 function fmtK(n: number): string {
   const abs = Math.abs(n)
@@ -41,6 +40,24 @@ function monthCells(year: number, month: number): (number | null)[] {
   while (cells.length % 7 !== 0) cells.push(null)
   return cells
 }
+
+// A full 6-row (42-cell) grid, including the leading/trailing days that
+// belong to the adjacent months — used by the Year view mini-calendars.
+function monthMatrix(year: number, month: number): { date: Date; inMonth: boolean }[] {
+  const startDow  = new Date(year, month, 1).getDay()
+  const daysCount = new Date(year, month + 1, 0).getDate()
+  const out: { date: Date; inMonth: boolean }[] = []
+  for (let i = startDow; i > 0; i--) out.push({ date: new Date(year, month, 1 - i), inMonth: false })
+  for (let d = 1; d <= daysCount; d++) out.push({ date: new Date(year, month, d), inMonth: true })
+  while (out.length < 42) {
+    const last = out[out.length - 1].date
+    out.push({ date: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1), inMonth: false })
+  }
+  return out
+}
+
+const dstr = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
 export function CalendarReport({ trades }: Props) {
   const today = new Date()
@@ -157,48 +174,57 @@ export function CalendarReport({ trades }: Props) {
   )
 
   // ─── Year view ───────────────────────────────────────────────────────────
+  const isCurrentYear = year === today.getFullYear()
+
   const yearView = (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-        <button onClick={() => setYear(y => y - 1)} style={navBtn}>‹</button>
-        <div style={{ fontSize: '13px', fontWeight: 700 }}>{year}</div>
-        <button onClick={() => setYear(y => y + 1)} style={navBtn}>›</button>
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.14em', marginBottom: '8px' }}>Year</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+          <button onClick={() => setYear(y => y - 1)} style={navBtn}>‹</button>
+          <div style={{ fontSize: '17px', fontWeight: 800, minWidth: '58px', textAlign: 'center' }}>{year}</div>
+          <button onClick={() => setYear(y => y + 1)} style={navBtn}>›</button>
+        </div>
       </div>
 
       <div className="calr-year">
-        {MONTHS_SHORT.map((mLabel, m) => {
-          const mc = monthCells(year, m)
+        {MONTHS.map((mLabel, m) => {
+          const matrix = monthMatrix(year, m)
           return (
-            <div key={m} style={{ background: 'var(--bg4, #16161e)', border: '1px solid var(--brd)', borderRadius: 'var(--r, 7px)', padding: '10px' }}>
+            <div key={m} style={{ background: 'var(--bg4, #16161e)', border: '1px solid var(--brd)', borderRadius: 'var(--r2, 10px)', padding: '12px' }}>
               <button
                 onClick={() => openMonth(m)}
-                style={{ background: 'none', border: 'none', color: m === today.getMonth() && year === today.getFullYear() ? 'var(--ac2)' : 'var(--txt2)', fontSize: '11px', fontWeight: 700, cursor: 'pointer', padding: 0, marginBottom: '6px' }}
+                style={{ background: 'none', border: 'none', color: isCurrentYear && m === today.getMonth() ? 'var(--ac2)' : 'var(--txt)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', padding: 0, marginBottom: '8px', display: 'block' }}
               >{mLabel}</button>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', marginBottom: '2px' }}>
-                {DOW.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '7px', color: 'var(--txt4)' }}>{d[0]}</div>)}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '3px' }}>
+                {DOW.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '7px', fontWeight: 600, color: 'var(--txt4)' }}>{d}</div>)}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px' }}>
-                {mc.map((day, i) => {
-                  if (!day) return <div key={i} />
-                  const ds = key(year, m, day)
-                  const pnl = byDay[ds]
-                  const isToday = ds === todayStr
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+                {matrix.map((cell, i) => {
+                  const ds = dstr(cell.date)
+                  const pnl = cell.inMonth ? byDay[ds] : undefined
+                  const isToday = cell.inMonth && ds === todayStr
+                  let bg = 'var(--bg3)', fg = 'var(--txt2)'
+                  if (!cell.inMonth) { bg = 'transparent'; fg = 'var(--txt4)' }
+                  else if (isToday) { bg = 'var(--ac)'; fg = '#000' }
+                  else if (pnl !== undefined) {
+                    bg = pnl > 0 ? 'rgba(16,185,129,.18)' : pnl < 0 ? 'rgba(239,68,68,.16)' : 'rgba(255,255,255,.05)'
+                    fg = pnl > 0 ? 'var(--ac)' : pnl < 0 ? 'var(--red)' : 'var(--txt2)'
+                  }
                   return (
                     <button
                       key={i}
+                      className="calr-mini-cell"
                       onClick={() => openMonth(m)}
                       title={pnl !== undefined ? fmtK(pnl) : undefined}
                       style={{
-                        aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '8px', fontWeight: isToday ? 700 : 500, borderRadius: '3px', cursor: 'pointer',
-                        border: isToday ? '1px solid var(--ac)' : '1px solid transparent',
-                        background: pnl === undefined ? 'transparent'
-                          : pnl > 0 ? 'rgba(16,185,129,.18)'
-                          : pnl < 0 ? 'rgba(239,68,68,.15)'
-                          : 'rgba(255,255,255,.05)',
-                        color: isToday ? 'var(--ac2)' : pnl === undefined ? 'var(--txt3)' : 'var(--txt2)',
+                        background: bg, color: fg,
+                        fontWeight: isToday || pnl !== undefined ? 700 : 500,
+                        border: `1px solid ${isToday ? 'var(--ac)' : cell.inMonth ? 'var(--brd)' : 'transparent'}`,
                       }}
-                    >{day}</button>
+                    >{cell.date.getDate()}</button>
                   )
                 })}
               </div>
@@ -214,13 +240,15 @@ export function CalendarReport({ trades }: Props) {
       <style>{`
         .calr-grid { display: grid; grid-template-columns: minmax(0, 1fr) 130px; gap: 12px; align-items: start; }
         .calr-weeks { display: flex; flex-direction: column; gap: 5px; }
-        .calr-year { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        @media (max-width: 900px) { .calr-year { grid-template-columns: repeat(3, 1fr); } }
+        .calr-year { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+        .calr-mini-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; line-height: 1; border-radius: 5px; cursor: pointer; padding: 0; }
+        @media (max-width: 1000px) { .calr-year { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 760px)  { .calr-year { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 768px) {
           .calr-grid { grid-template-columns: 1fr; }
           .calr-weeks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
-          .calr-year { grid-template-columns: repeat(2, 1fr); }
         }
+        @media (max-width: 460px) { .calr-year { grid-template-columns: 1fr; } }
       `}</style>
 
       {/* View toggle */}
@@ -237,7 +265,12 @@ export function CalendarReport({ trades }: Props) {
         </div>
       </div>
 
-      {view === 'month' ? monthView : yearView}
+      {view === 'year' && (
+        <div style={{ marginBottom: '24px', paddingBottom: '22px', borderBottom: '1px solid var(--brd)' }}>
+          {yearView}
+        </div>
+      )}
+      {monthView}
     </div>
   )
 }
