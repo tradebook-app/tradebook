@@ -9,8 +9,9 @@ import { SymbolsReport }     from './SymbolsReport'
 import { RiskReport }        from './RiskReport'
 import { WinLossReport }     from './WinLossReport'
 import { SetupReport }       from './SetupReport'
+import { CalendarReport }    from './CalendarReport'
 
-type Tab = 'performance' | 'overview' | 'daytime' | 'symbols' | 'risk' | 'winloss' | 'setup'
+type Tab = 'performance' | 'overview' | 'daytime' | 'symbols' | 'risk' | 'winloss' | 'setup' | 'calendar'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'performance', label: 'Performance' },
@@ -20,6 +21,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'risk',        label: 'Risk (R)' },
   { key: 'winloss',     label: 'Wins vs Losses' },
   { key: 'setup',       label: 'Setups' },
+  { key: 'calendar',    label: 'Calendar' },
 ]
 
 type Props = {
@@ -68,6 +70,7 @@ export function Reports({ trades, filter }: Props) {
         {tab === 'risk'        && <RiskReport        trades={filtered} />}
         {tab === 'winloss'     && <WinLossReport     trades={filtered} />}
         {tab === 'setup'       && <SetupReport       trades={filtered} />}
+        {tab === 'calendar'    && <CalendarReport    trades={filtered} />}
       </div>
     </div>
   )
