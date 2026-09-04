@@ -468,6 +468,20 @@ export function Journal({ trades, onEdit, onDelete }: Props) {
   const groupedRowCount = useMemo(() => buildGroupedRows(activeTrades).length, [activeTrades])
   const pg = usePagination(groupedRowCount, 'sleek-journal-pagesize', `${mode}:${selectedDate}`)
 
+  // Trades handed to the detail panel — same sort + page slice as the visible
+  // table (buildGroupedRows → sort asc → slice → flatten legs), so the panel's
+  // ↑/↓ nav walks the list the way it reads on screen. Mirrors TradeView.tsx,
+  // where the panel gets pageRows.flatMap(r => r.legs). Without this the panel
+  // received raw dayTrades (newest-first from fetchTrades) while the table shows
+  // oldest-first, so ArrowDown appeared to move backwards.
+  const panelTrades = useMemo(
+    () => buildGroupedRows(activeTrades)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(pg.start, pg.end)
+      .flatMap(r => r.legs),
+    [activeTrades, pg.start, pg.end],
+  )
+
   const daysInMonth = getDaysInMonth(calYear, calMonth)
   const firstDay = getFirstDayOfMonth(calYear, calMonth)
 
@@ -807,7 +821,7 @@ export function Journal({ trades, onEdit, onDelete }: Props) {
         </div>
 
         {selectedTrade && (
-          <TradeDetailPanel trade={selectedTrade} trades={mode === 'day' ? dayTrades : weekTrades} onClose={() => setSelectedTrade(null)} onEdit={onEdit} onNavigate={t => setSelectedTrade(t)} />
+          <TradeDetailPanel trade={selectedTrade} trades={panelTrades} onClose={() => setSelectedTrade(null)} onEdit={onEdit} onNavigate={t => setSelectedTrade(t)} />
         )}
       </div>
     </div>
