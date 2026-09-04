@@ -68,7 +68,7 @@ export function Reports({ trades, filter }: Props) {
         {tab === 'daytime'     && <DayTimeReport     trades={filtered} />}
         {tab === 'symbols'     && <SymbolsReport     trades={filtered} />}
         {tab === 'risk'        && <RiskReport        trades={filtered} />}
-        {tab === 'winloss'     && <WinLossReport     trades={filtered} />}
+        {tab === 'winloss'     && <WinLossReport     trades={filtered} filter={filter} />}
         {tab === 'setup'       && <SetupReport       trades={filtered} />}
         {tab === 'calendar'    && <CalendarReport    trades={filtered} />}
       </div>

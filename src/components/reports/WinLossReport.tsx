@@ -1,11 +1,11 @@
 'use client'
 
-import type { TradeRow } from '@/lib/types'
-import { closedTrades, fmtPnl } from '@/lib/analytics'
+import type { TradeRow, DateRangeFilter } from '@/lib/types'
+import { closedTrades, fmtPnl, dateRangeLabel } from '@/lib/analytics'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination, type Pagination as Pg } from '@/lib/usePagination'
 
-type Props = { trades: TradeRow[] }
+type Props = { trades: TradeRow[]; filter: DateRangeFilter }
 
 // P&L-size buckets for the Win/Loss Size Distribution histogram (mirrored for
 // wins and losses — a trade is placed by the absolute size of its P&L).
@@ -18,7 +18,7 @@ const SIZE_BUCKETS: { label: string; min: number; max: number }[] = [
   { label: '$1k+',     min: 1000, max: Infinity },
 ]
 
-export function WinLossReport({ trades }: Props) {
+export function WinLossReport({ trades, filter }: Props) {
   const closed = closedTrades(trades)
   const wins   = closed.filter(t => t.pnl > 0).sort((a, b) => b.pnl - a.pnl)
   const losses = closed.filter(t => t.pnl < 0).sort((a, b) => a.pnl - b.pnl)
@@ -60,6 +60,23 @@ export function WinLossReport({ trades }: Props) {
     losses: losses.filter(t => -t.pnl >= b.min && -t.pnl < b.max).length,
   }))
   const maxBucket = Math.max(1, ...sizeDist.flatMap(d => [d.wins, d.losses]))
+
+  // Caption read from the bucket data: is the bulk of losses in bigger $ buckets
+  // than the bulk of wins (bad), the reverse (good), or neither (neutral)?
+  const avgBucketIndex = (side: 'wins' | 'losses') => {
+    let sum = 0, n = 0
+    sizeDist.forEach((d, i) => { sum += d[side] * i; n += d[side] })
+    return n ? sum / n : 0
+  }
+  const sizeSkew = (() => {
+    if (wins.length === 0)   return 'No winning trades in this range.'
+    if (losses.length === 0) return 'No losing trades in this range.'
+    if (wins.length < 3 || losses.length < 3) return 'Not enough trades yet to read a clear size pattern.'
+    const diff = avgBucketIndex('wins') - avgBucketIndex('losses')
+    if (diff <= -0.5) return 'Losses skew into larger buckets than wins — watch for cutting winners short / letting losers run.'
+    if (diff >=  0.5) return 'Wins skew into larger buckets than losses — good risk discipline.'
+    return 'Wins and losses sit in similar size ranges — no strong skew either way.'
+  })()
 
   const gradeRow = (g: { grade: string; pnl: number; trades: number; wins: number }, i: number) => {
     const wr = (g.wins / g.trades) * 100
@@ -153,7 +170,10 @@ export function WinLossReport({ trades }: Props) {
       </div>
 
       <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-        <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Win/Loss Size Distribution</div>
+        <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Win/Loss Size Distribution</div>
+          <div style={{ fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.04em', marginTop: '3px' }}>{dateRangeLabel(filter)}</div>
+        </div>
         {closed.length === 0 ? (
           <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt3)', fontSize: '11px' }}>No closed trades yet</div>
         ) : (
@@ -179,7 +199,7 @@ export function WinLossReport({ trades }: Props) {
           </div>
         )}
         <div style={{ fontSize: '9px', color: 'var(--txt3)', padding: '0 18px 14px' }}>
-          Trades bucketed by P&amp;L size. Losses skewed large next to small wins = cutting winners short / letting losers run.
+          Trades bucketed by P&amp;L size. {sizeSkew}
         </div>
       </div>
     </div>
