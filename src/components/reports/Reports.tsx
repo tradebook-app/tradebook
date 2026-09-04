@@ -27,10 +27,9 @@ const TABS: { key: Tab; label: string }[] = [
 type Props = {
   trades: TradeRow[]
   filter: DateRangeFilter
-  setFilter: (f: DateRangeFilter) => void
 }
 
-export function Reports({ trades, filter, setFilter }: Props) {
+export function Reports({ trades, filter }: Props) {
   const [tab, setTab] = useState<Tab>('performance')
   const filtered = filterByDate(trades, filter)
 
@@ -69,7 +68,7 @@ export function Reports({ trades, filter, setFilter }: Props) {
         {tab === 'daytime'     && <DayTimeReport     trades={filtered} />}
         {tab === 'symbols'     && <SymbolsReport     trades={filtered} />}
         {tab === 'risk'        && <RiskReport        trades={filtered} />}
-        {tab === 'winloss'     && <WinLossReport     trades={filtered} filter={filter} setFilter={setFilter} />}
+        {tab === 'winloss'     && <WinLossReport     trades={filtered} />}
         {tab === 'setup'       && <SetupReport       trades={filtered} />}
         {tab === 'calendar'    && <CalendarReport    trades={filtered} />}
       </div>

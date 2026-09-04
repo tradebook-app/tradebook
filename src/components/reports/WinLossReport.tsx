@@ -1,16 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import type { TradeRow, DateRangeFilter } from '@/lib/types'
-import { closedTrades, fmtPnl } from '@/lib/analytics'
+import { closedTrades, fmtPnl, filterByDate } from '@/lib/analytics'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination, type Pagination as Pg } from '@/lib/usePagination'
 import { DateRangePicker } from '@/components/layout/DateRangePicker'
 
-type Props = {
-  trades: TradeRow[]
-  filter: DateRangeFilter
-  setFilter: (f: DateRangeFilter) => void
-}
+type Props = { trades: TradeRow[] }
 
 // P&L-size buckets for the Win/Loss Size Distribution histogram (mirrored for
 // wins and losses — a trade is placed by the absolute size of its P&L).
@@ -23,7 +20,11 @@ const SIZE_BUCKETS: { label: string; min: number; max: number }[] = [
   { label: '$1k+',     min: 1000, max: Infinity },
 ]
 
-export function WinLossReport({ trades, filter, setFilter }: Props) {
+export function WinLossReport({ trades }: Props) {
+  // Date range for the Win/Loss Size Distribution chart only — a local filter so
+  // it doesn't touch the rest of the page (which stays on the `trades` prop).
+  const [sizeFilter, setSizeFilter] = useState<DateRangeFilter>({ range: 'all' })
+
   const closed = closedTrades(trades)
   const wins   = closed.filter(t => t.pnl > 0).sort((a, b) => b.pnl - a.pnl)
   const losses = closed.filter(t => t.pnl < 0).sort((a, b) => a.pnl - b.pnl)
@@ -58,11 +59,15 @@ export function WinLossReport({ trades, filter, setFilter }: Props) {
   // full-width column so an empty B/C column doesn't leave a dead gap.
   const splitGrades = gradeColA.length > 0 && gradeColB.length > 0
 
-  // Win/Loss size distribution — count wins & losses that fall in each P&L bucket.
+  // Win/Loss size distribution — its own date-scoped trade set, then count wins
+  // & losses that fall in each P&L bucket.
+  const sizeClosed = closedTrades(filterByDate(trades, sizeFilter))
+  const sizeWins   = sizeClosed.filter(t => t.pnl > 0)
+  const sizeLosses = sizeClosed.filter(t => t.pnl < 0)
   const sizeDist = SIZE_BUCKETS.map(b => ({
     label:  b.label,
-    wins:   wins.filter(t => t.pnl >= b.min && t.pnl < b.max).length,
-    losses: losses.filter(t => -t.pnl >= b.min && -t.pnl < b.max).length,
+    wins:   sizeWins.filter(t => t.pnl >= b.min && t.pnl < b.max).length,
+    losses: sizeLosses.filter(t => -t.pnl >= b.min && -t.pnl < b.max).length,
   }))
   const maxBucket = Math.max(1, ...sizeDist.flatMap(d => [d.wins, d.losses]))
 
@@ -74,9 +79,9 @@ export function WinLossReport({ trades, filter, setFilter }: Props) {
     return n ? sum / n : 0
   }
   const sizeSkew = (() => {
-    if (wins.length === 0)   return 'No winning trades in this range.'
-    if (losses.length === 0) return 'No losing trades in this range.'
-    if (wins.length < 3 || losses.length < 3) return 'Not enough trades yet to read a clear size pattern.'
+    if (sizeWins.length === 0)   return 'No winning trades in this range.'
+    if (sizeLosses.length === 0) return 'No losing trades in this range.'
+    if (sizeWins.length < 3 || sizeLosses.length < 3) return 'Not enough trades yet to read a clear size pattern.'
     const diff = avgBucketIndex('wins') - avgBucketIndex('losses')
     if (diff <= -0.5) return 'Losses skew into larger buckets than wins — watch for cutting winners short / letting losers run.'
     if (diff >=  0.5) return 'Wins skew into larger buckets than losses — good risk discipline.'
@@ -178,16 +183,16 @@ export function WinLossReport({ trades, filter, setFilter }: Props) {
       <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)' }}>
         <div style={{ padding: '9px 12px 9px 18px', borderBottom: '1px solid var(--brd)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Win/Loss Size Distribution</div>
-          <DateRangePicker filter={filter} onFilterChange={setFilter} align="up" />
+          <DateRangePicker filter={sizeFilter} onFilterChange={setSizeFilter} align="up" />
         </div>
-        {closed.length === 0 ? (
-          <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt3)', fontSize: '11px' }}>No closed trades yet</div>
+        {sizeClosed.length === 0 ? (
+          <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt3)', fontSize: '11px' }}>No closed trades in this range</div>
         ) : (
           <div style={{ padding: '14px 18px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 82px 1fr', fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '10px' }}>
-              <span style={{ textAlign: 'right', color: 'var(--red)' }}>◀ Losses ({losses.length})</span>
+              <span style={{ textAlign: 'right', color: 'var(--red)' }}>◀ Losses ({sizeLosses.length})</span>
               <span style={{ textAlign: 'center' }}>Size</span>
-              <span style={{ color: 'var(--ac)' }}>Wins ({wins.length}) ▶</span>
+              <span style={{ color: 'var(--ac)' }}>Wins ({sizeWins.length}) ▶</span>
             </div>
             {sizeDist.map((d, i) => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 82px 1fr', alignItems: 'center', marginBottom: '5px' }}>

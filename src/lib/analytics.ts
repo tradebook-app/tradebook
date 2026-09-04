@@ -1,4 +1,4 @@
-import { TradeRow, DateRange, DateRangeFilter, KPIData, DayStats, SymbolStats, StrategyStats } from '@/lib/types'
+import { TradeRow, DateRangeFilter, KPIData, DayStats, SymbolStats, StrategyStats } from '@/lib/types'
 import { format, startOfWeek, startOfMonth, startOfYear, isToday } from 'date-fns'
 import { OPTION_MULTIPLIER, futuresPointValue } from '@/lib/contractMultiplier'
 
@@ -36,18 +36,6 @@ export function effectivePnl(t: PnlFields & { pnl: number }): number {
 }
 
 // ─── Date filtering ──────────────────────────────────────────────────────────
-
-const DATE_RANGE_LABELS: Record<DateRange, string> = {
-  all: 'All Dates', today: 'Today', week: 'This Week',
-  month: 'This Month', year: 'This Year', custom: 'Custom Range',
-}
-
-// Human label for the active date filter — matches the DateRangePicker button.
-export function dateRangeLabel(filter: DateRangeFilter): string {
-  return filter.range === 'custom' && filter.from && filter.to
-    ? `${filter.from} → ${filter.to}`
-    : DATE_RANGE_LABELS[filter.range]
-}
 
 export function filterByDate(trades: TradeRow[], filter: DateRangeFilter): TradeRow[] {
   if (filter.range === 'all') return trades

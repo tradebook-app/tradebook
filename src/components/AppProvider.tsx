@@ -34,11 +34,11 @@ type Props = {
   userEmail?: string
 }
 
-function GatedReports({ trades, filter, setFilter }: { trades: any[], filter: any, setFilter: any }) {
+function GatedReports({ trades, filter }: { trades: any[], filter: any }) {
   const { isPro, loading } = usePlan()
   if (loading) return null
   if (!isPro) return <UpgradeWall feature="Full Reports - Pro Feature" description="Upgrade to Pro to unlock all 7 report tabs with 25+ performance metrics including Day and Time, Symbols, Risk/R-Multiple, Win vs Loss, and Setups." />
-  return <Reports trades={trades} filter={filter} setFilter={setFilter} />
+  return <Reports trades={trades} filter={filter} />
 }
 
 function GatedNotebook({ userId, onEdit }: { userId: string, onEdit: (trade: TradeRow) => void }) {
@@ -142,7 +142,7 @@ function AppInner({
     if (pathname === '/trades')       return <TradeView trades={scopedTrades} filter={filter} onFilterChange={setFilter} onEdit={openEdit} onDelete={handleDelete} onDeleteFiltered={handleDeleteMany} onRemoveScreenshot={handleRemoveScreenshot} />
     if (pathname === '/dashboard')    return <DashboardWithBanner trades={scopedTrades} filter={filter} onEdit={openEdit} onDelete={handleDelete} onRemoveScreenshot={handleRemoveScreenshot} userId={userId} onReload={reloadTrades} />
     if (pathname === '/journal')      return <Journal trades={scopedTrades} onEdit={openEdit} onDelete={handleDelete} />
-    if (pathname === '/reports')      return <GatedReports trades={scopedTrades} filter={filter} setFilter={setFilter} />
+    if (pathname === '/reports')      return <GatedReports trades={scopedTrades} filter={filter} />
     if (pathname === '/position-size')return <PositionSize />
     if (pathname === '/strategies')   return <GatedStrategies userId={userId} trades={trades} />
     if (pathname === '/notebook')     return <GatedNotebook userId={userId} onEdit={openEdit} />
