@@ -8,7 +8,11 @@ type Props = { trades: TradeRow[] }
 type View = 'month' | 'year'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
-const DOW    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+// Week starts on Monday.
+const DOW    = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+
+// 0=Sun..6=Sat  ->  0=Mon..6=Sun (column index for a Monday-first grid)
+const mondayIndex = (jsDay: number) => (jsDay + 6) % 7
 
 function fmtK(n: number): string {
   const abs = Math.abs(n)
@@ -31,7 +35,7 @@ const navBtn: React.CSSProperties = {
 
 // cells for a month grid: leading blanks + day numbers, padded to whole weeks
 function monthCells(year: number, month: number): (number | null)[] {
-  const firstDay  = new Date(year, month, 1).getDay()
+  const firstDay  = mondayIndex(new Date(year, month, 1).getDay())
   const daysCount = new Date(year, month + 1, 0).getDate()
   const cells: (number | null)[] = [
     ...Array(firstDay).fill(null),
@@ -44,7 +48,7 @@ function monthCells(year: number, month: number): (number | null)[] {
 // A full 6-row (42-cell) grid, including the leading/trailing days that
 // belong to the adjacent months — used by the Year view mini-calendars.
 function monthMatrix(year: number, month: number): { date: Date; inMonth: boolean }[] {
-  const startDow  = new Date(year, month, 1).getDay()
+  const startDow  = mondayIndex(new Date(year, month, 1).getDay())
   const daysCount = new Date(year, month + 1, 0).getDate()
   const out: { date: Date; inMonth: boolean }[] = []
   for (let i = startDow; i > 0; i--) out.push({ date: new Date(year, month, 1 - i), inMonth: false })
