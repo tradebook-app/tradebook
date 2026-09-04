@@ -2,11 +2,21 @@
 
 import type { TradeRow } from '@/lib/types'
 import { closedTrades, fmtPnl } from '@/lib/analytics'
-import { CumulativeChart } from '@/components/dashboard/CumulativeChart'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination, type Pagination as Pg } from '@/lib/usePagination'
 
 type Props = { trades: TradeRow[] }
+
+// P&L-size buckets for the Win/Loss Size Distribution histogram (mirrored for
+// wins and losses — a trade is placed by the absolute size of its P&L).
+const SIZE_BUCKETS: { label: string; min: number; max: number }[] = [
+  { label: '$0–50',    min: 0,    max: 50 },
+  { label: '$50–100',  min: 50,   max: 100 },
+  { label: '$100–250', min: 100,  max: 250 },
+  { label: '$250–500', min: 250,  max: 500 },
+  { label: '$500–1k',  min: 500,  max: 1000 },
+  { label: '$1k+',     min: 1000, max: Infinity },
+]
 
 export function WinLossReport({ trades }: Props) {
   const closed = closedTrades(trades)
@@ -35,18 +45,34 @@ export function WinLossReport({ trades }: Props) {
   })
 
   // Two fixed columns so the box stays 3 rows tall however many grades are used.
-  const gradeCols = [['A+', 'A', 'A-'], ['B', 'C']].map(col =>
+  const [gradeColA, gradeColB] = [['A+', 'A', 'A-'], ['B', 'C']].map(col =>
     col.filter(g => byGrade[g]).map(g => ({ grade: g, ...byGrade[g] }))
   )
-  const hasGrades = gradeCols.some(col => col.length > 0)
+  const hasGrades   = gradeColA.length > 0 || gradeColB.length > 0
+  // Only split into two columns when both actually have rows; otherwise a single
+  // full-width column so an empty B/C column doesn't leave a dead gap.
+  const splitGrades = gradeColA.length > 0 && gradeColB.length > 0
 
-  const byDate  = closed.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''))
-  const winSeq  = byDate.filter(t => t.pnl > 0)
-  const lossSeq = byDate.filter(t => t.pnl < 0)
-  let wr2 = 0; const wCum = winSeq.map(t => { wr2 += t.pnl; return wr2 })
-  let lr2 = 0; const lCum = lossSeq.map(t => { lr2 += t.pnl; return lr2 })
-  const wLabels = winSeq.map((_, i) => `#${i + 1}`)
-  const lLabels = lossSeq.map((_, i) => `#${i + 1}`)
+  // Win/Loss size distribution — count wins & losses that fall in each P&L bucket.
+  const sizeDist = SIZE_BUCKETS.map(b => ({
+    label:  b.label,
+    wins:   wins.filter(t => t.pnl >= b.min && t.pnl < b.max).length,
+    losses: losses.filter(t => -t.pnl >= b.min && -t.pnl < b.max).length,
+  }))
+  const maxBucket = Math.max(1, ...sizeDist.flatMap(d => [d.wins, d.losses]))
+
+  const gradeRow = (g: { grade: string; pnl: number; trades: number; wins: number }, i: number) => {
+    const wr = (g.wins / g.trades) * 100
+    return (
+      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid var(--brd)', gap: '6px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+          <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac2)', background: 'var(--ac-d)', padding: '1px 6px', borderRadius: '4px' }}>{g.grade}</span>
+          <span style={{ fontSize: '9px', color: 'var(--txt3)', whiteSpace: 'nowrap' }}>{g.trades}t · {wr.toFixed(0)}%</span>
+        </div>
+        <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--mono)', color: g.pnl >= 0 ? 'var(--ac)' : 'var(--red)', whiteSpace: 'nowrap' }}>{fmtPnl(g.pnl)}</span>
+      </div>
+    )
+  }
 
   const renderCard = (title: string, items: TradeRow[], pg: Pg) => (
     <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden', flex: 1, minWidth: 0 }}>
@@ -109,25 +135,13 @@ export function WinLossReport({ trades }: Props) {
           <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Performance by Grade</div>
           {!hasGrades ? (
             <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt3)', fontSize: '11px' }}>No graded trades yet</div>
-          ) : (
+          ) : splitGrades ? (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-              {gradeCols.map((col, ci) => (
-                <div key={ci} style={{ borderLeft: ci > 0 && col.length > 0 ? '1px solid var(--brd)' : undefined }}>
-                  {col.map((g, i) => {
-                    const wr = (g.wins / g.trades) * 100
-                    return (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid var(--brd)', gap: '6px', flexWrap: 'wrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-                          <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ac2)', background: 'var(--ac-d)', padding: '1px 6px', borderRadius: '4px' }}>{g.grade}</span>
-                          <span style={{ fontSize: '9px', color: 'var(--txt3)', whiteSpace: 'nowrap' }}>{g.trades}t · {wr.toFixed(0)}%</span>
-                        </div>
-                        <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--mono)', color: g.pnl >= 0 ? 'var(--ac)' : 'var(--red)', whiteSpace: 'nowrap' }}>{fmtPnl(g.pnl)}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
+              <div>{gradeColA.map(gradeRow)}</div>
+              <div style={{ borderLeft: '1px solid var(--brd)' }}>{gradeColB.map(gradeRow)}</div>
             </div>
+          ) : (
+            <div>{[...gradeColA, ...gradeColB].map(gradeRow)}</div>
           )}
         </div>
       </div>
@@ -138,14 +152,34 @@ export function WinLossReport({ trades }: Props) {
         {renderCard('Worst Losses', losses, lossesPg)}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-        <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-          <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Cumulative P&amp;L (Wins)</div>
-          <div style={{ padding: '14px 16px' }}><CumulativeChart labels={wLabels} data={wCum} /></div>
-        </div>
-        <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-          <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Cumulative P&amp;L (Losses)</div>
-          <div style={{ padding: '14px 16px' }}><CumulativeChart labels={lLabels} data={lCum} color="#EF4444" colorFade="rgba(239,68,68,.08)" /></div>
+      <div style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+        <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--brd)', fontSize: '11px', fontWeight: 700, color: 'var(--txt2)' }}>Win/Loss Size Distribution</div>
+        {closed.length === 0 ? (
+          <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt3)', fontSize: '11px' }}>No closed trades yet</div>
+        ) : (
+          <div style={{ padding: '14px 18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 82px 1fr', fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '10px' }}>
+              <span style={{ textAlign: 'right', color: 'var(--red)' }}>◀ Losses ({losses.length})</span>
+              <span style={{ textAlign: 'center' }}>Size</span>
+              <span style={{ color: 'var(--ac)' }}>Wins ({wins.length}) ▶</span>
+            </div>
+            {sizeDist.map((d, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 82px 1fr', alignItems: 'center', marginBottom: '5px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                  {d.losses > 0 && <span style={{ fontSize: '9px', fontFamily: 'var(--mono)', color: 'var(--txt3)' }}>{d.losses}</span>}
+                  <div style={{ width: `${(d.losses / maxBucket) * 100}%`, minWidth: d.losses > 0 ? '3px' : '0', height: '15px', background: 'linear-gradient(90deg, var(--bar-red-2), var(--bar-red-1))', borderRadius: '3px 0 0 3px' }} />
+                </div>
+                <div style={{ textAlign: 'center', fontSize: '9px', fontFamily: 'var(--mono)', color: 'var(--txt2)', borderLeft: '1px solid var(--brd2)', borderRight: '1px solid var(--brd2)', padding: '3px 4px' }}>{d.label}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '6px' }}>
+                  <div style={{ width: `${(d.wins / maxBucket) * 100}%`, minWidth: d.wins > 0 ? '3px' : '0', height: '15px', background: 'linear-gradient(90deg, var(--bar-green-1), var(--bar-green-2))', borderRadius: '0 3px 3px 0' }} />
+                  {d.wins > 0 && <span style={{ fontSize: '9px', fontFamily: 'var(--mono)', color: 'var(--txt3)' }}>{d.wins}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ fontSize: '9px', color: 'var(--txt3)', padding: '0 18px 14px' }}>
+          Trades bucketed by P&amp;L size. Losses skewed large next to small wins = cutting winners short / letting losers run.
         </div>
       </div>
     </div>
