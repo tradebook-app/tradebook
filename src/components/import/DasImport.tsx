@@ -127,14 +127,33 @@ async function parseDAS(text: string, userId: string): Promise<{ trades?: DASPar
       const qty = iQ !== -1 ? Math.abs(parseFloat(clean(c[iQ]).replace(/,/g, ''))) : 0
       const side = iSide !== -1 ? clean(c[iSide]).toUpperCase() : ''
       const isOption = looksLikeOptionSymbol(sym)
+      const netPl = pl - Math.abs(comm)
+      // This CSV format gives one "price" per already-closed round-trip, plus
+      // its P/L — no separate entry/exit columns to read. Storing exit: 0 (=
+      // exit: null after the falsy check below) marked every one of these
+      // trades as still OPEN, even though DAS already reported a completed
+      // round-trip P/L for it — it disappeared from closed-trade stats, KPIs,
+      // and drawdown, and the UI showed it as an open position. Back-solve the
+      // exit price algebraically from the same formula computeTradePnl() uses
+      // (entry, shares, side, and the option 100x multiplier), so the trade
+      // round-trips as closed and effectivePnl() reproduces this exact netPl
+      // if it ever recomputes from these fills.
+      const mult = isOption ? OPTION_MULTIPLIER : 1
+      const sign = side.startsWith('S') ? -1 : 1
+      const solvedExit = price + (sign * netPl) / (qty * mult)
+      // Clamp at a tiny positive floor rather than letting a bad/rounded row
+      // solve to a nonsensical zero-or-negative price — a real trade still
+      // has to close somewhere above $0, and exit > 0 is what "closed" means
+      // to the rest of the app (see exit ? ... : null just below).
+      const exit = (qty > 0 && price) ? parseFloat(Math.max(solvedExit, 0.0001).toFixed(4)) : 0
       trades.push({
         sym,
         date: pDate(clean(c[iD])),
         side: side.startsWith('S') ? 'Short' : 'Long',
         entry: price || 0,
-        exit: 0,
+        exit,
         shares: qty || 0,
-        pl: pl - Math.abs(comm),
+        pl: netPl,
         assetType: isOption ? 'option' : 'stock',
         assetTypeGuessed: isOption,
       })
