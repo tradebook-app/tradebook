@@ -19,8 +19,17 @@ export function ReferralsPage() {
 
   useEffect(() => {
     fetch('/api/referrals/me')
-      .then(r => r.json())
+      .then(async r => {
+        // A non-2xx response (e.g. a 401 { error: 'Not authenticated' } for
+        // a stale/expired session) still has a valid JSON body — without
+        // checking r.ok, that error body was set as `data` directly (it's
+        // truthy, so it passed the `!data` null-check below) and the render
+        // crashed reaching into the missing `data.stats.referredCount`, etc.
+        if (!r.ok) { console.error('Failed to load referral info:', r.status); return null }
+        return r.json()
+      })
       .then(setData)
+      .catch(err => { console.error('Failed to load referral info:', err); setData(null) })
       .finally(() => setLoading(false))
   }, [])
 
