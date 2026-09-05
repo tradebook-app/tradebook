@@ -361,13 +361,21 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
   const divider: React.CSSProperties = {
     borderTop: '1px solid var(--brd)', margin: '18px 0',
   }
-  function segBtn(active: boolean, activeColor = 'var(--ac)'): React.CSSProperties {
+  // activeBg is each color's pre-defined translucent companion token
+  // (already theme-aware, defined for both themes in globals.css) — NOT
+  // derived from activeColor with a `${activeColor}22` alpha-suffix trick
+  // like this used to do. activeColor is itself a var(...) reference, so
+  // that produced a literal string like "var(--ac)22", invalid CSS the
+  // browser drops entirely, silently leaving the active button with no
+  // tinted fill at all (just its colored border). Same bug, same fix as
+  // PropTracker's status badges.
+  function segBtn(active: boolean, activeColor = 'var(--ac)', activeBg = 'var(--ac-d)'): React.CSSProperties {
     return {
       flex: 1, padding: '9px 4px', borderRadius: 'var(--r)',
       fontSize: '12px', fontWeight: 600, cursor: 'pointer',
       fontFamily: 'var(--sans)', transition: '.1s',
       border: `1px solid ${active ? activeColor : 'var(--brd2)'}`,
-      background: active ? `${activeColor}22` : 'var(--bg4)',
+      background: active ? activeBg : 'var(--bg4)',
       color: active ? activeColor : 'var(--txt3)',
     }
   }
@@ -402,7 +410,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
           <label style={lbl}>Side</label>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button type="button" onClick={() => setSide('Long')} style={segBtn(side === 'Long', 'var(--ac)')}>Long</button>
-            <button type="button" onClick={() => setSide('Short')} style={segBtn(side === 'Short', 'var(--red)')}>Short</button>
+            <button type="button" onClick={() => setSide('Short')} style={segBtn(side === 'Short', 'var(--red)', 'var(--red-d)')}>Short</button>
           </div>
         </div>
       </div>
