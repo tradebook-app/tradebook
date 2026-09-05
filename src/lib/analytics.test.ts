@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeTradePnl, effectivePnl, normalizeSetupName, pickBestWorstDay, tradeMultiplier, tradeCostBasis, tradeRoi, calcDrawdown, calcMaxDrawdown, calcKPIs, calcSymbolStats, fmtProfitFactor } from './analytics'
+import { computeTradePnl, effectivePnl, normalizeSetupName, pickBestWorstDay, tradeMultiplier, tradeCostBasis, tradeRoi, calcDrawdown, calcMaxDrawdown, calcKPIs, calcSymbolStats, fmtProfitFactor, filterByDate } from './analytics'
 import { forexLotValue } from './contractMultiplier'
 import type { TradeRow } from './types'
 
@@ -183,6 +183,22 @@ describe('calcSymbolStats (breakeven trades are neither a win nor a loss)', () =
     expect(s.wins).toBe(1)
     expect(s.losses).toBe(1)          // NOT 2 — the breakeven doesn't count
     expect(s.grossLoss).toBe(-20)     // the breakeven contributes nothing
+  })
+})
+
+describe('filterByDate "week" (Monday-start, matching the rest of the app)', () => {
+  it('a trade from this Monday is included when "now" is this Sunday', () => {
+    // 2024-01-01 is a Monday, 2024-01-07 the following Sunday — same
+    // Monday-start week. With date-fns' Sunday-start default this trade
+    // would have been excluded (Sunday starts a NEW week under that rule).
+    const now = new Date('2024-01-07T18:00:00')
+    const trades = [mkTrade({ date: '2024-01-01T09:00:00' })]
+    expect(filterByDate(trades, { range: 'week' }, now)).toHaveLength(1)
+  })
+  it('a trade from the PRIOR Monday-start week is excluded when "now" is this Sunday', () => {
+    const now = new Date('2024-01-07T18:00:00')
+    const trades = [mkTrade({ date: '2023-12-31T09:00:00' })] // the prior week's Sunday
+    expect(filterByDate(trades, { range: 'week' }, now)).toHaveLength(0)
   })
 })
 

@@ -69,16 +69,19 @@ export function effectivePnl(t: PnlFields & { pnl: number; pnl_is_override?: boo
 
 // ─── Date filtering ──────────────────────────────────────────────────────────
 
-export function filterByDate(trades: TradeRow[], filter: DateRangeFilter): TradeRow[] {
+export function filterByDate(trades: TradeRow[], filter: DateRangeFilter, now: Date = new Date()): TradeRow[] {
   if (filter.range === 'all') return trades
-
-  const now = new Date()
 
   if (filter.range === 'today') {
     return trades.filter(t => isToday(new Date(t.date)))
   }
   if (filter.range === 'week') {
-    const start = startOfWeek(now)
+    // weekStartsOn: 1 (Monday) — date-fns defaults to Sunday, but every other
+    // week-boundary calculation in this app (calendar's DOW columns,
+    // OverviewReport's weekKey grouping) already assumes Monday-start. Left
+    // at the default, this filter and the rest of the app would disagree
+    // about which trades fall in "this week" for the first ~24-48h of it.
+    const start = startOfWeek(now, { weekStartsOn: 1 })
     return trades.filter(t => new Date(t.date) >= start)
   }
   if (filter.range === 'month') {
