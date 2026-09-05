@@ -5,6 +5,7 @@ import { matchTastytradeExecutionsSequential, type TTExecution } from '@/lib/tas
 import { fetchAccounts as fetchWebullAccounts, fetchFilledOrders } from '@/lib/webullApi'
 import { matchWebullExecutions, type WebullExecution } from '@/lib/webullMatcher'
 import type { TradeRow } from '@/lib/types'
+import { effectivePnl } from '@/lib/analytics'
 
 export type SyncResult = {
   ok: boolean
@@ -18,10 +19,28 @@ async function insertTrades(supabase: any, userId: string, trades: any[], source
   let imported = 0
   for (const t of trades) {
     if (t.duplicate) continue
+    const assetType = t.assetType || 'stock'
+    // Route through the same effectivePnl() every other insert path uses
+    // (tradeService.insertTrade) instead of trusting each broker parser's
+    // own P&L math as-is. fetchTrades() already re-heals pnl at READ time
+    // for every row regardless of how it got inserted, so this didn't cause
+    // a wrong number to ever reach the UI — but the STORED value stayed
+    // whatever the parser computed, permanently out of sync with the app's
+    // canonical formula at rest (visible to any direct DB query, and a risk
+    // if computeTradePnl's formula — e.g. this session's forex multiplier
+    // fix — changes after import and the row is never re-saved to pick it
+    // up). pnl_is_override is false here — these are broker fills, not a
+    // manual override — so this only ever replaces pnl with what the app
+    // would already compute from the same entry/exit/shares/commission.
+    const pnl = effectivePnl({
+      entry: t.entry, exit: t.exit, shares: t.shares, type: t.type,
+      asset_type: assetType, symbol: t.symbol, commission: t.commission,
+      pnl: t.pnl, pnl_is_override: false,
+    })
     const { error } = await supabase.from('trades').insert({
       user_id: userId,
-      symbol: t.symbol, asset_type: t.assetType || 'stock', type: t.type, date: t.date, exit_date: t.exitDate,
-      entry: t.entry, exit: t.exit, shares: t.shares, pnl: t.pnl,
+      symbol: t.symbol, asset_type: assetType, type: t.type, date: t.date, exit_date: t.exitDate,
+      entry: t.entry, exit: t.exit, shares: t.shares, pnl,
       risk: 0, commission: t.commission, setup: null, grade: null,
       tags: [], notes: source ? `Imported from ${source}` : null, screenshot_url: null,
       trade_group_id: t.tradeGroupId || null,
