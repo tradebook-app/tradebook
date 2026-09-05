@@ -58,6 +58,14 @@ export function PerformanceReport({ trades }: Props) {
     ['Short Win Rate', `${shortWR.toFixed(1)}%`,   shortTrades.length === 0 ? 'var(--txt)' : shortWR >= 50 ? 'var(--ac)' : 'var(--red)'],
   ] as [string, string, string][]
 
+  // Every other report tab (Overview, Symbols, Setups, ...) shows a "No
+  // closed trades yet" empty state; this one didn't, so a brand-new account
+  // just saw a full page of $0.00 / 0.00% / — rows instead, easy to mistake
+  // for something broken.
+  if (closed.length === 0) {
+    return <div style={{ padding: '30px', textAlign: 'center', color: 'var(--txt3)', fontSize: '12px' }}>No closed trades yet.</div>
+  }
+
   return (
     <>
       <style>{`
