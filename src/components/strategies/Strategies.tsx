@@ -69,8 +69,17 @@ export function Strategies({ userId, trades }: Props) {
     if (!name.trim()) return alert('Enter a strategy name')
     setSaving(true)
 
+    // Keep the previously-saved image on a failed upload instead of silently
+    // wiping it — uploadStrategyImage() returns null on failure, and
+    // unconditionally assigning that to imgUrl overwrote editing.img_url
+    // with null, so a failed re-upload deleted the strategy's existing
+    // chart image reference along with it.
     let imgUrl = editing?.img_url || null
-    if (imgFile) imgUrl = await uploadStrategyImage(imgFile, userId)
+    if (imgFile) {
+      const uploaded = await uploadStrategyImage(imgFile, userId)
+      if (uploaded) imgUrl = uploaded
+      else alert('Could not upload the image — the strategy will keep its previous image.')
+    }
 
     if (editing) {
       const updated = await updateStrategy(editing.id, { name, img_url: imgUrl })

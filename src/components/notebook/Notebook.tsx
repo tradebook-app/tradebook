@@ -83,8 +83,17 @@ export function Notebook({ userId, onEdit }: Props) {
   async function handleSave() {
     if (!title.trim()) return alert('Enter a title')
     setSaving(true)
+    // Keep the previously-saved image on a failed upload instead of silently
+    // wiping it — uploadNoteImage() returns null on failure, and
+    // unconditionally assigning that to imgUrl overwrote editing.img_url
+    // with null, so a failed re-upload deleted the note's existing image
+    // reference along with it.
     let imgUrl = editing?.img_url || null
-    if (imgFile) imgUrl = await uploadNoteImage(imgFile, userId)
+    if (imgFile) {
+      const uploaded = await uploadNoteImage(imgFile, userId)
+      if (uploaded) imgUrl = uploaded
+      else alert('Could not upload the image — the note will keep its previous image.')
+    }
     if (editing) {
       const updated = await updateNote(editing.id, { title, body, category: noteCat, img_url: imgUrl })
       if (updated) setNotes(prev => prev.map(n => n.id === editing.id ? updated : n))
