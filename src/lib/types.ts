@@ -216,6 +216,7 @@ export type SymbolStats = {
   pnl: number
   trades: number
   wins: number
+  losses: number   // excludes breakeven (pnl === 0) trades — see calcSymbolStats
   grossWin: number
   grossLoss: number
 }

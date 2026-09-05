@@ -1,7 +1,7 @@
 'use client'
 
 import type { TradeRow } from '@/lib/types'
-import { closedTrades, fmtPnl, pickBestWorstDay, calcMaxDrawdown } from '@/lib/analytics'
+import { closedTrades, fmtPnl, fmtProfitFactor, pickBestWorstDay, calcMaxDrawdown } from '@/lib/analytics'
 
 type Props = { trades: TradeRow[] }
 
@@ -16,7 +16,9 @@ export function OverviewReport({ trades }: Props) {
   const pnl  = closed.reduce((s, t) => s + t.pnl, 0)
   const avgW = W.length ? W.reduce((s, t) => s + t.pnl, 0) / W.length : 0
   const avgL = L.length ? Math.abs(L.reduce((s, t) => s + t.pnl, 0) / L.length) : 0
-  const pf   = avgL > 0 ? (avgW * W.length) / (avgL * L.length) : avgW > 0 ? avgW * W.length : 0
+  // A ratio (gross win ÷ gross loss); with wins and no losses that's
+  // mathematically infinite, not the raw dollar amount of the wins.
+  const pf   = avgL > 0 ? (avgW * W.length) / (avgL * L.length) : avgW > 0 ? Infinity : 0
   const rT   = closed.filter(t => t.risk > 0)
   const avgRR = rT.length ? rT.reduce((s, t) => s + t.pnl / t.risk, 0) / rT.length : 0
   const exp  = closed.length ? pnl / closed.length : 0
@@ -63,7 +65,9 @@ export function OverviewReport({ trades }: Props) {
   const weekBW = pickBestWorstDay(Object.values(byWeek).map(p => ({ pnl: p })))
 
   const totalVol = closed.reduce((s, t) => s + (t.shares || 0), 0)
-  const recovery = maxDD > 0 ? (pnl / maxDD).toFixed(2) : 'inf'
+  // maxDD === 0 means no drawdown to divide by — mathematically infinite
+  // recovery, displayed as '∞' (was the literal string 'inf').
+  const recovery = maxDD > 0 ? (pnl / maxDD).toFixed(2) : '∞'
 
   const stats: [string, string][] = [
     ['Total P&L', fmtK(pnl)],
@@ -77,7 +81,7 @@ export function OverviewReport({ trades }: Props) {
     ['Max consecutive losses', String(wStr)],
     ['Largest profit', fmt(best)],
     ['Largest loss', fmt(worst)],
-    ['Profit factor', pf.toFixed(2)],
+    ['Profit factor', fmtProfitFactor(pf)],
     ['Trade expectancy', fmt(exp)],
     ['Trading days', String(dayE.length)],
     ['Winning days', String(winDays.length)],

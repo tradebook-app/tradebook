@@ -1,7 +1,7 @@
 'use client'
 import { MetricCard } from '@/components/ui/MetricCard'
 import type { KPIData } from '@/lib/types'
-import { fmtPnl } from '@/lib/analytics'
+import { fmtPnl, fmtProfitFactor } from '@/lib/analytics'
 
 type Props = {
   kpi: KPIData
@@ -62,7 +62,7 @@ export function DashboardKPIs({ kpi, openCount, openPnl }: Props) {
         />
         <MetricCard
           label="Profit Factor"
-          value={kpi.profitFactor > 0 ? kpi.profitFactor.toFixed(2) : '—'}
+          value={kpi.profitFactor > 0 ? fmtProfitFactor(kpi.profitFactor) : '—'}
           sub={
             <div style={{ display: 'flex', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '10px', background: 'var(--ac-d)', color: 'var(--ac)', fontFamily: 'var(--mono)' }}>

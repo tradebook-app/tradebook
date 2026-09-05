@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { fmtProfitFactor } from '@/lib/analytics'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -52,7 +53,11 @@ export async function POST(req: NextRequest) {
     const winRate = totalTrades > 0 ? ((wins.length / totalTrades) * 100).toFixed(1) : 0
     const avgWin = wins.length > 0 ? wins.reduce((s: number, t: any) => s + t.pnl, 0) / wins.length : 0
     const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((s: number, t: any) => s + t.pnl, 0) / losses.length) : 0
-    const profitFactor = avgLoss > 0 ? (avgWin * wins.length) / (avgLoss * losses.length) : 0
+    // A ratio (gross win ÷ gross loss); with wins and no losses that's
+    // mathematically infinite — this used to feed the AI "Profit factor:
+    // 0.00" for a trader who has never had a loss, the opposite of what 0
+    // actually means for this metric.
+    const profitFactor = avgLoss > 0 ? (avgWin * wins.length) / (avgLoss * losses.length) : (avgWin > 0 ? Infinity : 0)
 
     // Symbol breakdown
     const bySymbol: Record<string, { pnl: number; trades: number }> = {}
@@ -112,7 +117,7 @@ Here is the user's trading data summary:
 - Win rate: ${winRate}%
 - Wins: ${wins.length}, Losses: ${losses.length}
 - Avg win: $${avgWin.toFixed(2)}, Avg loss: $${avgLoss.toFixed(2)}
-- Profit factor: ${profitFactor.toFixed(2)}
+- Profit factor: ${fmtProfitFactor(profitFactor)}
 - Top symbols: ${topSymbols || 'N/A'}
 - Setup performance: ${setupSummary || 'N/A'}
 - Best trading hours: ${timeSummary || 'N/A'}

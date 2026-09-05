@@ -131,10 +131,15 @@ export function calcKPIs(trades: TradeRow[]): KPIData {
   const grossWin  = wins.reduce((s, t) => s + t.pnl, 0)
   const grossLoss = Math.abs(losses.reduce((s, t) => s + t.pnl, 0))
 
+  // Profit factor is gross win ÷ gross loss — a RATIO. With wins and zero
+  // losses that ratio is mathematically infinite ("∞"), not the raw dollar
+  // amount of the wins (what this used to return) — a $50 winner with no
+  // losses was displaying as a profit factor of "50.00", not "∞". Use the
+  // real JS Infinity value; fmtProfitFactor() renders it as '∞'.
   const profitFactor = grossLoss > 0
     ? grossWin / grossLoss
     : grossWin > 0
-      ? grossWin
+      ? Infinity
       : 0
 
   const avgWinLossRatio = avgLoss > 0 ? avgWin / avgLoss : 0
@@ -233,19 +238,31 @@ export function calcSymbolStats(trades: TradeRow[]): SymbolStats[] {
 
   closedTrades(trades).forEach(t => {
     if (!map[t.symbol]) {
-      map[t.symbol] = { symbol: t.symbol, pnl: 0, trades: 0, wins: 0, grossWin: 0, grossLoss: 0 }
+      map[t.symbol] = { symbol: t.symbol, pnl: 0, trades: 0, wins: 0, losses: 0, grossWin: 0, grossLoss: 0 }
     }
     const s = map[t.symbol]
     s.pnl    += t.pnl
     s.trades += 1
-    if (t.pnl > 0) { s.wins += 1; s.grossWin  += t.pnl }
-    else             {              s.grossLoss += t.pnl }
+    // A breakeven trade (pnl === 0) is neither a win nor a loss — it used to
+    // fall into the `else` branch here and get counted as a loss (harmless
+    // to grossLoss, since it adds 0, but Losses = trades - wins in the UI
+    // then wrongly included it, and diluted win rate as if it were a loss).
+    if (t.pnl > 0)      { s.wins += 1; s.grossWin  += t.pnl }
+    else if (t.pnl < 0) { s.losses += 1; s.grossLoss += t.pnl }
   })
 
   return Object.values(map).sort((a, b) => b.pnl - a.pnl)
 }
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
+
+// Profit factor is a ratio (gross win ÷ gross loss); with wins and zero
+// losses it's mathematically infinite. Every profitFactor/pf value in this
+// app should be formatted through this, not a raw .toFixed(2) — Infinity
+// itself formats to the literal string "Infinity" via toFixed.
+export function fmtProfitFactor(pf: number): string {
+  return pf === Infinity ? '∞' : pf.toFixed(2)
+}
 
 export function fmtPnl(n: number, compact = false): string {
   const abs = Math.abs(n)
@@ -330,7 +347,9 @@ export function calcStrategyStats(trades: TradeRow[], strategy: { id: string; na
   const grossLoss = Math.abs(losses.reduce((s, t) => s + t.pnl, 0))
 
   const winRate = closed.length ? (wins.length / closed.length) * 100 : 0
-  const profitFactor = grossLoss > 0 ? grossWin / grossLoss : (grossWin > 0 ? grossWin : 0)
+  // See calcKPIs' profitFactor comment — this returned the raw gross-win
+  // dollar amount instead of ∞ when there were no losses to divide by.
+  const profitFactor = grossLoss > 0 ? grossWin / grossLoss : (grossWin > 0 ? Infinity : 0)
   const avgWin  = wins.length ? grossWin / wins.length : 0
   const avgLoss = losses.length ? grossLoss / losses.length : 0
 

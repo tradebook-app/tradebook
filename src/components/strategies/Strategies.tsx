@@ -6,7 +6,7 @@ import {
   fetchStrategies, insertStrategy, updateStrategy, deleteStrategy,
   uploadStrategyImage, getStrategyImageUrl,
 } from '@/lib/strategyService'
-import { calcStrategyStats, fmtPnl } from '@/lib/analytics'
+import { calcStrategyStats, fmtPnl, fmtProfitFactor } from '@/lib/analytics'
 import { Modal } from '@/components/ui/Modal'
 import { CardMenu } from '@/components/ui/CardMenu'
 import { StrategyDetail } from '@/components/strategies/StrategyDetail'
@@ -258,7 +258,7 @@ export function Strategies({ userId, trades }: Props) {
                       {stats.trades ? `${stats.winRate.toFixed(1)}%` : '—'}
                     </td>
                     <td className="r" style={{ fontFamily: 'var(--mono)', color: stats.trades ? (stats.profitFactor >= 1.5 ? 'var(--ac)' : 'var(--red)') : 'var(--txt4)' }}>
-                      {stats.trades ? stats.profitFactor.toFixed(2) : '—'}
+                      {stats.trades ? fmtProfitFactor(stats.profitFactor) : '—'}
                     </td>
                     <td className="r" style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: stats.trades ? (stats.netPnl >= 0 ? 'var(--ac)' : 'var(--red)') : 'var(--txt4)' }}>
                       {stats.trades ? fmtPnl(stats.netPnl) : '—'}

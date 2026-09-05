@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import type { TradeRow, DayStats } from '@/lib/types'
-import { calcDailyPnl } from '@/lib/analytics'
+import { calcDailyPnl, fmtProfitFactor } from '@/lib/analytics'
 
 type Props = { trades: TradeRow[] }
 type View = 'month' | 'year'
@@ -322,13 +322,19 @@ export function CalendarReport({ trades }: Props) {
   )
 
   // ─── Day popup (same modal as the Dashboard calendar) ────────────────────
-  const popupTrades = popupDate ? trades.filter(t => (t.date || '').substring(0, 10) === popupDate) : []
+  // Closed trades only — an open position opened this day isn't a win, loss,
+  // or breakeven yet, and used to still count toward Trades/Win Rate/Profit
+  // Factor here even though the calendar cells' own per-day stats
+  // (calcDailyPnl, above) already exclude it.
+  const popupTrades = popupDate ? trades.filter(t => (t.date || '').substring(0, 10) === popupDate && t.exit && t.exit > 0) : []
   const pPnl = popupTrades.reduce((s, t) => s + (t.pnl || 0), 0)
   const pWins = popupTrades.filter(t => (t.pnl || 0) > 0)
   const pWr = popupTrades.length ? (pWins.length / popupTrades.length) * 100 : 0
   const gW = pWins.reduce((s, t) => s + t.pnl, 0)
   const gL = popupTrades.filter(t => (t.pnl || 0) < 0).reduce((s, t) => s + Math.abs(t.pnl), 0)
-  const pPf = gL > 0 ? gW / gL : gW > 0 ? gW : 0
+  // A ratio (gross win ÷ gross loss); with wins and no losses that's
+  // mathematically infinite, not the raw dollar amount of the wins.
+  const pPf = gL > 0 ? gW / gL : gW > 0 ? Infinity : 0
   const popupTitle = popupDate
     ? new Date(`${popupDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
     : ''
@@ -390,7 +396,7 @@ export function CalendarReport({ trades }: Props) {
                 { l: 'Net P&L', v: fmtUSD(pPnl), c: pPnl >= 0 ? 'var(--ac)' : 'var(--red)' },
                 { l: 'Win Rate', v: `${pWr.toFixed(0)}%`, c: 'var(--txt)' },
                 { l: 'Trades', v: String(popupTrades.length), c: 'var(--txt)' },
-                { l: 'Profit Factor', v: pPf.toFixed(2), c: pPf >= 1.5 ? 'var(--ac)' : 'var(--red)' },
+                { l: 'Profit Factor', v: fmtProfitFactor(pPf), c: pPf >= 1.5 ? 'var(--ac)' : 'var(--red)' },
               ].map((s, i) => (
                 <div key={i} style={{ background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)', padding: '10px 12px' }}>
                   <div style={{ fontSize: '9px', color: 'var(--txt3)' }}>{s.l}</div>

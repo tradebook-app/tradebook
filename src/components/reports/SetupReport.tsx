@@ -1,7 +1,7 @@
 'use client'
 
 import type { TradeRow } from '@/lib/types'
-import { closedTrades, fmtPnl, normalizeSetupName } from '@/lib/analytics'
+import { closedTrades, fmtPnl, fmtProfitFactor, normalizeSetupName } from '@/lib/analytics'
 import { VerticalBars } from './VerticalBars'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination } from '@/lib/usePagination'
@@ -23,12 +23,20 @@ export function SetupReport({ trades }: Props) {
     if (!bySetup[key]) bySetup[key] = { label: raw, pnl: 0, trades: 0, wins: 0, losses: 0, grossWin: 0, grossLoss: 0 }
     bySetup[key].pnl    += t.pnl
     bySetup[key].trades += 1
-    if (t.pnl > 0) { bySetup[key].wins++; bySetup[key].grossWin  += t.pnl }
-    else            { bySetup[key].losses++;bySetup[key].grossLoss += t.pnl }
+    // A breakeven trade (pnl === 0) is neither a win nor a loss — it used to
+    // fall into the `else` branch and get counted as a loss.
+    if (t.pnl > 0)      { bySetup[key].wins++;   bySetup[key].grossWin  += t.pnl }
+    else if (t.pnl < 0) { bySetup[key].losses++; bySetup[key].grossLoss += t.pnl }
   })
 
   const rows = Object.entries(bySetup)
-    .map(([, s]) => ({ setup: s.label, ...s, wr: s.trades ? (s.wins / s.trades) * 100 : 0, pf: s.grossLoss < 0 ? s.grossWin / Math.abs(s.grossLoss) : s.grossWin }))
+    .map(([, s]) => ({
+      setup: s.label, ...s,
+      wr: s.trades ? (s.wins / s.trades) * 100 : 0,
+      // A ratio (gross win ÷ gross loss); with wins and no losses that's
+      // mathematically infinite, not the raw dollar amount of the wins.
+      pf: s.grossLoss < 0 ? s.grossWin / Math.abs(s.grossLoss) : s.grossWin > 0 ? Infinity : 0,
+    }))
     .sort((a, b) => b.pnl - a.pnl)
 
   const pg = usePagination(rows.length, 'sleek-rpt-setups')
@@ -51,7 +59,7 @@ export function SetupReport({ trades }: Props) {
           <VerticalBars items={rows.map(r => ({
             label: r.setup,
             value: r.pnl,
-            sub: `${r.trades} trades · ${r.wr.toFixed(0)}% WR · ${r.pf.toFixed(2)} PF`,
+            sub: `${r.trades} trades · ${r.wr.toFixed(0)}% WR · ${fmtProfitFactor(r.pf)} PF`,
           }))} />
         </div>
         <div style={{ fontSize: '9px', color: 'var(--txt3)', padding: '0 18px 14px' }}>
@@ -78,7 +86,7 @@ export function SetupReport({ trades }: Props) {
                   <td style={{ padding: '8px 12px', fontSize: '11px', color: 'var(--ac)', borderBottom: '1px solid var(--brd)' }}>{r.wins}</td>
                   <td style={{ padding: '8px 12px', fontSize: '11px', color: 'var(--red)', borderBottom: '1px solid var(--brd)' }}>{r.losses}</td>
                   <td style={{ padding: '8px 12px', fontSize: '11px', fontFamily: 'var(--mono)', color: r.wr >= 50 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>{r.wr.toFixed(1)}%</td>
-                  <td style={{ padding: '8px 12px', fontSize: '11px', fontFamily: 'var(--mono)', color: r.pf >= 1.5 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>{r.pf.toFixed(2)}</td>
+                  <td style={{ padding: '8px 12px', fontSize: '11px', fontFamily: 'var(--mono)', color: r.pf >= 1.5 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>{fmtProfitFactor(r.pf)}</td>
                   <td style={{ padding: '8px 12px', fontSize: '11px', fontFamily: 'var(--mono)', color: 'var(--ac)', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>+${r.grossWin.toFixed(0)}</td>
                   <td style={{ padding: '8px 12px', fontSize: '11px', fontFamily: 'var(--mono)', color: 'var(--red)', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>${Math.abs(r.grossLoss).toFixed(0)}</td>
                   <td style={{ padding: '8px 12px', fontSize: '12px', fontWeight: 700, fontFamily: 'var(--mono)', color: r.pnl >= 0 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>{fmtPnl(r.pnl)}</td>

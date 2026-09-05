@@ -1,7 +1,7 @@
 'use client'
 
 import type { TradeRow } from '@/lib/types'
-import { closedTrades, calcKPIs, fmtPnl } from '@/lib/analytics'
+import { closedTrades, calcKPIs, fmtPnl, fmtProfitFactor } from '@/lib/analytics'
 
 type Props = { trades: TradeRow[] }
 
@@ -36,7 +36,7 @@ export function PerformanceReport({ trades }: Props) {
     ['Gross Win',        `+$${grossWin.toFixed(2)}`,              'var(--ac)'],
     ['Gross Loss',       `-$${grossLoss.toFixed(2)}`,             'var(--red)'],
     ['Total Commission', `-$${totalComm.toFixed(2)}`,             'var(--txt)'],
-    ['Profit Factor',    kpi.profitFactor.toFixed(2),             kpi.profitFactor === 0 ? 'var(--txt)' : kpi.profitFactor >= 1.5 ? 'var(--ac)' : 'var(--red)'],
+    ['Profit Factor',    fmtProfitFactor(kpi.profitFactor),       kpi.profitFactor === 0 ? 'var(--txt)' : kpi.profitFactor >= 1.5 ? 'var(--ac)' : 'var(--red)'],
     ['Win Rate',         `${kpi.winRate.toFixed(1)}%`,            kpi.winRate >= 50 ? 'var(--ac)' : 'var(--red)'],
     ['Total Trades',     String(kpi.totalTrades),                 'var(--txt)'],
     ['Wins',             String(kpi.wins),                        'var(--ac)'],

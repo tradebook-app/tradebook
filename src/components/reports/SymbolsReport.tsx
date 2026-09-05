@@ -55,7 +55,7 @@ export function SymbolsReport({ trades }: Props) {
                     <td style={{ padding: '8px 14px', fontWeight: 700, fontFamily: 'var(--mono)', fontSize: '12px', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>{s.symbol}</td>
                     <td style={{ padding: '8px 14px', fontSize: '11px', borderBottom: '1px solid var(--brd)' }}>{s.trades}</td>
                     <td style={{ padding: '8px 14px', fontSize: '11px', color: 'var(--ac)', borderBottom: '1px solid var(--brd)' }}>{s.wins}</td>
-                    <td style={{ padding: '8px 14px', fontSize: '11px', color: 'var(--red)', borderBottom: '1px solid var(--brd)' }}>{s.trades - s.wins}</td>
+                    <td style={{ padding: '8px 14px', fontSize: '11px', color: 'var(--red)', borderBottom: '1px solid var(--brd)' }}>{s.losses}</td>
                     <td style={{ padding: '8px 14px', fontSize: '11px', fontFamily: 'var(--mono)', color: wr >= 50 ? 'var(--ac)' : 'var(--red)', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>{wr.toFixed(1)}%</td>
                     <td style={{ padding: '8px 14px', fontSize: '11px', fontFamily: 'var(--mono)', color: 'var(--ac)', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>+${s.grossWin.toFixed(2)}</td>
                     <td style={{ padding: '8px 14px', fontSize: '11px', fontFamily: 'var(--mono)', color: 'var(--red)', borderBottom: '1px solid var(--brd)', whiteSpace: 'nowrap' }}>${s.grossLoss.toFixed(2)}</td>

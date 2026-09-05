@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import type { TradeRow, DateRangeFilter } from '@/lib/types'
 import { assetUnitLabel } from '@/lib/types'
-import { filterByDate, closedTrades, calcKPIs, fmtPnl, fmtDate, tradeRoi } from '@/lib/analytics'
+import { filterByDate, closedTrades, calcKPIs, fmtPnl, fmtDate, tradeRoi, fmtProfitFactor } from '@/lib/analytics'
 import { filterByStatus, type TradeStatusFilter } from '@/lib/tradeTableFilters'
 import { MetricCard } from '@/components/ui/MetricCard'
 import { TradePanel } from '@/components/trades/TradePanel'
@@ -229,7 +229,7 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
           }
           gauge={{ pct: kpi.winRate, color: kpi.winRate >= 40 ? 'var(--ac)' : 'var(--red)' }}
         />
-        <MetricCard label="Profit Factor" value={kpi.profitFactor.toFixed(2)} gauge={{ pct: Math.min(kpi.profitFactor / 3 * 100, 100), color: kpi.profitFactor >= 1.5 ? 'var(--ac)' : 'var(--red)' }} />
+        <MetricCard label="Profit Factor" value={fmtProfitFactor(kpi.profitFactor)} gauge={{ pct: Math.min(kpi.profitFactor / 3 * 100, 100), color: kpi.profitFactor >= 1.5 ? 'var(--ac)' : 'var(--red)' }} />
         <MetricCard
           label="Avg Win / Loss"
           value={kpi.avgWinLossRatio.toFixed(2)}

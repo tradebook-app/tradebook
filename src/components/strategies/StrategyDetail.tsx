@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import type { StrategyRow, TradeRow, StrategyRuleGroupWithRules, StrategyRuleGroupDraft } from '@/lib/types'
 import { fetchRuleGroups, saveRuleGroups } from '@/lib/strategyService'
-import { calcStrategyStats, tradesForStrategy, calcCumulative, fmtPnl, fmtDate } from '@/lib/analytics'
+import { calcStrategyStats, tradesForStrategy, calcCumulative, fmtPnl, fmtDate, fmtProfitFactor } from '@/lib/analytics'
 import { MetricCard } from '@/components/ui/MetricCard'
 import { CumulativeChart } from '@/components/dashboard/CumulativeChart'
 
@@ -135,7 +135,7 @@ export function StrategyDetail({ strategy, trades, imgUrl, onBack, onEdit, onDel
               />
               <MetricCard
                 label="Profit Factor"
-                value={stats.profitFactor.toFixed(2)}
+                value={fmtProfitFactor(stats.profitFactor)}
                 gauge={{ pct: Math.min(stats.profitFactor / 3 * 100, 100), color: stats.profitFactor >= 1.5 ? 'var(--ac)' : 'var(--red)' }}
               />
               <MetricCard label="Net P&L" value={fmtPnl(stats.netPnl)} valueColor={stats.netPnl >= 0 ? 'var(--ac)' : 'var(--red)'} />

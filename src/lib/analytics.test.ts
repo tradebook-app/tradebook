@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeTradePnl, effectivePnl, normalizeSetupName, pickBestWorstDay, tradeMultiplier, tradeCostBasis, tradeRoi, calcDrawdown, calcMaxDrawdown } from './analytics'
+import { computeTradePnl, effectivePnl, normalizeSetupName, pickBestWorstDay, tradeMultiplier, tradeCostBasis, tradeRoi, calcDrawdown, calcMaxDrawdown, calcKPIs, calcSymbolStats, fmtProfitFactor } from './analytics'
 import { forexLotValue } from './contractMultiplier'
 import type { TradeRow } from './types'
 
@@ -8,6 +8,16 @@ const stock = (o: Partial<Parameters<typeof effectivePnl>[0]>) => ({
   asset_type: 'stock' as const, symbol: 'X', commission: 0, pnl: 0,
   pnl_is_override: false, ...o,
 })
+
+const mkTrade = (o: Partial<TradeRow>): TradeRow => ({
+  id: 'x', user_id: 'u', symbol: 'X', type: 'Long', asset_type: 'stock',
+  entry: 0, exit: 1, shares: 1, commission: 0, pnl: 0, risk: 0,
+  date: '2024-01-01', exit_date: null, setup: null, grade: null, notes: null,
+  tags: [], screenshot_urls: [], screenshot_url: null, strategy_id: null,
+  account_id: null, trade_group_id: null, created_at: '', updated_at: '',
+  pnl_is_override: false,
+  ...o,
+} as TradeRow)
 
 describe('computeTradePnl', () => {
   it('Long, exit below entry, is a loss', () => {
@@ -135,16 +145,49 @@ describe('forexLotValue', () => {
   })
 })
 
+describe('fmtProfitFactor', () => {
+  it('renders a normal ratio to 2 decimals', () => {
+    expect(fmtProfitFactor(1.5)).toBe('1.50')
+  })
+  it('renders Infinity as the ∞ symbol, not the string "Infinity"', () => {
+    expect(fmtProfitFactor(Infinity)).toBe('∞')
+  })
+  it('renders 0 as "0.00", not ∞', () => {
+    expect(fmtProfitFactor(0)).toBe('0.00')
+  })
+})
+
+describe('calcKPIs profitFactor (wins with zero losses = ∞, not the raw win dollar amount)', () => {
+  it('is Infinity when there are wins and no losses', () => {
+    const trades = [mkTrade({ pnl: 50 }), mkTrade({ pnl: 30 })]
+    expect(calcKPIs(trades).profitFactor).toBe(Infinity)
+  })
+  it('is 0 when there are no closed trades at all', () => {
+    expect(calcKPIs([]).profitFactor).toBe(0)
+  })
+  it('is a normal ratio when both wins and losses exist', () => {
+    const trades = [mkTrade({ pnl: 100 }), mkTrade({ pnl: -50 })]
+    expect(calcKPIs(trades).profitFactor).toBe(2)
+  })
+})
+
+describe('calcSymbolStats (breakeven trades are neither a win nor a loss)', () => {
+  it('a breakeven trade (pnl === 0) is not counted as a loss', () => {
+    const trades = [
+      mkTrade({ symbol: 'AAPL', pnl: 100 }),
+      mkTrade({ symbol: 'AAPL', pnl: 0 }),   // breakeven — used to fall into the "loss" bucket
+      mkTrade({ symbol: 'AAPL', pnl: -20 }),
+    ]
+    const [s] = calcSymbolStats(trades)
+    expect(s.trades).toBe(3)
+    expect(s.wins).toBe(1)
+    expect(s.losses).toBe(1)          // NOT 2 — the breakeven doesn't count
+    expect(s.grossLoss).toBe(-20)     // the breakeven contributes nothing
+  })
+})
+
 describe('calcDrawdown / calcMaxDrawdown (trade-level, not day-level)', () => {
-  const t = (o: Partial<TradeRow>): TradeRow => ({
-    id: 'x', user_id: 'u', symbol: 'X', type: 'Long', asset_type: 'stock',
-    entry: 0, exit: 1, shares: 1, commission: 0, pnl: 0, risk: 0,
-    date: '2024-01-01', exit_date: null, setup: null, grade: null, notes: null,
-    tags: [], screenshot_urls: [], screenshot_url: null, strategy_id: null,
-    account_id: null, trade_group_id: null, created_at: '', updated_at: '',
-    pnl_is_override: false,
-    ...o,
-  } as TradeRow)
+  const t = mkTrade
 
   it('a single intraday dip inside a net-positive day is NOT hidden (the day-level aggregation bug)', () => {
     // +1000, -1800, +900 all on the same day nets +100 for the day, but the
