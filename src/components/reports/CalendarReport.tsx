@@ -25,7 +25,7 @@ function dayColors(pnl: number | undefined) {
   if (pnl === undefined) return { bg: 'var(--bg4, #16161e)', fg: 'var(--txt4)' }
   if (pnl > 0) return { bg: 'rgba(16,185,129,.15)', fg: 'var(--ac)' }
   if (pnl < 0) return { bg: 'rgba(239,68,68,.12)', fg: 'var(--red)' }
-  return { bg: 'rgba(255,255,255,.04)', fg: 'var(--txt3)' }
+  return { bg: 'var(--bg5)', fg: 'var(--txt3)' }
 }
 
 const navBtn: React.CSSProperties = {
@@ -240,7 +240,7 @@ export function CalendarReport({ trades }: Props) {
                   {has ? fmtK(w.pnl) : '$0'}
                 </div>
                 <div style={{ fontSize: '8px', marginTop: '2px' }}>
-                  <span style={{ background: has ? 'var(--ac-d, rgba(16,185,129,.12))' : 'rgba(255,255,255,.05)', color: has ? 'var(--ac)' : 'var(--txt3)', padding: '1px 5px', borderRadius: '3px' }}>
+                  <span style={{ background: has ? 'var(--ac-d, rgba(16,185,129,.12))' : 'var(--bg5)', color: has ? 'var(--ac)' : 'var(--txt3)', padding: '1px 5px', borderRadius: '3px' }}>
                     {w.days} day{w.days !== 1 ? 's' : ''}
                   </span>
                 </div>

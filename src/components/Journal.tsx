@@ -337,7 +337,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
             : <>
                 {trade.pnl > 0 && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'rgba(16,185,129,.1)', color: 'var(--ac)', fontWeight: 600 }}>Win</span>}
                 {trade.pnl < 0 && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'rgba(239,68,68,.1)', color: 'var(--red)', fontWeight: 600 }}>Loss</span>}
-                {trade.pnl === 0 && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'rgba(255,255,255,.06)', color: 'var(--txt3)', fontWeight: 600 }}>BE</span>}
+                {trade.pnl === 0 && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'var(--bg5)', color: 'var(--txt3)', fontWeight: 600 }}>BE</span>}
               </>}
           {trade.grade && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'var(--bg3)', color: 'var(--txt2)', fontWeight: 600 }}>{trade.grade}</span>}
         </div>
@@ -591,7 +591,7 @@ export function Journal({ trades, onEdit, onDelete }: Props) {
                         fontWeight: 700,
                         padding: '2px 8px',
                         borderRadius: '4px',
-                        background: row.totalPnl > 0 ? 'rgba(16,185,129,.15)' : row.totalPnl < 0 ? 'rgba(239,68,68,.15)' : 'rgba(255,255,255,.06)',
+                        background: row.totalPnl > 0 ? 'rgba(16,185,129,.15)' : row.totalPnl < 0 ? 'rgba(239,68,68,.15)' : 'var(--bg5)',
                         color: row.totalPnl > 0 ? 'var(--ac)' : row.totalPnl < 0 ? 'var(--red)' : 'var(--txt3)',
                       }}>
                         {row.totalPnl > 0 ? 'Win' : row.totalPnl < 0 ? 'Loss' : 'BE'}

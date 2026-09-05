@@ -114,7 +114,7 @@ export function RecentTrades({ trades, onSelect }: Props) {
               key={row.key}
               onClick={() => onSelect(row.legs[row.legs.length - 1])}
               style={{ cursor: 'pointer' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.02)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg4)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               <td style={{ padding: '7px 10px', fontSize: '10px', color: 'var(--txt3)', fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>{fmtDate(row.sortDate)}</td>

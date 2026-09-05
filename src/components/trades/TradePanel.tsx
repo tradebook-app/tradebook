@@ -178,7 +178,7 @@ export function TradePanel({ trade, trades, onClose, onEdit, onDelete, onNavigat
   const hold   = holdTime(trade.date, trade.exit_date)
 
   const statusColor = isWin ? 'var(--ac)' : isLoss ? 'var(--red)' : 'var(--txt3)'
-  const statusBg    = isWin ? 'var(--ac-d)' : isLoss ? 'var(--red-d)' : 'rgba(255,255,255,.06)'
+  const statusBg    = isWin ? 'var(--ac-d)' : isLoss ? 'var(--red-d)' : 'var(--bg5)'
   const statusLabel = isWin ? 'WIN' : isLoss ? 'LOSS' : 'BE'
 
   const TABS: { key: Tab; label: string }[] = [

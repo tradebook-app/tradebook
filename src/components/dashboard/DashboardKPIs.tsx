@@ -50,7 +50,7 @@ export function DashboardKPIs({ kpi, openCount, openPnl }: Props) {
             <div style={{ display: 'flex', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
               {[
                 { label: `${kpi.wins}W`, bg: 'var(--ac-d)', color: 'var(--ac)' },
-                { label: `${kpi.breakeven}BE`, bg: 'rgba(255,255,255,.06)', color: 'var(--txt3)' },
+                { label: `${kpi.breakeven}BE`, bg: 'var(--bg5)', color: 'var(--txt3)' },
                 { label: `${kpi.losses}L`, bg: 'var(--red-d)', color: 'var(--red)' },
               ].map((b, i) => (
                 <span key={i} style={{ fontSize: '10px', fontFamily: 'var(--mono)', padding: '2px 6px', borderRadius: '10px', background: b.bg, color: b.color }}>{b.label}</span>

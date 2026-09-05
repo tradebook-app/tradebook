@@ -290,7 +290,7 @@ input[type='number'] {
     position: sticky; top: 0; z-index: 2; background: var(--bg);
   }
   .tbl td { padding: 8px 10px; font-size: 11px; border-bottom: 1px solid var(--brd); }
-  .tbl tr:hover td { background: rgba(255,255,255,.02); }
+  .tbl tr:hover td { background: var(--bg4); }
 
   .badge { font-size: 9px; font-weight: 800; padding: 3px 10px; border-radius: 20px; display: inline-block; letter-spacing: .04em; }
   /* colour tracks the status tokens (not a hardcoded hex) so it inherits the

@@ -34,7 +34,7 @@ export function OpenPositions({ trades, onSelect }: Props) {
             key={t.id}
             onClick={() => onSelect(t)}
             style={{ cursor: 'pointer' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.02)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg4)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <td style={{ padding: '7px 10px', fontSize: '12px', fontWeight: 700, fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>{t.symbol}</td>
