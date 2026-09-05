@@ -119,7 +119,7 @@ const ACCOUNT_SCOPED_PAGES = new Set(['/dashboard', '/trades', '/journal', '/rep
 // filter trades before anything downstream sees them. AppProvider itself
 // can't do this directly since it sits above PlanProvider/AccountProvider.
 function AppInner({
-  pathname, title, trades, loading, filter, setFilter, userId, userEmail,
+  pathname, title, trades, loading, loadError, onRetryLoad, filter, setFilter, userId, userEmail,
   openAdd, openEdit, handleSave, handleDelete, handleDeleteMany, handleRemoveScreenshot, reloadTrades,
   modalOpen, setModalOpen, editTrade, setEditTrade, strategyList, setStrategyList,
 }: any) {
@@ -130,6 +130,18 @@ function AppInner({
     : trades
 
   function renderPage() {
+    // A failed initial load used to leave "loading" true forever (see
+    // tradeService.ts's fetchTrades) — an infinite spinner with no error and
+    // no way to recover short of a hard page reload. Now it resolves to a
+    // visible error with a retry action instead.
+    if (loadError && pathname !== '/scanner') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh', gap: '10px', color: 'var(--txt3)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--txt2)' }}>Couldn't load your trades — check your connection and try again.</div>
+          <button className="btn btn-o" onClick={onRetryLoad}>Retry</button>
+        </div>
+      )
+    }
     if (loading && pathname !== '/scanner') {
       return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '50vh', color: 'var(--txt3)' }}>
@@ -185,16 +197,30 @@ export function AppProvider({ userId, userEmail }: Props) {
 
   const [trades,    setTrades]    = useState<TradeRow[]>([])
   const [loading,   setLoading]   = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [editTrade, setEditTrade] = useState<TradeRow | null>(null)
   const [filter,    setFilter]    = useState<DateRangeFilter>({ range: 'all' })
   const [strategyList, setStrategyList] = useState<StrategyRow[]>([])
 
-  useEffect(() => {
+  function loadTrades() {
+    setLoading(true)
+    setLoadError(false)
     fetchTrades().then(data => {
       setTrades(data)
       setLoading(false)
+    }).catch(err => {
+      // Belt-and-suspenders: fetchTrades() itself no longer throws (see
+      // tradeService.ts), but this guarantees the app can never get stuck on
+      // "Loading..." forever even if something upstream of it does.
+      console.error('Failed to load trades:', err)
+      setLoading(false)
+      setLoadError(true)
     })
+  }
+
+  useEffect(() => {
+    loadTrades()
     fetchStrategies().then(setStrategyList)
   }, [])
 
@@ -285,6 +311,7 @@ export function AppProvider({ userId, userEmail }: Props) {
       <AccountProvider>
         <AppInner
           pathname={pathname} title={title} trades={trades} loading={loading}
+          loadError={loadError} onRetryLoad={loadTrades}
           filter={filter} setFilter={setFilter} userId={userId} userEmail={userEmail}
           openAdd={openAdd} openEdit={openEdit} handleSave={handleSave}
           handleDelete={handleDelete} handleDeleteMany={handleDeleteMany}

@@ -54,17 +54,28 @@ export async function getScreenshotUrl(path: string): Promise<string | null> {
 
 // Fetch all trades for current user, newest first
 export async function fetchTrades(): Promise<TradeRow[]> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('trades')
-    .select('*')
-    .order('date', { ascending: false })
+  // A genuine network failure (offline, DNS, CORS, an aborted fetch) throws
+  // instead of resolving to { data, error } like a normal Supabase/Postgres
+  // error does. Uncaught here, that rejection propagated out of the
+  // AppProvider's un-guarded fetchTrades().then(...) at startup, so
+  // setLoading(false) never ran — the whole app was stuck on "Loading..."
+  // forever with no error shown and no way to retry short of a hard reload.
+  try {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('trades')
+      .select('*')
+      .order('date', { ascending: false })
 
-  if (error) { console.error('Fetch trades error:', error); return [] }
-  // Heal rows whose stored pnl is a wrong 0 (bad import / stale override) so
-  // every consumer sees the correct figure. Non-destructive — the DB row is
-  // only rewritten on the next real save.
-  return (data || []).map(t => normalizeShots({ ...t, pnl: effectivePnl(t) }))
+    if (error) { console.error('Fetch trades error:', error); return [] }
+    // Heal rows whose stored pnl is a wrong 0 (bad import / stale override) so
+    // every consumer sees the correct figure. Non-destructive — the DB row is
+    // only rewritten on the next real save.
+    return (data || []).map(t => normalizeShots({ ...t, pnl: effectivePnl(t) }))
+  } catch (err) {
+    console.error('Fetch trades network error:', err)
+    return []
+  }
 }
 
 // Insert a new trade
