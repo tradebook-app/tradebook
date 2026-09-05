@@ -40,6 +40,7 @@ export function AIAnalysis({ trades }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [rateLimited, setRateLimited] = useState(false)
   const [firstName, setFirstName] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -61,7 +62,7 @@ export function AIAnalysis({ trades }: Props) {
   }, [messages, loading])
 
   async function sendMessage(text: string) {
-    if (!text.trim() || loading) return
+    if (!text.trim() || loading || rateLimited) return
     const userMsg: Message = { role: 'user', content: text.trim() }
     const newMessages = [...messages, userMsg]
     setMessages(newMessages)
@@ -75,7 +76,21 @@ export function AIAnalysis({ trades }: Props) {
         body: JSON.stringify({ messages: newMessages, trades }),
       })
       const data = await res.json()
-      if (data.message) {
+      if (res.status === 429) {
+        // Rate-limited: the response happens to include a `message` too, so
+        // this case alone "worked" before — but nothing disabled further
+        // sends, so the user could keep hitting Send and get this same
+        // response endlessly until tomorrow.
+        setRateLimited(true)
+        setMessages(prev => [...prev, { role: 'assistant', content: data.message || "You've reached today's Sleek AI limit. Try again tomorrow." }])
+      } else if (!res.ok) {
+        // Every other non-2xx (401 stale session, 403 plan-gated, 500 from
+        // the AI provider) only ever set `error`, never `message` — the
+        // `if (data.message)` check below silently swallowed all of them,
+        // so the request just vanished with no reply and no indication
+        // anything had gone wrong.
+        setMessages(prev => [...prev, { role: 'assistant', content: data.error || 'Sorry, something went wrong. Please try again.' }])
+      } else if (data.message) {
         setMessages(prev => [...prev, { role: 'assistant', content: data.message }])
       }
     } catch (err) {
@@ -140,11 +155,13 @@ export function AIAnalysis({ trades }: Props) {
                 <button
                   key={q}
                   onClick={() => sendMessage(q)}
+                  disabled={rateLimited}
                   style={{
                     fontSize: '12px', fontWeight: 600, padding: '8px 16px',
                     background: 'var(--bg3)', border: '1px solid var(--brd2)',
-                    borderRadius: '20px', cursor: 'pointer', color: 'var(--txt2)',
+                    borderRadius: '20px', cursor: rateLimited ? 'not-allowed' : 'pointer', color: 'var(--txt2)',
                     fontFamily: 'var(--sans)', transition: '.15s',
+                    opacity: rateLimited ? 0.5 : 1,
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.borderColor = 'rgba(16,185,129,.4)'
@@ -223,21 +240,23 @@ export function AIAnalysis({ trades }: Props) {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="Ask anything about your trading performance..."
+            placeholder={rateLimited ? "You've reached today's Sleek AI limit" : "Ask anything about your trading performance..."}
             rows={1}
+            disabled={rateLimited}
             style={{
               flex: 1, background: 'none', border: 'none', outline: 'none',
               color: 'var(--txt)', fontSize: '13px', fontFamily: 'var(--sans)',
               resize: 'none', lineHeight: 1.5, maxHeight: '120px', overflowY: 'auto',
+              opacity: rateLimited ? 0.5 : 1,
             }}
           />
           <button
             onClick={() => sendMessage(input)}
-            disabled={!input.trim() || loading}
+            disabled={!input.trim() || loading || rateLimited}
             style={{
               width: '34px', height: '34px', borderRadius: '8px', flexShrink: 0,
-              background: input.trim() && !loading ? '#10B981' : 'var(--bg4)',
-              border: 'none', cursor: input.trim() && !loading ? 'pointer' : 'default',
+              background: input.trim() && !loading && !rateLimited ? '#10B981' : 'var(--bg4)',
+              border: 'none', cursor: input.trim() && !loading && !rateLimited ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '16px', transition: '.15s',
             }}
@@ -246,7 +265,7 @@ export function AIAnalysis({ trades }: Props) {
           </button>
         </div>
         <div style={{ fontSize: '10px', color: 'var(--txt3)', textAlign: 'center', marginTop: '6px' }}>
-          Sleek AI can make mistakes. Not financial advice.
+          {rateLimited ? "You've reached today's Sleek AI limit. Try again tomorrow." : 'Sleek AI can make mistakes. Not financial advice.'}
         </div>
       </div>
 
