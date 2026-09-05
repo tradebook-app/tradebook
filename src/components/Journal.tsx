@@ -9,6 +9,7 @@ import { tradeTimeToChartTime } from '@/lib/tradeChartTime'
 import { getScreenshotUrl } from '@/lib/tradeService'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination } from '@/lib/usePagination'
+import { calcKPIs, fmtProfitFactor } from '@/lib/analytics'
 
 type Props = {
   trades: TradeRow[]
@@ -49,15 +50,16 @@ function getFirstDayOfMonth(year: number, month: number) {
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
+// Thin wrapper over the shared calcKPIs (analytics.ts) instead of
+// reimplementing win rate / profit factor locally — the two had drifted:
+// this used to compute win rate over ALL trades passed in, including open
+// positions (pnl still 0, not yet realized), which diluted the day/week
+// win rate and trade count whenever a position was opened but not yet
+// closed. calcKPIs already filters to closedTrades() internally, so this
+// fixes that "for free" as well as the reimplementation-drift risk.
 function calcStats(trades: TradeRow[]) {
-  const wins = trades.filter(t => t.pnl > 0)
-  const losses = trades.filter(t => t.pnl < 0)
-  const grossWin = wins.reduce((s, t) => s + t.pnl, 0)
-  const grossLoss = Math.abs(losses.reduce((s, t) => s + t.pnl, 0))
-  const netPnl = trades.reduce((s, t) => s + t.pnl, 0)
-  const winRate = trades.length > 0 ? (wins.length / trades.length) * 100 : 0
-  const profitFactor = grossLoss > 0 ? grossWin / grossLoss : grossWin > 0 ? Infinity : 0
-  return { netPnl, winRate, profitFactor, wins: wins.length, losses: losses.length, total: trades.length, grossWin, grossLoss }
+  const kpi = calcKPIs(trades)
+  return { netPnl: kpi.netPnl, winRate: kpi.winRate, profitFactor: kpi.profitFactor, wins: kpi.wins, losses: kpi.losses, total: kpi.totalTrades }
 }
 
 function MiniChart({ trades }: { trades: TradeRow[] }) {
@@ -335,6 +337,7 @@ function TradeDetailPanel({ trade, trades, onClose, onEdit, onNavigate }: { trad
             : <>
                 {trade.pnl > 0 && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'rgba(16,185,129,.1)', color: 'var(--ac)', fontWeight: 600 }}>Win</span>}
                 {trade.pnl < 0 && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'rgba(239,68,68,.1)', color: 'var(--red)', fontWeight: 600 }}>Loss</span>}
+                {trade.pnl === 0 && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'rgba(255,255,255,.06)', color: 'var(--txt3)', fontWeight: 600 }}>BE</span>}
               </>}
           {trade.grade && <span style={{ fontSize: '10px', padding: '2px 10px', borderRadius: '20px', background: 'var(--bg3)', color: 'var(--txt2)', fontWeight: 600 }}>{trade.grade}</span>}
         </div>
@@ -588,10 +591,10 @@ export function Journal({ trades, onEdit, onDelete }: Props) {
                         fontWeight: 700,
                         padding: '2px 8px',
                         borderRadius: '4px',
-                        background: row.totalPnl > 0 ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.15)',
-                        color: row.totalPnl > 0 ? 'var(--ac)' : 'var(--red)',
+                        background: row.totalPnl > 0 ? 'rgba(16,185,129,.15)' : row.totalPnl < 0 ? 'rgba(239,68,68,.15)' : 'rgba(255,255,255,.06)',
+                        color: row.totalPnl > 0 ? 'var(--ac)' : row.totalPnl < 0 ? 'var(--red)' : 'var(--txt3)',
                       }}>
-                        {row.totalPnl > 0 ? 'Win' : 'Loss'}
+                        {row.totalPnl > 0 ? 'Win' : row.totalPnl < 0 ? 'Loss' : 'BE'}
                       </span>
                     )}
                   </td>
@@ -697,8 +700,8 @@ export function Journal({ trades, onEdit, onDelete }: Props) {
                       { l: 'Win Rate', v: dayStats.winRate.toFixed(1) + '%' },
                       { l: 'Winners', v: dayStats.wins },
                       { l: 'Losers', v: dayStats.losses },
-                      { l: 'Gross P&L', v: '$' + dayStats.netPnl.toFixed(2), pnl: dayStats.netPnl },
-                      { l: 'Profit Factor', v: dayStats.profitFactor === Infinity ? '∞' : dayStats.profitFactor.toFixed(2) },
+                      { l: 'Net P&L', v: '$' + dayStats.netPnl.toFixed(2), pnl: dayStats.netPnl },
+                      { l: 'Profit Factor', v: fmtProfitFactor(dayStats.profitFactor) },
                     ].map(s => (
                       <div key={s.l} style={statStyle}>
                         <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '4px' }}>{s.l}</div>
@@ -766,7 +769,7 @@ export function Journal({ trades, onEdit, onDelete }: Props) {
                     { l: 'Winners', v: weekStats.wins },
                     { l: 'Losers', v: weekStats.losses },
                     { l: 'Net P&L', v: '$' + weekStats.netPnl.toFixed(2), pnl: weekStats.netPnl },
-                    { l: 'Profit Factor', v: weekStats.profitFactor === Infinity ? '∞' : weekStats.profitFactor.toFixed(2) },
+                    { l: 'Profit Factor', v: fmtProfitFactor(weekStats.profitFactor) },
                   ].map(s => (
                     <div key={s.l} style={statStyle}>
                       <div style={{ fontSize: '9px', color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '4px' }}>{s.l}</div>
