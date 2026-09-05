@@ -33,11 +33,17 @@ const ACCOUNT_TYPES: { value: PropFirmAccountRow['account_type']; label: string 
   { value: 'instant',    label: 'Instant Funding' },
 ]
 
-const STATUSES: { value: PropFirmAccountRow['status']; label: string; color: string }[] = [
-  { value: 'active', label: 'Active', color: 'var(--ac)' },
-  { value: 'passed', label: 'Passed', color: 'var(--blue, #3B82F6)' },
-  { value: 'failed', label: 'Failed', color: 'var(--red)' },
-  { value: 'reset',  label: 'Reset',  color: 'var(--orange, #F59E0B)' },
+// `bg` is each color's pre-defined translucent companion token (already
+// theme-aware, defined for both themes in globals.css) — NOT derived from
+// `color` with a `${color}22` alpha-suffix trick like this used to do.
+// color is itself a var(...) reference, so that produced a literal string
+// like "var(--ac)22", invalid CSS the browser drops entirely, silently
+// leaving the status badge with no background at all.
+const STATUSES: { value: PropFirmAccountRow['status']; label: string; color: string; bg: string }[] = [
+  { value: 'active', label: 'Active', color: 'var(--ac)',              bg: 'var(--ac-d)' },
+  { value: 'passed', label: 'Passed', color: 'var(--blue, #3B82F6)',   bg: 'var(--blue-d)' },
+  { value: 'failed', label: 'Failed', color: 'var(--red)',             bg: 'var(--red-d)' },
+  { value: 'reset',  label: 'Reset',  color: 'var(--orange, #F59E0B)', bg: 'var(--orange-d)' },
 ]
 
 const CATEGORIES: { value: PropFirmTransactionRow['category']; label: string }[] = [
@@ -466,7 +472,7 @@ export function PropTracker({ userId }: Props) {
                         )}
                       </div>
                     </div>
-                    <span style={{ fontSize: '9px', fontWeight: 700, padding: '3px 9px', borderRadius: '20px', background: `${meta.color}22`, color: meta.color, flexShrink: 0 }}>
+                    <span style={{ fontSize: '9px', fontWeight: 700, padding: '3px 9px', borderRadius: '20px', background: meta.bg, color: meta.color, flexShrink: 0 }}>
                       {meta.label}
                     </span>
                   </div>
