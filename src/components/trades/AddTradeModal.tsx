@@ -483,7 +483,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
             {accountOpen && (
               <div style={{
                 position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
-                background: '#141419', border: '1px solid var(--brd)', borderRadius: 'var(--r)',
+                background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)',
                 maxHeight: '220px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,.4)',
               }}>
                 {accounts.map(a => (
@@ -563,7 +563,7 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
               {strategyOpen && (
                 <div style={{
                   position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
-                  background: '#141419', border: '1px solid var(--brd)', borderRadius: 'var(--r)',
+                  background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)',
                   maxHeight: '220px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,.4)',
                 }}>
                   <div onClick={() => { setStrategyId(''); setStrategyOpen(false) }} style={{

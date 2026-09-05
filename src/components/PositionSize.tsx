@@ -419,7 +419,7 @@ export function PositionSize() {
                 {contractOpen && (
                   <div style={{
                     position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
-                    background: '#141419', border: '1px solid var(--brd)', borderRadius: 'var(--r)',
+                    background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)',
                     maxHeight: '320px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,.4)',
                   }}>
                     {FUT_CATEGORIES.map(cat => (
