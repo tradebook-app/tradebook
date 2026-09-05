@@ -37,7 +37,9 @@ export function DayTimeReport({ trades }: Props) {
   const maxDowPnl  = Math.max(...byDow.map(d => Math.abs(d.pnl)), 1)
   const activeHours = byHour.filter(h => h.trades > 0)
   const activeHourRows = byHour.map((h, i) => ({ h, i })).filter(x => x.h.trades > 0)
-  const pg = usePagination(activeHourRows.length, 'sleek-rpt-daytime')
+  // resetKey: trades — see SymbolsReport for why totalItems alone isn't
+  // enough (a filter change whose new row count matches the old one).
+  const pg = usePagination(activeHourRows.length, 'sleek-rpt-daytime', trades)
   const pageHourRows = activeHourRows.slice(pg.start, pg.end)
 
   return (

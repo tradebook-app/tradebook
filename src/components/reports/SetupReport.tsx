@@ -39,7 +39,9 @@ export function SetupReport({ trades }: Props) {
     }))
     .sort((a, b) => b.pnl - a.pnl)
 
-  const pg = usePagination(rows.length, 'sleek-rpt-setups')
+  // resetKey: trades — see SymbolsReport for why totalItems alone isn't
+  // enough (a filter change whose new row count matches the old one).
+  const pg = usePagination(rows.length, 'sleek-rpt-setups', trades)
   const pageRows = rows.slice(pg.start, pg.end)
 
   if (!rows.length) {

@@ -33,8 +33,10 @@ export function WinLossReport({ trades, allTrades }: Props) {
   const wins   = closed.filter(t => t.pnl > 0).sort((a, b) => b.pnl - a.pnl)
   const losses = closed.filter(t => t.pnl < 0).sort((a, b) => a.pnl - b.pnl)
 
-  const winsPg   = usePagination(wins.length, 'sleek-rpt-winloss-w')
-  const lossesPg = usePagination(losses.length, 'sleek-rpt-winloss-l')
+  // resetKey: trades — see SymbolsReport for why totalItems alone isn't
+  // enough (a filter change whose new row count matches the old one).
+  const winsPg   = usePagination(wins.length, 'sleek-rpt-winloss-w', trades)
+  const lossesPg = usePagination(losses.length, 'sleek-rpt-winloss-l', trades)
 
   let curStreak = 0, maxWinStreak = 0, maxLossStreak = 0, maxBeStreak = 0, curType = ''
   ;[...closed].reverse().forEach(t => {

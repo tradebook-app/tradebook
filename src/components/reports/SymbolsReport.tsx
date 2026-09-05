@@ -8,7 +8,11 @@ type Props = { trades: TradeRow[] }
 export function SymbolsReport({ trades }: Props) {
   const stats = calcSymbolStats(closedTrades(trades))
   const maxPnl = Math.max(...stats.map(s => Math.abs(s.pnl)), 1)
-  const pg = usePagination(stats.length, 'sleek-rpt-symbols')
+  // resetKey: trades — a new array reference every time the parent's global
+  // date filter produces a different set, even when the resulting row count
+  // happens to match the previous filter's count (the only case
+  // usePagination's own totalItems-changed check catches on its own).
+  const pg = usePagination(stats.length, 'sleek-rpt-symbols', trades)
   const pageStats = stats.slice(pg.start, pg.end)
   if (!stats.length) {
     return (

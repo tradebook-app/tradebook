@@ -11,7 +11,9 @@ export function RiskReport({ trades }: Props) {
   const closed = closedTrades(trades).filter(t => t.risk > 0)
 
   const sortedByR = [...closed].sort((a, b) => (b.pnl / b.risk) - (a.pnl / a.risk))
-  const pg = usePagination(sortedByR.length, 'sleek-rpt-risk')
+  // resetKey: trades — see SymbolsReport for why totalItems alone isn't
+  // enough (a filter change whose new row count matches the old one).
+  const pg = usePagination(sortedByR.length, 'sleek-rpt-risk', trades)
   const pageRisk = sortedByR.slice(pg.start, pg.end)
 
   if (!closed.length) {

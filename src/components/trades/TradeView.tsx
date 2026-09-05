@@ -166,7 +166,12 @@ export function TradeView({ trades, filter, onFilterChange, onEdit, onDelete, on
 
   const groupedFiltered = useMemo(() => buildGroupedRows(filtered), [filtered])
 
-  const pg = usePagination(groupedFiltered.length, 'sleek-tradeview-pagesize')
+  // resetKey: `filtered` — a stable (memoized) reference that changes
+  // exactly when trades/date-range/symbol/status/side/setup filtering
+  // actually changes the row set, even when the resulting count happens to
+  // match the previous filter's count (the only case usePagination's own
+  // totalItems-changed check catches on its own).
+  const pg = usePagination(groupedFiltered.length, 'sleek-tradeview-pagesize', filtered)
   const pageRows = useMemo(() => groupedFiltered.slice(pg.start, pg.end), [groupedFiltered, pg.start, pg.end])
   // flat trade list for just the visible page — keeps the preview panel's
   // up/down keyboard nav within what's on screen.
