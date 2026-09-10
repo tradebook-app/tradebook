@@ -8,7 +8,7 @@ import { futuresPointValue } from '@/lib/contractMultiplier'
 import { insertStrategy } from '@/lib/strategyService'
 import { getScreenshotUrl } from '@/lib/tradeService'
 import { computeTradePnl } from '@/lib/analytics'
-import { shouldPopulateForm } from '@/lib/tradeFormInit'
+import { shouldPopulateForm, shouldPrefillPnlOverride } from '@/lib/tradeFormInit'
 import { useAccounts } from '@/components/AccountProvider'
 
 type Props = {
@@ -109,17 +109,11 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
       setExit(editTrade.exit ? String(editTrade.exit) : '')
       setShares(editTrade.shares ? String(editTrade.shares) : '')
       setAssetType(editTrade.asset_type || 'stock')
-      // Only pre-fill the P&L *override* field when the stored value is a
-      // genuine manual override — i.e. it can't be derived from the fills, or
-      // it's a non-zero value that disagrees with them. A stored 0 that the
-      // fills contradict is a data error, not an override: leave the field
-      // blank so it recomputes from entry / exit / shares on save.
-      {
-        const computed = computeTradePnl(editTrade)
-        const keepOverride = computed == null
-          || (editTrade.pnl !== 0 && Math.abs(editTrade.pnl - computed) > 0.01)
-        setPnlOver(keepOverride ? String(editTrade.pnl) : '')
-      }
+      // Only pre-fill the P&L Override field when the stored value is (or
+      // looks like) a genuine manual override — see shouldPrefillPnlOverride.
+      // Critically, an OPEN trade never counts: pre-filling '0' there meant
+      // closing it later saved that stale 0 and stamped pnl_is_override=true.
+      setPnlOver(shouldPrefillPnlOverride(editTrade) ? String(editTrade.pnl) : '')
       setRisk(editTrade.risk ? String(editTrade.risk) : '')
       setCommission(editTrade.commission ? String(editTrade.commission) : '')
       if (editTrade.strategy_id) {
@@ -319,10 +313,11 @@ export function AddTradeModal({ open, onClose, onSave, editTrade, strategies, us
       tags,
       notes:      notes || null,
       screenshot_urls: keptShots,
-      // Only true when the user actually typed something into the P&L
-      // Override field — not merely because it was pre-filled on open (see
-      // the edit-populate effect above, which only pre-fills it for a
-      // genuine override to begin with).
+      // True when the P&L Override field has a value on save. It's only
+      // pre-filled on open for a trade that already looks like a genuine
+      // override (shouldPrefillPnlOverride) — never for an open trade — so
+      // this no longer stamps an override onto a position the user simply
+      // closed out via the edit form.
       pnl_is_override: pnlOver !== '',
     }
 
