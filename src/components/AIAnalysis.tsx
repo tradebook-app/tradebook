@@ -169,22 +169,42 @@ export function AIAnalysis({ trades, userId }: Props) {
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 120px)', gap: '20px' }}>
 
-      {/* Session history sidebar */}
-      <div style={{ width: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto', paddingRight: '4px' }}>
+      {/* Session history sidebar — a bordered card with its own header, not
+          just a bare column of text, so it reads as a distinct "history
+          panel" rather than blending into the page (a real report of "no
+          history panel at all" turned out to be a case where the backend
+          had the conversations the whole time — see aiChatService.ts). */}
+      <div style={{
+        width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column',
+        background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r2)',
+        padding: '12px', overflow: 'hidden',
+      }}>
+        <div style={{
+          fontSize: '10px', fontWeight: 700, color: 'var(--txt3)',
+          textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '10px', padding: '0 2px',
+        }}>
+          Chat History
+        </div>
         <button
           onClick={startNewChat}
           style={{
             fontSize: '11px', fontWeight: 700, color: '#10B981',
             background: 'var(--ac-d)', border: '1px solid rgba(16,185,129,.25)',
             borderRadius: '8px', padding: '8px 10px', cursor: 'pointer',
-            fontFamily: 'var(--sans)', marginBottom: '8px', textAlign: 'left',
+            fontFamily: 'var(--sans)', marginBottom: '10px', textAlign: 'left',
           }}
         >
           + New chat
         </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
         {sessionsError && (
           <div style={{ fontSize: '10px', color: 'var(--txt3)', padding: '4px 2px', lineHeight: 1.5 }}>
             Couldn't load your chat history. Try refreshing the page.
+          </div>
+        )}
+        {!sessionsError && sessions.length === 0 && (
+          <div style={{ fontSize: '11px', color: 'var(--txt3)', padding: '4px 2px', lineHeight: 1.5 }}>
+            No past conversations yet.
           </div>
         )}
         {sessions.map(s => (
@@ -194,7 +214,7 @@ export function AIAnalysis({ trades, userId }: Props) {
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '8px 10px', borderRadius: '8px', cursor: 'pointer',
-              background: s.id === currentSessionId ? 'var(--bg3)' : 'transparent',
+              background: s.id === currentSessionId ? 'var(--bg4)' : 'transparent',
               border: '1px solid', borderColor: s.id === currentSessionId ? 'var(--brd2)' : 'transparent',
             }}
           >
@@ -216,6 +236,7 @@ export function AIAnalysis({ trades, userId }: Props) {
             </button>
           </div>
         ))}
+        </div>
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: '800px', margin: '0 auto', minWidth: 0 }}>
