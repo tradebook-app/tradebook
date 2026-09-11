@@ -1,6 +1,17 @@
 import { createClient } from '@/lib/supabase/client'
 import type { NoteRow, NoteInsert, NoteUpdate } from '@/lib/types'
 
+// Whether a note should be visible when `accountId` is the selected account.
+// Unlike trades (an exact account_id match only), a note with no account_id
+// — every note that predates account-scoping, plus any saved with no
+// account selected — is visible under EVERY account rather than hidden:
+// silently disappearing someone's existing notes because they predate this
+// feature would be worse than occasionally showing one under an account it
+// isn't strictly assigned to.
+export function isNoteInAccount(note: Pick<NoteRow, 'account_id'>, accountId: string | null): boolean {
+  return note.account_id === accountId || note.account_id == null
+}
+
 export async function fetchNotes(): Promise<NoteRow[]> {
   const supabase = createClient()
   const { data, error } = await supabase

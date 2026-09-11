@@ -6,11 +6,14 @@ import { AddTradeModal, type TradeFormPayload } from '@/components/trades/AddTra
 import { TradeView } from '@/components/trades/TradeView'
 import { Dashboard } from '@/components/dashboard/Dashboard'
 import { fetchStrategies } from '@/lib/strategyService'
-import type { TradeRow, DateRangeFilter, StrategyRow } from '@/lib/types'
+import type { TradeRow, DateRangeFilter, StrategyRow, NoteRow } from '@/lib/types'
 import {
   fetchTrades, insertTrade, updateTrade,
   deleteTrade, deleteTrades, uploadScreenshots, deleteScreenshots,
 } from '@/lib/tradeService'
+import {
+  fetchNotes, insertNote, updateNote, deleteNote, uploadNoteImage, isNoteInAccount,
+} from '@/lib/noteService'
 import { usePathname } from 'next/navigation'
 import { BrokerImport } from '@/components/import/BrokerImport'
 import { Reports } from '@/components/reports/Reports'
@@ -41,11 +44,11 @@ function GatedReports({ trades, filter }: { trades: any[], filter: any }) {
   return <Reports trades={trades} filter={filter} />
 }
 
-function GatedNotebook({ userId, onEdit }: { userId: string, onEdit: (trade: TradeRow) => void }) {
+function GatedNotebook({ userId, onEdit, notes, trades, onSaveNote, onDeleteNote, onClearTradeNote }: any) {
   const { isPro, loading } = usePlan()
   if (loading) return null
   if (!isPro) return <UpgradeWall feature="Notebook - Pro Feature" description="Upgrade to Pro to unlock the Notebook and keep all your trade ideas, rules, and notes in one place." />
-  return <Notebook userId={userId} onEdit={onEdit} />
+  return <Notebook onEdit={onEdit} notes={notes} trades={trades} onSaveNote={onSaveNote} onDeleteNote={onDeleteNote} onClearTradeNote={onClearTradeNote} />
 }
 
 function GatedStrategies({ userId, trades }: { userId: string, trades: TradeRow[] }) {
@@ -110,17 +113,19 @@ const PAGE_TITLES: Record<string, string> = {
   '/referrals':     'Refer & Earn',
 }
 
-// Pages whose trade lists should respect the account switcher in the topbar.
-// Settings, Billing, Scanner, Strategies, Notebook, Import, Position Size
+// Pages whose trade/note lists should respect the account switcher in the
+// topbar. Settings, Billing, Scanner, Strategies, Import, Position Size
 // aren't account-scoped views, so they always get the unfiltered set.
-const ACCOUNT_SCOPED_PAGES = new Set(['/dashboard', '/trades', '/journal', '/reports', '/ai-analysis'])
+// Strategies stays global across all accounts intentionally (confirmed).
+const ACCOUNT_SCOPED_PAGES = new Set(['/dashboard', '/trades', '/journal', '/reports', '/ai-analysis', '/notebook'])
 
 // Rendered INSIDE AccountProvider so it can read the selected account and
-// filter trades before anything downstream sees them. AppProvider itself
-// can't do this directly since it sits above PlanProvider/AccountProvider.
+// filter trades/notes before anything downstream sees them. AppProvider
+// itself can't do this directly since it sits above PlanProvider/AccountProvider.
 function AppInner({
-  pathname, title, trades, loading, loadError, onRetryLoad, filter, setFilter, userId, userEmail,
+  pathname, title, trades, notes, loading, loadError, onRetryLoad, filter, setFilter, userId, userEmail,
   openAdd, openEdit, handleSave, handleDelete, handleDeleteMany, handleRemoveScreenshot, reloadTrades,
+  onSaveNote, onDeleteNote, onClearTradeNote,
   modalOpen, setModalOpen, editTrade, setEditTrade, strategyList, setStrategyList,
 }: any) {
   const { selectedAccountId } = useAccounts()
@@ -128,6 +133,12 @@ function AppInner({
   const scopedTrades = (ACCOUNT_SCOPED_PAGES.has(pathname) && selectedAccountId)
     ? trades.filter((t: TradeRow) => t.account_id === selectedAccountId)
     : trades
+
+  // See isNoteInAccount (noteService.ts): unlike trades, a note with no
+  // account_id is shown under EVERY account rather than hidden.
+  const scopedNotes = (ACCOUNT_SCOPED_PAGES.has(pathname) && selectedAccountId)
+    ? notes.filter((n: NoteRow) => isNoteInAccount(n, selectedAccountId))
+    : notes
 
   function renderPage() {
     // A failed initial load used to leave "loading" true forever (see
@@ -137,7 +148,7 @@ function AppInner({
     if (loadError && pathname !== '/scanner') {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh', gap: '10px', color: 'var(--txt3)' }}>
-          <div style={{ fontSize: '13px', color: 'var(--txt2)' }}>Couldn't load your trades — check your connection and try again.</div>
+          <div style={{ fontSize: '13px', color: 'var(--txt2)' }}>Couldn't load your data — check your connection and try again.</div>
           <button className="btn btn-o" onClick={onRetryLoad}>Retry</button>
         </div>
       )
@@ -157,7 +168,7 @@ function AppInner({
     if (pathname === '/reports')      return <GatedReports trades={scopedTrades} filter={filter} />
     if (pathname === '/position-size')return <PositionSize />
     if (pathname === '/strategies')   return <GatedStrategies userId={userId} trades={trades} />
-    if (pathname === '/notebook')     return <GatedNotebook userId={userId} onEdit={openEdit} />
+    if (pathname === '/notebook')     return <GatedNotebook userId={userId} onEdit={openEdit} notes={scopedNotes} trades={scopedTrades} onSaveNote={onSaveNote} onDeleteNote={onDeleteNote} onClearTradeNote={onClearTradeNote} />
     if (pathname === '/import')       return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
     if (pathname === '/settings')     return <Settings userEmail={userEmail} />
     if (pathname === '/referrals')    return <ReferralsPage />
@@ -196,6 +207,7 @@ export function AppProvider({ userId, userEmail }: Props) {
   const pathname = usePathname()
 
   const [trades,    setTrades]    = useState<TradeRow[]>([])
+  const [notes,     setNotes]     = useState<NoteRow[]>([])
   const [loading,   setLoading]   = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
@@ -203,24 +215,29 @@ export function AppProvider({ userId, userEmail }: Props) {
   const [filter,    setFilter]    = useState<DateRangeFilter>({ range: 'all' })
   const [strategyList, setStrategyList] = useState<StrategyRow[]>([])
 
-  function loadTrades() {
+  // Loads both trades and notes behind the one "loading"/"loadError" gate —
+  // Notebook needs both (manual notes + trade-derived note cards) and, like
+  // every other account-scoped page, now just receives them pre-loaded as
+  // props instead of fetching its own copy.
+  function loadData() {
     setLoading(true)
     setLoadError(false)
-    fetchTrades().then(data => {
-      setTrades(data)
+    Promise.all([fetchTrades(), fetchNotes()]).then(([tradesData, notesData]) => {
+      setTrades(tradesData)
+      setNotes(notesData)
       setLoading(false)
     }).catch(err => {
       // Belt-and-suspenders: fetchTrades() itself no longer throws (see
       // tradeService.ts), but this guarantees the app can never get stuck on
       // "Loading..." forever even if something upstream of it does.
-      console.error('Failed to load trades:', err)
+      console.error('Failed to load trades/notes:', err)
       setLoading(false)
       setLoadError(true)
     })
   }
 
   useEffect(() => {
-    loadTrades()
+    loadData()
     fetchStrategies().then(setStrategyList)
   }, [])
 
@@ -304,18 +321,61 @@ export function AppProvider({ userId, userEmail }: Props) {
     setTrades(data)
   }
 
+  // Mirrors handleSave for trades: the leaf component (Notebook) collects
+  // form state + the raw image File and an accountId (from its own
+  // useAccounts(), same as AddTradeModal does for trades) and hands them up;
+  // this does the upload + insert/update + state update. accountId is only
+  // ever applied on INSERT — editing an existing note never reassigns it to
+  // whatever account happens to be selected at edit time.
+  async function handleSaveNote(
+    payload: { title: string; body: string; category: 'trade' | 'my'; existingImgUrl: string | null; editingId: string | null; accountId: string | null },
+    imgFile: File | null,
+  ): Promise<boolean> {
+    let imgUrl = payload.existingImgUrl
+    if (imgFile) {
+      const uploaded = await uploadNoteImage(imgFile, userId)
+      if (uploaded) imgUrl = uploaded
+      else alert('Could not upload the image — the note will keep its previous image.')
+    }
+    if (payload.editingId) {
+      const updated = await updateNote(payload.editingId, { title: payload.title, body: payload.body, category: payload.category, img_url: imgUrl })
+      if (!updated) return false
+      setNotes(prev => prev.map(n => n.id === payload.editingId ? updated : n))
+      return true
+    } else {
+      const inserted = await insertNote({ title: payload.title, body: payload.body, category: payload.category, img_url: imgUrl, account_id: payload.accountId }, userId)
+      if (!inserted) return false
+      setNotes(prev => [inserted, ...prev])
+      return true
+    }
+  }
+
+  async function handleDeleteNote(id: string) {
+    const ok = await deleteNote(id)
+    if (ok) setNotes(prev => prev.filter(n => n.id !== id))
+  }
+
+  // "Deleting" a trade-derived note card doesn't delete the trade — it clears
+  // the notes text and screenshots on that trade, which is what put the card
+  // in the Notebook in the first place. The trade and its P&L stay intact.
+  async function handleClearTradeNote(trade: TradeRow) {
+    const updated = await updateTrade(trade.id, { notes: null, screenshot_url: null, screenshot_urls: [] })
+    if (updated) setTrades(prev => prev.map(t => t.id === trade.id ? updated : t))
+  }
+
   const title = PAGE_TITLES[pathname] || 'Sleektrade'
 
   return (
     <PlanProvider>
       <AccountProvider>
         <AppInner
-          pathname={pathname} title={title} trades={trades} loading={loading}
-          loadError={loadError} onRetryLoad={loadTrades}
+          pathname={pathname} title={title} trades={trades} notes={notes} loading={loading}
+          loadError={loadError} onRetryLoad={loadData}
           filter={filter} setFilter={setFilter} userId={userId} userEmail={userEmail}
           openAdd={openAdd} openEdit={openEdit} handleSave={handleSave}
           handleDelete={handleDelete} handleDeleteMany={handleDeleteMany}
           handleRemoveScreenshot={handleRemoveScreenshot} reloadTrades={reloadTrades}
+          onSaveNote={handleSaveNote} onDeleteNote={handleDeleteNote} onClearTradeNote={handleClearTradeNote}
           modalOpen={modalOpen} setModalOpen={setModalOpen} editTrade={editTrade} setEditTrade={setEditTrade}
           strategyList={strategyList} setStrategyList={setStrategyList}
         />

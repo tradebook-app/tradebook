@@ -2,23 +2,32 @@
 
 import { useState, useEffect } from 'react'
 import type { NoteRow, TradeRow } from '@/lib/types'
-import {
-  fetchNotes, insertNote, updateNote, deleteNote,
-  uploadNoteImage, getNoteImageUrl,
-} from '@/lib/noteService'
-import { fetchTrades, getScreenshotUrl, updateTrade } from '@/lib/tradeService'
+import { getNoteImageUrl } from '@/lib/noteService'
+import { getScreenshotUrl } from '@/lib/tradeService'
+import { useAccounts } from '@/components/AccountProvider'
 import { Modal } from '@/components/ui/Modal'
 import { CardMenu } from '@/components/ui/CardMenu'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination } from '@/lib/usePagination'
 
-type Props = { userId: string, onEdit: (trade: TradeRow) => void }
+type Props = {
+  onEdit: (trade: TradeRow) => void
+  // notes/trades arrive pre-loaded and already account-scoped from
+  // AppProvider, same as every other account-scoped page (TradeView,
+  // Dashboard, Journal, Reports) — this component doesn't fetch its own copy.
+  notes: NoteRow[]
+  trades: TradeRow[]
+  onSaveNote: (
+    payload: { title: string; body: string; category: 'trade' | 'my'; existingImgUrl: string | null; editingId: string | null; accountId: string | null },
+    imgFile: File | null,
+  ) => Promise<boolean>
+  onDeleteNote: (id: string) => Promise<void>
+  onClearTradeNote: (trade: TradeRow) => Promise<void>
+}
 type Cat   = 'all' | 'trade' | 'my'
 
-export function Notebook({ userId, onEdit }: Props) {
-  const [notes,    setNotes]    = useState<NoteRow[]>([])
-  const [trades,   setTrades]   = useState<TradeRow[]>([])
-  const [loading,  setLoading]  = useState(true)
+export function Notebook({ onEdit, notes, trades, onSaveNote, onDeleteNote, onClearTradeNote }: Props) {
+  const { selectedAccountId } = useAccounts()
   const [cat,      setCat]      = useState<Cat>('all')
   const [search,   setSearch]   = useState('')
   const [modal,    setModal]    = useState(false)
@@ -36,12 +45,6 @@ export function Notebook({ userId, onEdit }: Props) {
   // Image URL caches
   const [imgUrls,  setImgUrls]  = useState<Record<string, string>>({})
   const [shotUrls, setShotUrls] = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    Promise.all([fetchNotes(), fetchTrades()]).then(([n, t]) => {
-      setNotes(n); setTrades(t); setLoading(false)
-    })
-  }, [])
 
   // Signed URLs for manual-note images
   useEffect(() => {
@@ -83,30 +86,19 @@ export function Notebook({ userId, onEdit }: Props) {
   async function handleSave() {
     if (!title.trim()) return alert('Enter a title')
     setSaving(true)
-    // Keep the previously-saved image on a failed upload instead of silently
-    // wiping it — uploadNoteImage() returns null on failure, and
-    // unconditionally assigning that to imgUrl overwrote editing.img_url
-    // with null, so a failed re-upload deleted the note's existing image
-    // reference along with it.
-    let imgUrl = editing?.img_url || null
-    if (imgFile) {
-      const uploaded = await uploadNoteImage(imgFile, userId)
-      if (uploaded) imgUrl = uploaded
-      else alert('Could not upload the image — the note will keep its previous image.')
-    }
-    if (editing) {
-      const updated = await updateNote(editing.id, { title, body, category: noteCat, img_url: imgUrl })
-      if (updated) setNotes(prev => prev.map(n => n.id === editing.id ? updated : n))
-    } else {
-      const inserted = await insertNote({ title, body, category: noteCat, img_url: imgUrl }, userId)
-      if (inserted) setNotes(prev => [inserted, ...prev])
-    }
-    setSaving(false); setModal(false)
+    // accountId is only used on insert (editing?.id null) — AppProvider's
+    // handleSaveNote never reassigns an existing note's account on edit.
+    const ok = await onSaveNote(
+      { title, body, category: noteCat, existingImgUrl: editing?.img_url ?? null, editingId: editing?.id ?? null, accountId: selectedAccountId ?? null },
+      imgFile,
+    )
+    setSaving(false)
+    if (ok) setModal(false)
+    else alert('Could not save this note — please try again.')
   }
   async function handleDelete(id: string) {
     if (!confirm('Delete this note?')) return
-    const ok = await deleteNote(id)
-    if (ok) setNotes(prev => prev.filter(n => n.id !== id))
+    await onDeleteNote(id)
   }
 
   // "Deleting" a trade-derived card doesn't delete the trade itself — it
@@ -115,8 +107,7 @@ export function Notebook({ userId, onEdit }: Props) {
   // below). The trade and its P&L stay intact.
   async function handleDeleteTradeNote(t: TradeRow) {
     if (!confirm('Remove this note and its screenshots from the trade? The trade itself will not be deleted.')) return
-    const updated = await updateTrade(t.id, { notes: null, screenshot_url: null, screenshot_urls: [] })
-    if (updated) setTrades(prev => prev.map(tr => tr.id === t.id ? updated : tr))
+    await onClearTradeNote(t)
   }
 
   const q = search.toLowerCase()
@@ -161,9 +152,7 @@ export function Notebook({ userId, onEdit }: Props) {
       </div>
 
       <div className="page-scroll">
-      {loading ? (
-        <div style={{ textAlign: 'center', color: 'var(--txt3)', padding: '40px' }}>Loading...</div>
-      ) : isEmpty ? (
+      {isEmpty ? (
         <div style={{ textAlign: 'center', color: 'var(--txt3)', padding: '40px', fontSize: '12px' }}>
           {cat === 'trade'
             ? 'No trade notes yet. Add a screenshot or notes to a trade and it will appear here.'
@@ -244,7 +233,7 @@ export function Notebook({ userId, onEdit }: Props) {
         </div>
       )}
       </div>
-      {!loading && !isEmpty && <Pagination pg={pg} itemLabel="cards" />}
+      {!isEmpty && <Pagination pg={pg} itemLabel="cards" />}
 
       {/* Note Modal */}
       <Modal

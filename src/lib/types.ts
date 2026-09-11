@@ -57,6 +57,11 @@ export type NoteRow = {
   img_url: string | null
   created_at: string
   updated_at: string
+  // Which trading account this note belongs to — same nullable, ON DELETE
+  // SET NULL pattern as trades.account_id. null means "not assigned to a
+  // specific account" (all pre-existing notes, and any note saved without
+  // one) — shown under every account rather than hidden.
+  account_id: string | null
 }
 
 export type StrategyRow = {
@@ -136,7 +141,9 @@ export type TradeInsert = Omit<TradeRow, 'id' | 'user_id' | 'created_at' | 'upda
   screenshot_urls?: string[]   // DB defaults to '{}'
   pnl_is_override?: boolean    // DB defaults to false
 }
-export type NoteInsert  = Omit<NoteRow,  'id' | 'user_id' | 'created_at' | 'updated_at'>
+export type NoteInsert  = Omit<NoteRow,  'id' | 'user_id' | 'created_at' | 'updated_at' | 'account_id'> & {
+  account_id?: string | null   // DB defaults to null (unassigned)
+}
 export type StrategyInsert = Omit<StrategyRow, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 
 export type PropFirmAccountInsert = Omit<PropFirmAccountRow, 'id' | 'user_id' | 'created_at' | 'updated_at'>
