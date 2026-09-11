@@ -5,14 +5,22 @@ import type { AiChatSessionRow, AiChatMessage } from '@/lib/types'
 // keeps this cheap even once a user has a long chat history.
 export type AiChatSessionSummary = Pick<AiChatSessionRow, 'id' | 'title' | 'created_at' | 'updated_at'>
 
-export async function fetchChatSessions(): Promise<AiChatSessionSummary[]> {
+// Returns whether the fetch itself failed, not just an empty result — a
+// real fetch failure (RLS/network/session) and "you have no chat history
+// yet" used to render identically (an empty sidebar), which is exactly the
+// ambiguity a report of "no history panel at all" turned out to hinge on:
+// the writes were confirmed to be landing in the DB, so the sidebar was
+// either failing silently to read them back or a stale view just hadn't
+// refetched. Surfacing the difference in the UI (AIAnalysis.tsx) makes the
+// next report of this conclusive either way instead of another guess.
+export async function fetchChatSessions(): Promise<{ sessions: AiChatSessionSummary[]; error: boolean }> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('ai_chat_sessions')
     .select('id, title, created_at, updated_at')
     .order('updated_at', { ascending: false })
-  if (error) { console.error(error); return [] }
-  return data || []
+  if (error) { console.error(error); return { sessions: [], error: true } }
+  return { sessions: data || [], error: false }
 }
 
 export async function fetchChatSession(id: string): Promise<AiChatSessionRow | null> {

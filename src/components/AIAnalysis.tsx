@@ -47,6 +47,7 @@ export function AIAnalysis({ trades, userId }: Props) {
   const [rateLimited, setRateLimited] = useState(false)
   const [firstName, setFirstName] = useState('')
   const [sessions, setSessions] = useState<AiChatSessionSummary[]>([])
+  const [sessionsError, setSessionsError] = useState(false)
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -65,8 +66,9 @@ export function AIAnalysis({ trades, userId }: Props) {
 
   useEffect(() => {
     async function loadSessions() {
-      const list = await fetchChatSessions()
+      const { sessions: list, error } = await fetchChatSessions()
       setSessions(list)
+      setSessionsError(error)
       // Land on the most recent conversation instead of a blank screen —
       // "New chat" (below) is how a user explicitly starts a fresh one.
       if (list.length > 0) loadSession(list[0].id)
@@ -180,6 +182,11 @@ export function AIAnalysis({ trades, userId }: Props) {
         >
           + New chat
         </button>
+        {sessionsError && (
+          <div style={{ fontSize: '10px', color: 'var(--txt3)', padding: '4px 2px', lineHeight: 1.5 }}>
+            Couldn't load your chat history. Try refreshing the page.
+          </div>
+        )}
         {sessions.map(s => (
           <div
             key={s.id}
