@@ -86,14 +86,18 @@ export function PricingSection() {
           </button>
         </div>
 
-        {/* Elite */}
+        {/* Elite — deliberately dark in either theme (same accent gradient as
+            the Elite cards in Settings/Billing). Text pinned to the dark
+            theme's own txt/txt2/txt3 literals instead of the var(--txt*)
+            tokens, which flip to near-black in light mode and went
+            dark-on-dark against this always-dark gradient (BUG-SET-014). */}
         <div style={{ background: 'linear-gradient(145deg, #0f1f1a, #0a1a14)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '14px', padding: '28px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: '#10B981', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '.06em' }}>Elite</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '4px' }}>
-            <div style={{ fontSize: '40px', fontWeight: 800 }}>${elitePrice}</div>
-            {yearly && <div style={{ fontSize: '13px', color: 'var(--txt3)', textDecoration: 'line-through' }}>$29</div>}
+            <div style={{ fontSize: '40px', fontWeight: 800, color: '#F1F1F3' }}>${elitePrice}</div>
+            {yearly && <div style={{ fontSize: '13px', color: '#8A8A9C', textDecoration: 'line-through' }}>$29</div>}
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--txt3)', marginBottom: '24px' }}>{yearly ? 'per month, billed yearly' : 'per month'}</div>
+          <div style={{ fontSize: '12px', color: '#8A8A9C', marginBottom: '24px' }}>{yearly ? 'per month, billed yearly' : 'per month'}</div>
           <div style={{ flex: 1 }}>
             {[
               'Everything in Pro',
@@ -104,7 +108,7 @@ export function PricingSection() {
               'Priority support',
               'Early access to new features',
             ].map(f => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: '13px', color: 'var(--txt2)' }}>
+              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: '13px', color: '#ABABBD' }}>
                 <span style={{ color: '#10B981', fontWeight: 700 }}>✓</span> {f}
               </div>
             ))}

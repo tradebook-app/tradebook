@@ -7,6 +7,13 @@ import {
   STOCK_DEFAULTS, FUTURES_DEFAULTS,
 } from '@/lib/positionSizePrefs'
 
+// Display-only formatting — adds thousands separators to dollar amounts
+// (e.g. $1,000,000 instead of $1000000.00) while every calculation elsewhere
+// in this file keeps using the raw, unformatted number (BUG-PS-005).
+function fmt2(n: number) {
+  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 const R_TARGETS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50]
 const SIZE_LEVEL_PCTS = [0.25, 0.5, 1, 1.5, 2, 3]
 const FUT_CATEGORIES = Array.from(new Set(FUTURES_CONTRACTS.map(c => c.category)))
@@ -333,8 +340,8 @@ export function PositionSize() {
             </div>
 
             <div>
-              {resRow('Dollar Risk', `$${c.dR.toFixed(2)}`, 'var(--ac)')}
-              {c.capped && resRow('Actual Risk (capped)', `$${c.actualRisk.toFixed(2)}`, 'var(--amber, #f59e0b)')}
+              {resRow('Dollar Risk', `$${fmt2(c.dR)}`, 'var(--ac)')}
+              {c.capped && resRow('Actual Risk (capped)', `$${fmt2(c.actualRisk)}`, 'var(--amber, #f59e0b)')}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--brd)' }}>
                 <span style={{ fontSize: '12px', color: 'var(--txt2)' }}>Shares</span>
                 <span style={{ fontSize: '16px', fontWeight: 900, fontFamily: 'var(--mono)', color: 'var(--orange)' }}>{c.sh.toLocaleString()}</span>
@@ -343,7 +350,7 @@ export function PositionSize() {
               {resRow('% of Account', `${c.pa.toFixed(2)}%`, c.pa > (parseFloat(maxPct) || 100) ? 'var(--red)' : 'var(--ac)')}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--brd)' }}>
                 <span style={{ fontSize: '12px', color: 'var(--txt2)' }}>Stop Distance</span>
-                <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ac)' }}>${c.sd.toFixed(2)}</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ac)' }}>${fmt2(c.sd)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
                 <span style={{ fontSize: '12px', color: 'var(--txt2)' }}>Stop Distance %</span>
@@ -368,8 +375,8 @@ export function PositionSize() {
                 {c.targets.map(t => (
                   <tr key={t.r}>
                     <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--txt2)', fontSize: '12px', borderBottom: '1px solid var(--brd)' }}>{t.r}R</td>
-                    <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontSize: '12px', textAlign: 'right', borderBottom: '1px solid var(--brd)', color: 'var(--txt)' }}>${t.tgt.toFixed(2)}</td>
-                    <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontSize: '12px', textAlign: 'right', borderBottom: '1px solid var(--brd)', color: 'var(--ac)', fontWeight: 600 }}>+${t.profit.toFixed(2)}</td>
+                    <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontSize: '12px', textAlign: 'right', borderBottom: '1px solid var(--brd)', color: 'var(--txt)' }}>${fmt2(t.tgt)}</td>
+                    <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontSize: '12px', textAlign: 'right', borderBottom: '1px solid var(--brd)', color: 'var(--ac)', fontWeight: 600 }}>+${fmt2(t.profit)}</td>
                     <td style={{ padding: '9px 10px', fontFamily: 'var(--mono)', fontSize: '11px', textAlign: 'right', borderBottom: '1px solid var(--brd)', color: 'var(--txt2)' }}>{c.acc > 0 ? `${t.pctAcc.toFixed(2)}%` : '—'}</td>
                   </tr>
                 ))}
@@ -478,14 +485,14 @@ export function PositionSize() {
               <span style={{ fontSize: '15px', fontWeight: 700 }}>contracts</span>
             </div>
             <div style={{ borderTop: '1px solid var(--brd)', paddingTop: '12px', fontSize: '12px', color: 'var(--txt2)' }}>
-              Risking ${fc.riskDollars.toFixed(2)} ({fc.riskPct.toFixed(1)}% of account) with a {fc.stopPts.toFixed(2)}-point stop on {futSymbol}.
+              Risking ${fmt2(fc.riskDollars)} ({fc.riskPct.toFixed(1)}% of account) with a {fc.stopPts.toFixed(2)}-point stop on {futSymbol}.
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            {statCard('Target Risk', `$${fc.riskDollars.toFixed(2)}`, `${fc.riskPct.toFixed(1)}% of account`)}
-            {statCard('Actual Risk At This Size', `$${fc.actualRisk.toFixed(2)}`, 'Rounded down, never above target')}
-            {statCard('Risk Per Contract', `$${fc.riskPerContract.toFixed(2)}`, `${fc.stopPts.toFixed(2)} points stop`)}
+            {statCard('Target Risk', `$${fmt2(fc.riskDollars)}`, `${fc.riskPct.toFixed(1)}% of account`)}
+            {statCard('Actual Risk At This Size', `$${fmt2(fc.actualRisk)}`, 'Rounded down, never above target')}
+            {statCard('Risk Per Contract', `$${fmt2(fc.riskPerContract)}`, `${fc.stopPts.toFixed(2)} points stop`)}
             {statCard('Risk : Reward', fc.rr ? `1 : ${fc.rr.toFixed(2)}` : '—', fc.rr ? `${fc.tpPts.toFixed(2)} pt target / ${fc.stopPts.toFixed(2)} pt stop` : 'Add a take profit to see it', fc.rr ? 'var(--ac)' : 'var(--txt3)')}
           </div>
           </div>
@@ -517,7 +524,7 @@ export function PositionSize() {
                 {fc.targets.map(t => (
                   <div key={t.r} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', fontSize: '12px', fontFamily: 'var(--mono)', borderBottom: '1px solid var(--brd)' }}>
                     <span style={{ color: 'var(--txt2)' }}>{t.r}R · {t.pointsAway.toFixed(2)} pts away</span>
-                    <span style={{ color: 'var(--ac)', fontWeight: 600 }}>+${t.profit.toFixed(2)}</span>
+                    <span style={{ color: 'var(--ac)', fontWeight: 600 }}>+${fmt2(t.profit)}</span>
                   </div>
                 ))}
               </div>

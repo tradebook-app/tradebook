@@ -304,6 +304,23 @@ export type AiAnalysisUsageRow = {
   updated_at: string
 }
 
+export type AiChatMessage = {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export type AiChatSessionRow = {
+  id: string
+  user_id: string
+  title: string | null
+  messages: AiChatMessage[]
+  created_at: string
+  updated_at: string
+}
+
+export type AiChatSessionInsert = Omit<AiChatSessionRow, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+export type AiChatSessionUpdate = Partial<AiChatSessionInsert>
+
 // ─── Supabase Database type (for typed client) ───────────────────────────────
 
 export type OpenLegRow = {
@@ -483,6 +500,12 @@ export type Database = {
         Row: PropFirmTransactionRow
         Insert: PropFirmTransactionInsert & { user_id: string }
         Update: PropFirmTransactionUpdate
+        Relationships: []
+      }
+      ai_chat_sessions: {
+        Row: AiChatSessionRow
+        Insert: AiChatSessionInsert & { user_id: string }
+        Update: AiChatSessionUpdate
         Relationships: []
       }
     }

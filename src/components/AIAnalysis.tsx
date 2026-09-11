@@ -1,10 +1,14 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import type { TradeRow } from '@/lib/types'
+import type { TradeRow, AiChatMessage } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
+import {
+  fetchChatSessions, fetchChatSession, createChatSession,
+  updateChatSessionMessages, deleteChatSession, type AiChatSessionSummary,
+} from '@/lib/aiChatService'
 
-type Message = { role: 'user' | 'assistant'; content: string }
+type Message = AiChatMessage
 
 // Sleektrade brand mark — reused instead of a generic robot icon
 function Logo({ size = 40 }: { size?: number }) {
@@ -34,14 +38,16 @@ const QUICK_QUESTIONS = [
   'Give me a full performance review',
 ]
 
-type Props = { trades: TradeRow[] }
+type Props = { trades: TradeRow[]; userId: string }
 
-export function AIAnalysis({ trades }: Props) {
+export function AIAnalysis({ trades, userId }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [rateLimited, setRateLimited] = useState(false)
   const [firstName, setFirstName] = useState('')
+  const [sessions, setSessions] = useState<AiChatSessionSummary[]>([])
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -58,8 +64,40 @@ export function AIAnalysis({ trades }: Props) {
   }, [])
 
   useEffect(() => {
+    async function loadSessions() {
+      const list = await fetchChatSessions()
+      setSessions(list)
+      // Land on the most recent conversation instead of a blank screen —
+      // "New chat" (below) is how a user explicitly starts a fresh one.
+      if (list.length > 0) loadSession(list[0].id)
+    }
+    loadSessions()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  async function loadSession(id: string) {
+    const session = await fetchChatSession(id)
+    if (!session) return
+    setCurrentSessionId(session.id)
+    setMessages(session.messages)
+  }
+
+  function startNewChat() {
+    setMessages([])
+    setCurrentSessionId(null)
+  }
+
+  async function handleDeleteSession(id: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    const ok = await deleteChatSession(id)
+    if (!ok) return
+    setSessions(prev => prev.filter(s => s.id !== id))
+    if (id === currentSessionId) startNewChat()
+  }
 
   async function sendMessage(text: string) {
     if (!text.trim() || loading || rateLimited) return
@@ -69,6 +107,7 @@ export function AIAnalysis({ trades }: Props) {
     setInput('')
     setLoading(true)
 
+    let assistantMsg: Message
     try {
       const res = await fetch('/api/ai-analysis', {
         method: 'POST',
@@ -82,21 +121,37 @@ export function AIAnalysis({ trades }: Props) {
         // sends, so the user could keep hitting Send and get this same
         // response endlessly until tomorrow.
         setRateLimited(true)
-        setMessages(prev => [...prev, { role: 'assistant', content: data.message || "You've reached today's Sleek AI limit. Try again tomorrow." }])
+        assistantMsg = { role: 'assistant', content: data.message || "You've reached today's Sleek AI limit. Try again tomorrow." }
       } else if (!res.ok) {
         // Every other non-2xx (401 stale session, 403 plan-gated, 500 from
         // the AI provider) only ever set `error`, never `message` — the
         // `if (data.message)` check below silently swallowed all of them,
         // so the request just vanished with no reply and no indication
         // anything had gone wrong.
-        setMessages(prev => [...prev, { role: 'assistant', content: data.error || 'Sorry, something went wrong. Please try again.' }])
-      } else if (data.message) {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.message }])
+        assistantMsg = { role: 'assistant', content: data.error || 'Sorry, something went wrong. Please try again.' }
+      } else {
+        assistantMsg = { role: 'assistant', content: data.message || 'Sorry, something went wrong. Please try again.' }
       }
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }])
-    } finally {
-      setLoading(false)
+      assistantMsg = { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }
+    }
+
+    const finalMessages = [...newMessages, assistantMsg]
+    setMessages(finalMessages)
+    setLoading(false)
+
+    // Persist as its own conversation — "New chat" only clears the local
+    // view (startNewChat), it never touches a stored session, so each one
+    // keeps its own row instead of the whole history collapsing into a
+    // single overwritten thread (BUG-SAI-004).
+    if (currentSessionId) {
+      updateChatSessionMessages(currentSessionId, finalMessages)
+    } else {
+      const created = await createChatSession(userId, finalMessages)
+      if (created) {
+        setCurrentSessionId(created.id)
+        setSessions(prev => [{ id: created.id, title: created.title, created_at: created.created_at, updated_at: created.updated_at }, ...prev])
+      }
     }
   }
 
@@ -110,7 +165,53 @@ export function AIAnalysis({ trades }: Props) {
   const hasMessages = messages.length > 0
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', height: 'calc(100vh - 120px)', gap: '20px' }}>
+
+      {/* Session history sidebar */}
+      <div style={{ width: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto', paddingRight: '4px' }}>
+        <button
+          onClick={startNewChat}
+          style={{
+            fontSize: '11px', fontWeight: 700, color: '#10B981',
+            background: 'var(--ac-d)', border: '1px solid rgba(16,185,129,.25)',
+            borderRadius: '8px', padding: '8px 10px', cursor: 'pointer',
+            fontFamily: 'var(--sans)', marginBottom: '8px', textAlign: 'left',
+          }}
+        >
+          + New chat
+        </button>
+        {sessions.map(s => (
+          <div
+            key={s.id}
+            onClick={() => loadSession(s.id)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '8px 10px', borderRadius: '8px', cursor: 'pointer',
+              background: s.id === currentSessionId ? 'var(--bg3)' : 'transparent',
+              border: '1px solid', borderColor: s.id === currentSessionId ? 'var(--brd2)' : 'transparent',
+            }}
+          >
+            <span style={{
+              flex: 1, fontSize: '12px', color: s.id === currentSessionId ? 'var(--txt)' : 'var(--txt2)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {s.title || 'New conversation'}
+            </span>
+            <button
+              onClick={e => handleDeleteSession(s.id, e)}
+              title="Delete conversation"
+              style={{
+                flexShrink: 0, background: 'none', border: 'none', color: 'var(--txt3)',
+                cursor: 'pointer', fontSize: '13px', lineHeight: 1, padding: '2px',
+              }}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: '800px', margin: '0 auto', minWidth: 0 }}>
 
       {/* Header */}
       <div style={{ padding: '0 0 16px', borderBottom: '1px solid var(--brd)', marginBottom: '20px' }}>
@@ -124,7 +225,7 @@ export function AIAnalysis({ trades }: Props) {
           </div>
           {messages.length > 0 && (
             <button
-              onClick={() => setMessages([])}
+              onClick={startNewChat}
               style={{
                 marginLeft: 'auto', fontSize: '11px', fontWeight: 600,
                 color: 'var(--txt3)', background: 'var(--bg3)',
@@ -275,6 +376,7 @@ export function AIAnalysis({ trades }: Props) {
           40% { transform: scale(1.2); opacity: 1; }
         }
       `}</style>
+      </div>
     </div>
   )
 }

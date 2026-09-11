@@ -32,9 +32,9 @@ export default function LoginPage() {
     const savedPlan = localStorage.getItem('signup_plan')
     const savedBilling = localStorage.getItem('signup_billing') || 'monthly'
     if (savedPlan === 'pro' || savedPlan === 'elite') {
-      router.push(`/auth/upgrade?plan=${savedPlan}&billing=${savedBilling}`)
+      router.replace(`/auth/upgrade?plan=${savedPlan}&billing=${savedBilling}`)
     } else {
-      router.push('/dashboard')
+      router.replace('/dashboard')
     }
     router.refresh()
   }

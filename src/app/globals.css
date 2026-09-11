@@ -246,9 +246,19 @@ select {
   background-position: right 8px center;
   padding-right: 26px !important;
   cursor: pointer;
+  outline: none;
 }
 
+/* `.fi:focus`'s `border-color: var(--ac)` (below) is the intended focus
+   style, but on <select> specifically some browsers still paint their own
+   native focus ring underneath appearance:none, which outline:none alone
+   doesn't reliably suppress — showing as a second, unwanted ring around the
+   field on top of our 1px border (BUG-PT-003). The box-shadow repaints over
+   it with the same 1px accent ring our border already shows, so only one
+   (intentional) highlight is ever visible. */
 select:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--ac);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 5L5 1L9 5' stroke='%2310B981' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
 }
 

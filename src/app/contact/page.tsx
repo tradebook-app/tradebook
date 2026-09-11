@@ -12,10 +12,18 @@ export default function ContactPage() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
 
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError('')
+
+    if (!EMAIL_RE.test(email)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+
+    setLoading(true)
 
     try {
       const res = await fetch('/api/contact', {
@@ -96,6 +104,8 @@ export default function ContactPage() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="you@example.com"
+                  pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
+                  title="Enter a valid email address"
                   required
                 />
               </div>

@@ -65,11 +65,11 @@ function GatedImport({ userId, existingTrades, onImported }: { userId: string, e
   return <BrokerImport userId={userId} existingTrades={existingTrades} onImported={onImported} />
 }
 
-function GatedAIAnalysis({ trades }: { trades: any[] }) {
+function GatedAIAnalysis({ trades, userId }: { trades: any[], userId: string }) {
   const { isElite, loading } = usePlan()
   if (loading) return null
   if (!isElite) return <UpgradeWall feature="Sleek AI - Elite Feature" description="Upgrade to Elite to unlock AI-powered trade analysis. Get personalized insights, pattern detection, and coaching from your own trading data." tier="elite" />
-  return <AIAnalysis trades={trades} />
+  return <AIAnalysis trades={trades} userId={userId} />
 }
 
 function GatedScanner() {
@@ -172,7 +172,7 @@ function AppInner({
     if (pathname === '/import')       return <GatedImport userId={userId} existingTrades={trades} onImported={reloadTrades} />
     if (pathname === '/settings')     return <Settings userEmail={userEmail} />
     if (pathname === '/referrals')    return <ReferralsPage />
-    if (pathname === '/ai-analysis')  return <GatedAIAnalysis trades={scopedTrades} />
+    if (pathname === '/ai-analysis')  return <GatedAIAnalysis trades={scopedTrades} userId={userId} />
     if (pathname === '/prop-tracker') return <GatedPropTracker userId={userId} />
     if (pathname === '/billing')      return <Billing />
 
