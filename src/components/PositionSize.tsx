@@ -14,6 +14,29 @@ function fmt2(n: number) {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+// The large dollar-amount fields (Account Size, Equity at Risk, Max Position
+// Size, ...) need the SAME thousands-separator treatment while the user is
+// still typing, not just in the read-only results below — but a native
+// type="number" input rejects commas outright, so these are rendered as
+// type="text" instead. formatNumInput adds commas for display; onNumInput
+// strips them (plus anything non-numeric) back out before writing to state,
+// so the underlying state stays the same plain numeric string as before —
+// every calculation that reads it via parseFloat is unaffected.
+function formatNumInput(raw: string): string {
+  if (!raw) return raw
+  const neg = raw.startsWith('-') ? '-' : ''
+  const body = neg ? raw.slice(1) : raw
+  const [intPart, ...decParts] = body.split('.')
+  const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return neg + withCommas + (decParts.length ? '.' + decParts.join('') : '')
+}
+function sanitizeNumInput(raw: string): string {
+  let v = raw.replace(/,/g, '').replace(/[^\d.]/g, '')
+  const dot = v.indexOf('.')
+  if (dot !== -1) v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, '')
+  return v
+}
+
 const R_TARGETS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50]
 const SIZE_LEVEL_PCTS = [0.25, 0.5, 1, 1.5, 2, 3]
 const FUT_CATEGORIES = Array.from(new Set(FUTURES_CONTRACTS.map(c => c.category)))
@@ -279,7 +302,7 @@ export function PositionSize() {
               <span style={lbl}>Account Size</span>
               <div style={{ display: 'flex' }}>
                 <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
-                <input className="fi" type="number" value={account} onChange={e => setAccount(e.target.value)}
+                <input className="fi" type="text" inputMode="decimal" value={formatNumInput(account)} onChange={e => setAccount(sanitizeNumInput(e.target.value))}
                   style={{ flex: 1, minWidth: 0, fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
               </div>
             </div>
@@ -289,8 +312,8 @@ export function PositionSize() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                 <div style={{ display: 'flex' }}>
                   <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
-                  <input className="fi" type="number" value={riskDollarStr}
-                    onChange={e => handleRiskDollarChange(e.target.value)}
+                  <input className="fi" type="text" inputMode="decimal" value={formatNumInput(riskDollarStr)}
+                    onChange={e => handleRiskDollarChange(sanitizeNumInput(e.target.value))}
                     style={{ flex: 1, minWidth: 0, fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
                 </div>
                 <div style={{ display: 'flex' }}>
@@ -307,8 +330,8 @@ export function PositionSize() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                 <div style={{ display: 'flex' }}>
                   <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
-                  <input className="fi" type="number" value={maxDollarStr}
-                    onChange={e => handleMaxDollarChange(e.target.value)}
+                  <input className="fi" type="text" inputMode="decimal" value={formatNumInput(maxDollarStr)}
+                    onChange={e => handleMaxDollarChange(sanitizeNumInput(e.target.value))}
                     style={{ flex: 1, minWidth: 0, fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
                 </div>
                 <div style={{ display: 'flex' }}>
@@ -394,7 +417,7 @@ export function PositionSize() {
               <span style={lbl}>Account Balance</span>
               <div style={{ display: 'flex' }}>
                 <span style={{ ...affix, borderRight: 0, borderRadius: 'var(--r) 0 0 var(--r)' }}>$</span>
-                <input className="fi" type="number" value={futAccount} onChange={e => setFutAccount(e.target.value)}
+                <input className="fi" type="text" inputMode="decimal" value={formatNumInput(futAccount)} onChange={e => setFutAccount(sanitizeNumInput(e.target.value))}
                   style={{ flex: 1, minWidth: 0, fontFamily: 'var(--mono)', borderRadius: '0 var(--r) var(--r) 0' }} />
               </div>
             </div>
