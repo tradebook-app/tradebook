@@ -49,13 +49,18 @@ export function PerformanceReport({ trades }: Props) {
     ['Worst Trade',      worstTrade ? fmtPnl(worstTrade.pnl) + ` (${worstTrade.symbol})` : '—', worstTrade ? signColor(worstTrade.pnl) : 'var(--txt)'],
   ] as [string, string, string][]
 
+  // Win Rate here is colored by the SAME side's P&L sign, not its own >=50%
+  // threshold — it sits directly under that side's P&L row, so the two
+  // should always agree (a side can win most of its trades by count and
+  // still be net negative on a few large losers; showing that win rate in
+  // green next to a red P&L read as contradictory) (BUG-RP-005).
   const SIDE_ROWS = [
     ['Long Trades',    String(longTrades.length),  'var(--txt)'],
     ['Long P&L',       fmtPnl(longPnl),            signColor(longPnl)],
-    ['Long Win Rate',  `${longWR.toFixed(1)}%`,    longTrades.length === 0 ? 'var(--txt)' : longWR >= 50 ? 'var(--ac)' : 'var(--red)'],
+    ['Long Win Rate',  `${longWR.toFixed(1)}%`,    longTrades.length === 0 ? 'var(--txt)' : signColor(longPnl)],
     ['Short Trades',   String(shortTrades.length), 'var(--txt)'],
     ['Short P&L',      fmtPnl(shortPnl),           signColor(shortPnl)],
-    ['Short Win Rate', `${shortWR.toFixed(1)}%`,   shortTrades.length === 0 ? 'var(--txt)' : shortWR >= 50 ? 'var(--ac)' : 'var(--red)'],
+    ['Short Win Rate', `${shortWR.toFixed(1)}%`,   shortTrades.length === 0 ? 'var(--txt)' : signColor(shortPnl)],
   ] as [string, string, string][]
 
   // Every other report tab (Overview, Symbols, Setups, ...) shows a "No

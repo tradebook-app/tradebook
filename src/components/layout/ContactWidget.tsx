@@ -40,6 +40,7 @@ export function ContactWidget({ userEmail, displayName }: Props) {
   const [escalated, setEscalated] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: 'smooth' })
@@ -47,7 +48,15 @@ export function ContactWidget({ userEmail, displayName }: Props) {
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      // The trigger button is a sibling of the panel, not a descendant, so
+      // without this check clicking it to CLOSE the panel would also count
+      // as an "outside" click: this listener calls setOpen(false), and the
+      // button's own onClick calls setOpen(v => !v) in the same batch —
+      // which reads that just-queued `false` and flips it back to `true`,
+      // so the button appeared to do nothing (BUG-DB-030).
+      if (triggerRef.current?.contains(target)) return
+      if (panelRef.current && !panelRef.current.contains(target)) setOpen(false)
     }
     if (open) document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
@@ -136,6 +145,7 @@ export function ContactWidget({ userEmail, displayName }: Props) {
     <>
       {/* Floating trigger — detached from the sidebar nav flow, sits low in the corner */}
       <button
+        ref={triggerRef}
         onClick={() => setOpen(v => !v)}
         aria-label="Contact us"
         style={{

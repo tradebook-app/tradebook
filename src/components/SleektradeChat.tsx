@@ -20,9 +20,9 @@ export function SleektradeChat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  async function sendMessage() {
-    if (!input.trim() || loading) return
-    const userMsg: Message = { role: 'user', content: input.trim() }
+  async function sendMessage(text: string = input) {
+    if (!text.trim() || loading) return
+    const userMsg: Message = { role: 'user', content: text.trim() }
     setMessages(prev => [...prev, userMsg])
     setInput('')
     setLoading(true)
@@ -37,7 +37,15 @@ export function SleektradeChat() {
         }),
       })
       const data = await response.json()
-      setMessages(prev => [...prev, { role: 'assistant', content: data.text }])
+      // fetch() only rejects on a network failure, not on a non-2xx status —
+      // /api/chat's rate-limited (429) and error (500) responses carry
+      // `message`/`error` instead of `text`, so reading `data.text`
+      // unconditionally set content to undefined and crashed the render
+      // below (.replace on undefined) instead of showing either message.
+      const content = response.ok
+        ? (data.text || 'Sorry, something went wrong. Please try again.')
+        : (data.message || data.error || 'Sorry, something went wrong. Please try again.')
+      setMessages(prev => [...prev, { role: 'assistant', content }])
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }])
     }
@@ -109,7 +117,7 @@ export function SleektradeChat() {
             {messages.length === 1 && (
               <div style={{ padding: '0 16px 12px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {['What is Sleektrade?', 'How much does Pro cost?', 'What is profit factor?', 'How to size positions?'].map(q => (
-                  <button key={q} onClick={() => setInput(q)} style={{
+                  <button key={q} onClick={() => sendMessage(q)} disabled={loading} style={{
                     fontSize: '10px', padding: '4px 10px', borderRadius: '20px',
                     background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.2)',
                     color: '#10B981', cursor: 'pointer', fontFamily: 'inherit',
@@ -134,7 +142,7 @@ export function SleektradeChat() {
                   outline: 'none', fontFamily: 'inherit',
                 }}
               />
-              <button onClick={sendMessage} disabled={loading || !input.trim()} style={{
+              <button onClick={() => sendMessage()} disabled={loading || !input.trim()} style={{
                 background: '#10B981', border: 'none', borderRadius: '8px',
                 width: '36px', height: '36px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',

@@ -436,6 +436,18 @@ export function Journal({ trades, onEdit, onDelete }: Props) {
   const [selectedTrade, setSelectedTrade] = useState<TradeRow | null>(null)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
 
+  // Keep the calendar's visible month bound to whatever day is selected —
+  // without this, the day-view Prev/Next arrows (which only move
+  // selectedDate) could walk past a month boundary while calMonth/calYear
+  // stayed put, so the calendar kept showing the old month (BUG-JR-008).
+  // prevMonth/nextMonth (the calendar's own ‹ › browsing) still work
+  // independently since this effect only reacts to selectedDate changing.
+  useEffect(() => {
+    const d = new Date(selectedDate + 'T12:00:00')
+    setCalMonth(d.getMonth())
+    setCalYear(d.getFullYear())
+  }, [selectedDate])
+
   const byDate = useMemo(() => {
     const map: Record<string, TradeRow[]> = {}
     for (const t of trades) {
