@@ -439,19 +439,17 @@ export function Settings({ userEmail }: { userEmail?: string }) {
                   </div>
 
                   {plan !== 'elite' && (
-                    // Deliberately dark in either theme (a premium accent
-                    // card, matching the brand-green headline/CTA below,
-                    // which are already theme-independent). Its two body
-                    // lines used to rely on inherited/var(--txt3) text
-                    // color — theme-flipping tokens that go dark-on-dark in
-                    // light mode against this always-dark gradient — so
-                    // they're pinned to the same light grays the dark theme
-                    // would already render here.
-                    <div style={{ background: 'linear-gradient(145deg, #0f1f1a, #0a1a14)', border: '1px solid rgba(16,185,129,.25)', borderRadius: 'var(--r2)', padding: '20px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                    // Theme-aware premium accent card (BUG-SET-014 follow-up)
+                    // — --elite-card-bg/--elite-card-border swap between a
+                    // dark gradient and a soft mint one per theme, so body
+                    // text can go back on the normal var(--txt) tokens
+                    // instead of colors pinned to only ever look right on a
+                    // permanently-dark surface.
+                    <div style={{ background: 'var(--elite-card-bg)', border: '1px solid var(--elite-card-border)', borderRadius: 'var(--r2)', padding: '20px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
                       <div>
                         <div style={{ fontSize: '11px', fontWeight: 700, color: '#10B981', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '4px' }}>Elite - $29/mo</div>
-                        <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '4px', color: '#F1F1F3' }}>Everything in Pro + Sleek AI</div>
-                        <div style={{ fontSize: '12px', color: '#8A8A9C' }}>Unlimited accounts · Priority support · Early access · Broker integrations</div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '4px', color: 'var(--txt)' }}>Everything in Pro + Sleek AI</div>
+                        <div style={{ fontSize: '12px', color: 'var(--txt3)' }}>Unlimited accounts · Priority support · Early access · Broker integrations</div>
                       </div>
                       <Link href="/billing" style={{ fontSize: '12px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: '8px', padding: '9px 18px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
                         Upgrade to Elite

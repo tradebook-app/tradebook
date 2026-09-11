@@ -105,6 +105,17 @@ input.fi-pw {
   --r2: 12px;
 
   --sidebar-w: 175px;
+
+  /* Elite promo card (Settings > Subscription, Billing, PricingSection) —
+     a premium accent gradient, distinct from the plain --bg2/--bg3 card
+     surface used everywhere else. Was a literal dark gradient with text
+     colors hand-pinned to match it, so it stayed the SAME dark box in both
+     themes — a jarring dark box dropped into an otherwise light UI in
+     Light theme (BUG-SET-014 follow-up). Themed here instead, with body
+     text back on the normal var(--txt) tokens now that the surface itself
+     adapts. */
+  --elite-card-bg: linear-gradient(145deg, #0f1f1a, #0a1a14);
+  --elite-card-border: rgba(16,185,129,.25);
 }
 
 /* ─── Light Theme ────────────────────────────────────────────────────────── */
@@ -155,6 +166,11 @@ input.fi-pw {
   --bar-green-2: rgba(5,150,105,.5);
   --bar-red-1:   rgba(220,38,38,.9);
   --bar-red-2:   rgba(220,38,38,.5);
+
+  /* Soft mint gradient in place of the dark-theme card — reads as the same
+     "premium accent" surface without becoming a dark box on a light page. */
+  --elite-card-bg: linear-gradient(145deg, #ecfdf5, #d1fae5);
+  --elite-card-border: rgba(5,150,105,.3);
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────── */

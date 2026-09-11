@@ -232,20 +232,20 @@ export function Billing() {
               </div>
             </div>
 
-            {/* Deliberately dark in either theme (same premium-accent gradient
-                as the Elite upsell card in Settings.tsx's Subscription tab).
-                Its text used to rely on var(--txt)/(--txt2)/(--txt3) — tokens
-                that flip to near-black in light mode and went dark-on-dark
-                against this always-dark gradient (BUG-SET-014). Pinned to the
-                same literal grays the dark theme already renders here. */}
-            <div style={{ ...cardStyle(plan === 'elite'), background: 'linear-gradient(145deg, #0f1f1a, #0a1a14)' }}>
+            {/* Theme-aware premium accent gradient (BUG-SET-014 follow-up) —
+                same --elite-card-bg token as Settings.tsx's Subscription
+                tab, swapping between a dark and a soft-mint gradient per
+                theme, so body text uses the normal var(--txt) tokens again
+                instead of colors pinned to only look right on a
+                permanently-dark surface. */}
+            <div style={{ ...cardStyle(plan === 'elite'), background: 'var(--elite-card-bg)' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ac)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '8px' }}>Elite</div>
-                <div style={{ fontSize: '28px', fontWeight: 800, marginBottom: '2px', fontFamily: 'var(--mono)', color: '#F1F1F3' }}>{elitePrice}</div>
-                <div style={{ fontSize: '11px', color: '#8A8A9C', marginBottom: isYearly ? '2px' : '16px' }}>{period}</div>
+                <div style={{ fontSize: '28px', fontWeight: 800, marginBottom: '2px', fontFamily: 'var(--mono)', color: 'var(--txt)' }}>{elitePrice}</div>
+                <div style={{ fontSize: '11px', color: 'var(--txt3)', marginBottom: isYearly ? '2px' : '16px' }}>{period}</div>
                 {isYearly && <div style={{ fontSize: '11px', color: 'var(--ac)', marginBottom: '16px' }}>Save $58 vs monthly</div>}
                 {['Everything in Pro', 'Unlimited accounts', 'Sleek AI trade analysis', 'Priority support', 'Early access'].map(f => (
-                  <div key={f} style={{ fontSize: '12px', color: '#ABABBD', marginBottom: '6px' }}>✓ {f}</div>
+                  <div key={f} style={{ fontSize: '12px', color: 'var(--txt2)', marginBottom: '6px' }}>✓ {f}</div>
                 ))}
               </div>
               <div style={{ marginTop: '16px' }}>

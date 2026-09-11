@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import type {
   PropFirmAccountRow, PropFirmAccountInsert,
   PropFirmTransactionRow, PropFirmTransactionInsert,
@@ -123,6 +123,26 @@ export function PropTracker({ userId }: Props) {
   const [editingAcct, setEditingAcct] = useState<PropFirmAccountRow | null>(null)
   const [firmChoice, setFirmChoice] = useState(FIRM_PRESETS[0])
   const [customFirm, setCustomFirm] = useState('')
+  // A native <select>'s open listbox is rendered by the OS, not the page —
+  // on Windows this can paint the highlighted/selected row with a dithered
+  // halftone pattern instead of a clean solid fill, and that rendering is
+  // not something page CSS can reach or override (BUG-PT-003 follow-up:
+  // the closed field's stray focus ring was fixable via CSS, but this is
+  // the open popup itself). Replaced with the same custom trigger+list
+  // dropdown already used for the Contract field in PositionSize.tsx,
+  // which is just styled <div>s — fully within our own CSS control.
+  const [firmOpen, setFirmOpen] = useState(false)
+  const firmRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (firmRef.current && !firmRef.current.contains(e.target as Node)) {
+        setFirmOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
   const [sizeChoice, setSizeChoice] = useState<number>(100000)
   const [customSize, setCustomSize] = useState('')
   const [currency, setCurrency] = useState('USD')
@@ -566,10 +586,36 @@ export function PropTracker({ userId }: Props) {
       >
         <div style={{ marginBottom: '12px' }}>
           <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '4px' }}>Prop Firm</label>
-          <select className="fi" value={firmChoice} onChange={e => setFirmChoice(e.target.value)}>
-            {FIRM_PRESETS.map(f => <option key={f} value={f}>{f}</option>)}
-            <option value="Custom...">Custom...</option>
-          </select>
+          <div ref={firmRef} style={{ position: 'relative' }}>
+            <div onClick={() => setFirmOpen(o => !o)} className="fi" style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              cursor: 'pointer', userSelect: 'none',
+            }}>
+              <span>{firmChoice}</span>
+              <span style={{ color: 'var(--txt3)', fontSize: '10px' }}>{firmOpen ? '▴' : '▾'}</span>
+            </div>
+            {firmOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
+                background: 'var(--bg3)', border: '1px solid var(--brd)', borderRadius: 'var(--r)',
+                maxHeight: '260px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,.4)',
+              }}>
+                {[...FIRM_PRESETS, 'Custom...'].map(f => (
+                  <div key={f} onClick={() => { setFirmChoice(f); setFirmOpen(false) }}
+                    style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '8px 12px', fontSize: '12px', cursor: 'pointer',
+                      background: f === firmChoice ? 'var(--bg4)' : 'transparent',
+                      color: f === firmChoice ? 'var(--txt)' : 'var(--txt2)',
+                      fontWeight: f === firmChoice ? 700 : 400,
+                    }}>
+                    <span>{f}</span>
+                    {f === firmChoice && <span style={{ color: 'var(--ac)' }}>✓</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           {firmChoice === 'Custom...' && (
             <input className="fi" style={{ marginTop: '6px' }} value={customFirm} onChange={e => setCustomFirm(e.target.value)} placeholder="Enter firm name" autoFocus />
           )}

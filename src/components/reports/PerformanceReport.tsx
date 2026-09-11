@@ -31,6 +31,14 @@ export function PerformanceReport({ trades }: Props) {
   // Colour only genuine win/loss figures green/red; everything else stays neutral.
   const signColor = (n: number) => n > 0 ? 'var(--ac)' : n < 0 ? 'var(--red)' : 'var(--txt)'
 
+  // Long/Short Win Rate display the SAME sign as that side's P&L — a
+  // literal win-rate percentage is never negative, but coloring it red
+  // while the number itself still reads as a plain positive ("22.2%") was
+  // only half the fix; the number itself needs the sign too, or it still
+  // reads as a positive figure that just happens to be colored red
+  // (BUG-RP-005 follow-up).
+  const fmtSignedPct = (pct: number, pnl: number) => `${pnl < 0 ? '-' : ''}${pct.toFixed(1)}%`
+
   const ROWS = [
     ['Net P&L',          fmtPnl(kpi.netPnl),                     signColor(kpi.netPnl)],
     ['Gross Win',        `+$${grossWin.toFixed(2)}`,              'var(--ac)'],
@@ -57,10 +65,10 @@ export function PerformanceReport({ trades }: Props) {
   const SIDE_ROWS = [
     ['Long Trades',    String(longTrades.length),  'var(--txt)'],
     ['Long P&L',       fmtPnl(longPnl),            signColor(longPnl)],
-    ['Long Win Rate',  `${longWR.toFixed(1)}%`,    longTrades.length === 0 ? 'var(--txt)' : signColor(longPnl)],
+    ['Long Win Rate',  fmtSignedPct(longWR, longPnl),    longTrades.length === 0 ? 'var(--txt)' : signColor(longPnl)],
     ['Short Trades',   String(shortTrades.length), 'var(--txt)'],
     ['Short P&L',      fmtPnl(shortPnl),           signColor(shortPnl)],
-    ['Short Win Rate', `${shortWR.toFixed(1)}%`,   shortTrades.length === 0 ? 'var(--txt)' : signColor(shortPnl)],
+    ['Short Win Rate', fmtSignedPct(shortWR, shortPnl),  shortTrades.length === 0 ? 'var(--txt)' : signColor(shortPnl)],
   ] as [string, string, string][]
 
   // Every other report tab (Overview, Symbols, Setups, ...) shows a "No
