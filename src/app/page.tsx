@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { PricingSection } from '@/components/PricingSection'
 import { Testimonials } from '@/components/Testimonials'
 import { SleektradeChat } from '@/components/SleektradeChat'
+import { Navbar } from '@/components/Navbar'
 
 const BROKER_LOGOS = [
   { name: 'DAS Trader', logo: '/brokers/das.png', bg: '#0A1628' },
@@ -16,20 +17,6 @@ const BROKER_LOGOS = [
   { name: 'Tradovate', logo: '/brokers/tradovate.png', bg: '#0F1A0A' },
   { name: 'NinjaTrader', logo: '/brokers/ninjatrader.png', bg: '#12121A' },
 ]
-
-const Logo = () => (
-  <svg width="38" height="38" viewBox="0 0 64 64">
-    <rect x="0" y="0" width="64" height="64" rx="14" fill="#062e21"/>
-    <rect x="11" y="13" width="42" height="4" rx="2" fill="#5DCAA5"/>
-    <rect x="11" y="21" width="42" height="4" rx="2" fill="#5DCAA5" opacity={0.5}/>
-    <rect x="11" y="29" width="28" height="4" rx="2" fill="#5DCAA5" opacity={0.22}/>
-    <polyline points="11,51 22,39 33,45 51,27" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-    <circle cx="11" cy="51" r="2.5" fill="#5DCAA5" opacity={0.7}/>
-    <circle cx="22" cy="39" r="2.5" fill="#5DCAA5" opacity={0.7}/>
-    <circle cx="33" cy="45" r="2.5" fill="#5DCAA5" opacity={0.7}/>
-    <circle cx="51" cy="27" r="3.5" fill="#5DCAA5"/>
-  </svg>
-)
 
 const SmallLogo = () => (
   <svg width="18" height="18" viewBox="0 0 64 64">
@@ -63,32 +50,32 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (user) redirect('/dashboard')
 
+  // The outer <div> below is a plain, unstyled wrapper — deliberately no
+  // height/overflow of its own. Two separate things break position:sticky
+  // here, and this div (plus mounting Navbar as its first child, not nested
+  // in the overflowX:'hidden' div below) is what fixes both at once:
+  //  1. BUG-LP-008/032/033: an ancestor with overflow-x (or overflow-y) set
+  //     to anything but `visible` breaks sticky in Firefox (and, per spec,
+  //     any strictly-compliant browser) even when only one axis is clipped
+  //     — the nav used to live inside the overflowX:'hidden' div below and
+  //     just scrolled away. Fixed by keeping Navbar a sibling of that div,
+  //     never nested inside it.
+  //  2. Less obvious: globals.css sets `html, body { height: 100% }`
+  //     (unconditional, no media query — the authenticated app's
+  //     .page-shell/.page-scroll layout depends on it, so it can't just be
+  //     removed). That caps BODY's own box at exactly one viewport height,
+  //     and position:sticky can't hold an element stuck past its PARENT's
+  //     box — so with Navbar mounted directly on body, the nav would stick
+  //     for exactly one viewport height of scroll and then release and
+  //     scroll away with the page (verified live: it broke at precisely
+  //     `viewportHeight - navHeight` px of scroll, both at desktop and
+  //     mobile widths). This extra div has no explicit height, so it sizes
+  //     to its actual content (all of it) instead of inheriting body's
+  //     fixed 100%, giving sticky an unbounded containing block again.
   return (
-   <div style={{ background: 'var(--bg)', color: 'var(--txt)', fontFamily: 'var(--sans)', minHeight: '100vh', overflowX: 'hidden', maxWidth: '100vw', position: 'relative' }}>
-
-      {/* NAV */}
-      <nav style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 24px', height: '60px', borderBottom: '1px solid var(--brd)',
-        position: 'sticky', top: 0, zIndex: 100,
-        background: 'rgba(13,13,17,0.95)', backdropFilter: 'blur(12px)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Logo />
-          <span style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-.01em' }}>
-            Sleek<span style={{ color: '#1D9E75' }}>trade</span>
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }} className="desktop-nav-links">
-          <a href="#features" style={{ fontSize: '13px', color: 'var(--txt2)', textDecoration: 'none' }}>Features</a>
-          <a href="#pricing" style={{ fontSize: '13px', color: 'var(--txt2)', textDecoration: 'none' }}>Pricing</a>
-          <a href="#who" style={{ fontSize: '13px', color: 'var(--txt2)', textDecoration: 'none' }}>Who it's for</a>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Link href="/login" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--txt2)', textDecoration: 'none', padding: '7px 12px', whiteSpace: 'nowrap' }} className="desktop-login">Log in</Link>
-          <Link href="/signup" style={{ fontSize: '13px', fontWeight: 700, color: '#000', background: '#10B981', borderRadius: '8px', padding: '8px 16px', textDecoration: 'none', whiteSpace: 'nowrap' }}>Start for free</Link>
-        </div>
-      </nav>
+   <div>
+    <Navbar />
+    <div style={{ background: 'var(--bg)', color: 'var(--txt)', fontFamily: 'var(--sans)', minHeight: '100vh', overflowX: 'hidden', maxWidth: '100vw', position: 'relative' }}>
 
       <style>{`
         @keyframes scrollBrokers {
@@ -109,7 +96,6 @@ export default async function HomePage() {
         .ai-dot:nth-child(2) { animation-delay: 0.2s; }
         .ai-dot:nth-child(3) { animation-delay: 0.4s; }
         @media (max-width: 640px) {
-          .desktop-nav-links { display: none !important; }
           .hero-grid { grid-template-columns: 1fr !important; gap: 16px !important; padding: 32px 16px 24px !important; }
           .hero-mock { display: none !important; }
           .hero-h1 { font-size: 32px !important; }
@@ -1194,5 +1180,6 @@ export default async function HomePage() {
       <SleektradeChat />
 
     </div>
+   </div>
   )
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { Navbar } from '@/components/Navbar'
 
 function EyeButton({ shown, onToggle }: { shown: boolean; onToggle: () => void }) {
   return (
@@ -152,9 +153,16 @@ function SignupForm() {
       ? { plan, billing: billing || 'monthly' }
       : null
 
+  // Outer <div> is a plain, unstyled wrapper — see the comment above the
+  // return in src/app/page.tsx. Without it, Navbar mounts directly on
+  // <body>, whose height:100% (globals.css, for the authenticated app's
+  // layout) caps position:sticky's containing block at one viewport
+  // height, so the nav releases after the first screen of scroll.
   if (success) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div>
+      <Navbar />
+      <div style={{ minHeight: 'calc(100vh - 60px)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center', maxWidth: '360px', padding: '0 16px' }}>
           <div style={{ fontSize: '32px', marginBottom: '12px' }}>✉️</div>
           <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>Check your email</div>
@@ -165,11 +173,14 @@ function SignupForm() {
           <Link href="/login" style={{ display: 'inline-block', marginTop: '20px', color: 'var(--ac2)', fontSize: '11px', fontWeight: 600, textDecoration: 'none' }}>← Back to login</Link>
         </div>
       </div>
+      </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div>
+    <Navbar />
+    <div style={{ minHeight: 'calc(100vh - 60px)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: '100%', maxWidth: '400px', padding: '0 16px' }}>
 
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
@@ -282,6 +293,7 @@ function SignupForm() {
           <Link href="/login" style={{ color: 'var(--ac2)', textDecoration: 'none', fontWeight: 600 }}>Sign in</Link>
         </div>
       </div>
+    </div>
     </div>
   )
 }

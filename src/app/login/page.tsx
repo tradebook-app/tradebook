@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { Navbar } from '@/components/Navbar'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -52,8 +53,16 @@ export default function LoginPage() {
     })
   }
 
+  // Outer <div> is a plain, unstyled wrapper (deliberately no height set) —
+  // see the long comment in src/app/page.tsx above its own return. Without
+  // it, Navbar would mount directly on <body>, whose height:100% (set
+  // globally for the authenticated app's layout, in globals.css) caps
+  // position:sticky's containing block at one viewport height — the nav
+  // would stick for exactly one screen of scroll, then release.
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div>
+    <Navbar />
+    <div style={{ minHeight: 'calc(100vh - 60px)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: '100%', maxWidth: '400px', padding: '0 16px' }}>
 
         {/* Logo */}
@@ -134,6 +143,7 @@ export default function LoginPage() {
           <Link href="/signup" style={{ color: 'var(--ac2)', textDecoration: 'none', fontWeight: 600 }}>Create one</Link>
         </div>
       </div>
+    </div>
     </div>
   )
 }

@@ -503,10 +503,22 @@ input[type='number'] {
     padding-right: 18px;
   }
 
-  html, body {
-    overflow-x: hidden !important;
-    max-width: 100vw;
-  }
+  /* Removed the `html, body { overflow-x: hidden !important }` rule that
+     used to live here (added in 7319bec "fix: reports sticky tabs, landing
+     page mobile overflow" — its own comment said "Fix horizontal overflow
+     on landing page", nothing broader). html/body are unavoidable ancestors
+     of EVERY element on EVERY page, including any position:sticky one — an
+     overflow-x other than `visible` there breaks sticky in Firefox (and, per
+     spec, any strictly-compliant browser) even though only the x-axis was
+     clipped, the same mechanism as BUG-LP-008/032/033 on the landing page's
+     own wrapper. Confirmed via computed-scrollWidth checks at 390px width
+     that removing it introduces no horizontal overflow on /, /signup, or
+     /login — the landing page's own root div already sets
+     overflowX:'hidden' + maxWidth:'100vw' (see src/app/page.tsx), which was
+     already doing this rule's actual job for the one page it was meant for.
+     Not verified against the authenticated app (needs login) — if a mobile
+     horizontal-scroll issue turns up there, it needs its own targeted fix,
+     not a global html/body clip that breaks sticky everywhere. */
 
   .broker-grid-mobile {
     display: grid !important;
