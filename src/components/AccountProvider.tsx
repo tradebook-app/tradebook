@@ -69,6 +69,22 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { load() }, [])
 
+  // The saved id (localStorage, above) can outlive the account it points
+  // to — deleted from another device/session, or just stale — and every
+  // account-scoped page filters trades by an EXACT account_id match, so a
+  // dangling id silently produces zero trades everywhere instead of
+  // falling back to "All accounts". Runs after accounts finish loading
+  // (skipped while `loading`, so it doesn't fire on the stale initial
+  // `accounts: []` before the fetch resolves) and once they're in, resets
+  // to "All accounts" the moment the selected id isn't one of them.
+  useEffect(() => {
+    if (loading) return
+    if (selectedAccountId && !accounts.some(a => a.id === selectedAccountId)) {
+      setSelectedAccountId(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, accounts, selectedAccountId])
+
   // NOTE: don't use `?? 1` here — ACCOUNT_LIMITS.elite is intentionally
   // `null` (meaning unlimited), and `??` treats null as missing too, so it
   // was silently turning "unlimited" into "1" for Elite users.
