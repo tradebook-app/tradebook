@@ -3,6 +3,10 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Same env var used for admin gating in src/app/api/referrals/admin/*.ts —
+// set ADMIN_EMAILS in Vercel env vars, e.g. "you@sleektrade.app".
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+
 export async function POST(req: Request) {
   try {
     const { email } = await req.json()
@@ -156,6 +160,20 @@ export async function POST(req: Request) {
 </html>
       `,
     })
+
+    // Fire-and-forget, same as how the signup page calls this whole route
+    // (fetch(...).catch(() => {})) — a failure here shouldn't fail the
+    // signup response the way an awaited/thrown error would. Unlike that
+    // caller though, this logs on failure instead of swallowing it, since
+    // a silently-broken admin notification could go unnoticed indefinitely.
+    if (ADMIN_EMAILS.length > 0) {
+      resend.emails.send({
+        from: 'Sleektrade <noreply@sleektrade.app>',
+        to: ADMIN_EMAILS,
+        subject: 'New Sleektrade signup',
+        text: `New signup: ${email}\nSigned up: ${new Date().toISOString()}\n\nhttps://sleektrade.app`,
+      }).catch(err => console.error('Admin signup notification email error:', err))
+    }
 
     return NextResponse.json({ success: true })
   } catch (err) {
