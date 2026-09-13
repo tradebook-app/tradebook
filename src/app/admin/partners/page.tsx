@@ -6,6 +6,7 @@ import { PartnerStatCards } from '@/components/admin/PartnerStatCards'
 import { PartnerTrendChart } from '@/components/admin/PartnerTrendChart'
 import { TopPartnersChart } from '@/components/admin/TopPartnersChart'
 import { PartnerTable } from '@/components/admin/PartnerTable'
+import { AdminNav } from '@/components/admin/AdminNav'
 
 export default function AdminPartnersPage() {
   const [partners, setPartners] = useState<Partner[] | null>(null)
@@ -53,6 +54,7 @@ export default function AdminPartnersPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#0D0D11', color: '#fff', padding: '40px', fontFamily: 'Inter, sans-serif' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+        <AdminNav active="partners" />
         <h1 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '6px' }}>Affiliate Partners</h1>
         <p style={{ fontSize: '13px', color: '#888', marginBottom: '20px' }}>
           Partners earn a custom rate for a custom date range, set per-partner below (vs. the standard 20%/6-month friend program).

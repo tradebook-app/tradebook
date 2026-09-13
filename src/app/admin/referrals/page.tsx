@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { AdminNav } from '@/components/admin/AdminNav'
 
 type Payout = {
   referrerId: string
@@ -44,6 +45,7 @@ export default function AdminReferralsPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#0D0D11', color: '#fff', padding: '40px', fontFamily: 'Inter, sans-serif' }}>
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <AdminNav active="referrals" />
         <h1 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '6px' }}>Referral Payouts</h1>
         <p style={{ fontSize: '13px', color: '#888', marginBottom: '28px' }}>
           Amounts shown are past the 30-day hold and ready to pay. Pay these manually (bank transfer, PayPal, etc.), then mark as paid here.

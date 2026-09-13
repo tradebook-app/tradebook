@@ -517,6 +517,10 @@ export type Database = {
         Args: { p_strategy_id: string; p_groups: { name: string; rules: { text: string }[] }[] }
         Returns: void
       }
+      admin_user_stats: {
+        Args: Record<string, never>
+        Returns: { id: string; email: string | null; plan: string; created_at: string }[]
+      }
     }
   }
 }
